@@ -1,0 +1,96 @@
+// components/cart/CartItemCard.tsx
+
+import type { CartItem } from "../../types/cart";
+import "./cartItemRow.css";
+
+type Props = {
+  item: CartItem;
+  imageUrl: string;
+  price: number;
+  originalPrice: number;
+  navigate: (path: string) => void;
+  updateQuantity: (id: string, qty: number) => void;
+  setVariantModal: (item: CartItem) => void;
+  handleRemoveItem: (id: string) => void;
+};
+
+export default function CartItemRow({
+  item,
+  imageUrl,
+  price,
+  originalPrice,
+  navigate,
+  updateQuantity,
+  setVariantModal,
+  handleRemoveItem,
+}: Props) {
+  return (
+    <div className="cart-row">
+      {/* Ảnh */}
+      <div className="cart-image" onClick={() => navigate(item.product.link)}>
+        {imageUrl ? (
+          <img src={imageUrl} alt={item.product.name} className="cart-img" />
+        ) : (
+          <div className="cart-empty">📦</div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="cart-info">
+        <p className="cart-name" onClick={() => navigate(item.product.link)}>
+          {item.product.name}
+        </p>
+
+        {(item.product.variants?.length ?? 0) > 0 && (
+          <button
+            className="cart-variant-btn"
+            onClick={() => setVariantModal(item)}
+          >
+            {item.variant
+              ? item.variant.name_vi ?? item.variant.sku
+              : "Chọn phân loại"}
+            <span>▼</span>
+          </button>
+        )}
+
+        <div className="cart-price">
+          <span className="price">
+            {price > 0 ? `${price.toLocaleString("vi-VN")}₫` : "Liên hệ"}
+          </span>
+
+          {originalPrice > price && (
+            <s className="old-price">
+              {originalPrice.toLocaleString("vi-VN")}₫
+            </s>
+          )}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="cart-actions">
+        <div className="qty-box">
+          <button onClick={() => updateQuantity(item.id, item.quantity - 1)}>
+            −
+          </button>
+          <span>{item.quantity}</span>
+          <button onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+            +
+          </button>
+        </div>
+
+        <span className="cart-total">
+          {price > 0
+            ? `${(price * item.quantity).toLocaleString("vi-VN")}₫`
+            : ""}
+        </span>
+
+        <button
+          className="remove-btn"
+          onClick={() => handleRemoveItem(item.id)}
+        >
+          🗑 Xóa
+        </button>
+      </div>
+    </div>
+  );
+}

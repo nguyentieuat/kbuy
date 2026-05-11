@@ -1,0 +1,35 @@
+// components/product/ProductsGrid.tsx
+
+import type { Product } from "../../types/product";
+import ProductCard from "../product/ProductCard";
+
+interface Props {
+  products: Product[];
+  isHome?: boolean;
+}
+
+export default function ProductListGrid({ products, isHome = false }: Props) {
+  const colClassName = isHome
+    ? "col-6 col-md-6 mb-4 col-lg-4"
+    : "col-6 col-md-6 mb-4 col-lg-3";
+
+  return (
+    <div className="row">
+      {products.map((product) => (
+        <div key={product.id} className={colClassName}>
+          <ProductCard
+            name={product.name}
+            price={Number(product.price)}
+            originalPrice={
+              product.originalPrice ? Number(product.originalPrice) : undefined
+            }
+            image={product.image || ""}
+            link={`${product.link}`}
+            isNew={!!product.newArrivalUntil}
+            isSale={!!product.discountPercent}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
