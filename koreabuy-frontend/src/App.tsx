@@ -11,6 +11,9 @@ import ScrollToTop from "./components/ScrollToTop";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderDetail from "./pages/OrderDetail";
 import OrderListPage from "./pages/OrderListPage";
+import LoginPage from "./pages/LoginPage";
+import ProfilePage from "./pages/ProfilePage";
+
 
 export default function App() {
   return (
@@ -25,6 +28,11 @@ export default function App() {
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order/:orderCode" element={<OrderDetail />} />
           <Route path="/orders" element={<OrderListPage />} />
+        </Route>
+
+        <Route >
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
       </Routes>
       <ScrollToTopButton />

@@ -7,9 +7,7 @@ import {
   type ConfirmationResult,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
-
-
-
+import { normalizePhone } from "../utils/phone";
 
 export function useFirebaseOtp() {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -47,17 +45,20 @@ export function useFirebaseOtp() {
       // Dùng element trực tiếp thay vì id string
       recaptchaVerifier.current = new RecaptchaVerifier(
         auth,
-        containerRef.current!, // ✅ truyền element thay vì "recaptcha-container"
+        containerRef.current!, // truyền element thay vì "recaptcha-container"
         { size: "invisible" },
       );
 
-      const cleaned = phone.replace(/\D/g, "");
-      const internationalPhone =
-        "+84" + (cleaned.startsWith("0") ? cleaned.slice(1) : cleaned);
+      const normalizedPhone = normalizePhone(phone);
+
+      if (!normalizedPhone) {
+        setError("Số điện thoại không hợp lệ");
+        return;
+      }
 
       const result = await signInWithPhoneNumber(
         auth,
-        internationalPhone,
+        normalizedPhone,
         recaptchaVerifier.current,
       );
       setConfirmation(result);

@@ -1,46 +1,113 @@
 // components/AddressModal.tsx
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useProvinces, useWards } from "../hooks/useAddress";
 import type { Province, Ward } from "../hooks/useAddress";
 
-type AddressResult = {
+type AddressModalResult = {
+  receiver_name?: string;
+  receiver_phone?: string;
+
   province: Province;
   ward: Ward;
-  detail: string; // số nhà, tên đường
+  detail: string;
 };
 
-type Props = {
+type AddressModalProps = {
   onClose: () => void;
-  onConfirm: (result: AddressResult) => void;
-  initialDetail?: string;
+
+  onConfirm: (result: AddressModalResult) => void | Promise<void>;
+
+  mode?: "checkout" | "profile";
+
+  initialData?: {
+    province?: Province | null;
+    ward?: Ward | null;
+    detail?: string;
+
+    receiver_name?: string;
+    receiver_phone?: string;
+  };
 };
 
-export default function AddressModal({ onClose, onConfirm, initialDetail = "" }: Props) {
+export default function AddressModal({
+  onClose,
+  onConfirm,
+  mode = "checkout",
+  initialData,
+}: AddressModalProps) {
   const { provinces, loading: loadingProvinces } = useProvinces();
-  const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
-  const { wards, loading: loadingWards } = useWards(selectedProvince?.code ?? null);
-  const [selectedWard, setSelectedWard] = useState<Ward | null>(null);
-  const [detail, setDetail] = useState(initialDetail);
+  const [selectedProvince, setSelectedProvince] = useState<Province | null>(
+    initialData?.province ?? null,
+  );
+
+  const [selectedWard, setSelectedWard] = useState<Ward | null>(
+    initialData?.ward ?? null,
+  );
+
+  const [detail, setDetail] = useState(initialData?.detail ?? "");
+
+  const { wards, loading: loadingWards } = useWards(
+    selectedProvince?.code ?? null,
+  );
+
   const [searchProvince, setSearchProvince] = useState("");
   const [searchWard, setSearchWard] = useState("");
-  const [step, setStep] = useState<"province" | "ward" | "detail">("province");
+  const [step, setStep] = useState<"province" | "ward" | "detail">(
+    initialData?.province
+      ? initialData?.ward
+        ? "detail"
+        : "ward"
+      : "province",
+  );
   const detailRef = useRef<HTMLInputElement>(null);
 
+  const [receiverName, setReceiverName] = useState(
+    initialData?.receiver_name ?? "",
+  );
+
+  const [receiverPhone, setReceiverPhone] = useState(
+    initialData?.receiver_phone ?? "",
+  );
+
   const filteredProvinces = provinces.filter((p) =>
-    p.name.toLowerCase().includes(searchProvince.toLowerCase())
+    p.name.toLowerCase().includes(searchProvince.toLowerCase()),
   );
 
   const filteredWards = wards.filter((w) =>
-    w.name.toLowerCase().includes(searchWard.toLowerCase())
+    w.name.toLowerCase().includes(searchWard.toLowerCase()),
   );
 
   const handleConfirm = () => {
     if (!selectedProvince || !selectedWard) return;
-    onConfirm({ province: selectedProvince, ward: selectedWard, detail });
+
+    if (mode === "profile") {
+      if (!receiverName.trim() || !receiverPhone.trim()) return;
+
+      onConfirm({
+        province: selectedProvince,
+        ward: selectedWard,
+        detail,
+
+        receiver_name: mode === "profile" ? receiverName.trim() : undefined,
+
+        receiver_phone: mode === "profile" ? receiverPhone.trim() : undefined,
+      });
+      return;
+    }
+
+    // checkout mode
+    onConfirm({
+      province: selectedProvince,
+      ward: selectedWard,
+      detail,
+    });
   };
 
-  const canConfirm = selectedProvince && selectedWard;
+  const canConfirm =
+    selectedProvince &&
+    selectedWard &&
+    (mode !== "profile" || (receiverName.trim() && receiverPhone.trim()));
 
   return (
     <>
@@ -48,47 +115,141 @@ export default function AddressModal({ onClose, onConfirm, initialDetail = "" }:
       <div
         onClick={onClose}
         style={{
-          position: "fixed", inset: 0,
-          background: "rgba(0,0,0,0.5)", zIndex: 1040,
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.5)",
+          zIndex: 1040,
         }}
       />
 
       {/* Modal */}
-      <div style={{
-        position: "fixed", top: "50%", left: "50%",
-        transform: "translate(-50%, -50%)",
-        background: "#fff", borderRadius: 16,
-        zIndex: 1050, width: "min(560px, 95vw)",
-        maxHeight: "85vh", display: "flex", flexDirection: "column",
-        boxShadow: "0 16px 48px rgba(0,0,0,0.15)",
-        overflow: "hidden",
-      }}>
+      <div
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "#fff",
+          borderRadius: 16,
+          zIndex: 1050,
+          width: "min(560px, 95vw)",
+          maxHeight: "85vh",
+          display: "flex",
+          flexDirection: "column",
+          boxShadow: "0 16px 48px rgba(0,0,0,0.15)",
+          overflow: "hidden",
+        }}
+      >
+        {mode === "profile" && (
+          <>
+            <div className="mb-3">
+              <label
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  marginBottom: 6,
+                  display: "block",
+                }}
+              >
+                Người nhận:
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                value={receiverName}
+                onChange={(e) => setReceiverName(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <div className="mb-3">
+              <label
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  marginBottom: 6,
+                  display: "block",
+                }}
+              >
+                Số điện thoại
+              </label>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  border: `1px solid  "#dee2e6"`,
+                  borderRadius: 8,
+                  overflow: "hidden",
+                }}
+              >
+                <span
+                  style={{
+                    padding: "8px 12px",
+                    background: "#f8f8f8",
+                    borderRight: "1px solid #dee2e6",
+                    fontSize: 13,
+                    color: "#555",
+                  }}
+                >
+                  +84
+                </span>
+                <input
+                  type="tel"
+                  className="form-control border-0 shadow-none"
+                  placeholder="912345678"
+                  value={receiverPhone}
+                  onChange={(e) => setReceiverPhone(e.target.value)}
+                  style={{ borderRadius: 0, fontSize: 14 }}
+                />
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Header */}
-        <div style={{
-          display: "flex", justifyContent: "space-between",
-          alignItems: "center", padding: "18px 24px",
-          borderBottom: "1px solid #f0f0f0", flexShrink: 0,
-        }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "18px 24px",
+            borderBottom: "1px solid #f0f0f0",
+            flexShrink: 0,
+          }}
+        >
           <h6 style={{ fontWeight: 700, margin: 0, fontSize: 16 }}>
             Chọn địa chỉ nhận hàng
           </h6>
-          <button onClick={onClose} style={{
-            border: "none", background: "none",
-            fontSize: 20, cursor: "pointer", color: "#888", lineHeight: 1,
-          }}>✕</button>
+          <button
+            onClick={onClose}
+            style={{
+              border: "none",
+              background: "none",
+              fontSize: 20,
+              cursor: "pointer",
+              color: "#888",
+              lineHeight: 1,
+            }}
+          >
+            ✕
+          </button>
         </div>
 
         {/* Step tabs */}
-        <div style={{
-          display: "flex", borderBottom: "1px solid #f0f0f0",
-          flexShrink: 0,
-        }}>
-          {([
-            { key: "province", label: "Tỉnh / Thành phố" },
-            { key: "ward",     label: "Quận / Huyện / Xã" },
-            { key: "detail",   label: "Địa chỉ chi tiết" },
-          ] as const).map((s, idx) => {
+        <div
+          style={{
+            display: "flex",
+            borderBottom: "1px solid #f0f0f0",
+            flexShrink: 0,
+          }}
+        >
+          {(
+            [
+              { key: "province", label: "Tỉnh / Thành phố" },
+              { key: "ward", label: "Quận / Huyện / Xã" },
+              { key: "detail", label: "Địa chỉ chi tiết" },
+            ] as const
+          ).map((s, idx) => {
             const isActive = step === s.key;
             const isDone =
               (s.key === "province" && selectedProvince) ||
@@ -103,11 +264,17 @@ export default function AddressModal({ onClose, onConfirm, initialDetail = "" }:
                   setStep(s.key);
                 }}
                 style={{
-                  flex: 1, padding: "12px 8px", border: "none",
-                  background: "none", cursor: "pointer", fontSize: 12,
+                  flex: 1,
+                  padding: "12px 8px",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  fontSize: 12,
                   fontWeight: isActive ? 700 : 400,
                   color: isActive ? "#007bff" : isDone ? "#27ae60" : "#aaa",
-                  borderBottom: isActive ? "2px solid #007bff" : "2px solid transparent",
+                  borderBottom: isActive
+                    ? "2px solid #007bff"
+                    : "2px solid transparent",
                   transition: "all 0.15s",
                 }}
               >
@@ -120,7 +287,6 @@ export default function AddressModal({ onClose, onConfirm, initialDetail = "" }:
 
         {/* Body */}
         <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px" }}>
-
           {/* STEP 1: Tỉnh */}
           {step === "province" && (
             <>
@@ -134,11 +300,15 @@ export default function AddressModal({ onClose, onConfirm, initialDetail = "" }:
                 style={{ borderRadius: 8, fontSize: 14 }}
               />
               {loadingProvinces ? (
-                <div style={{ textAlign: "center", padding: 24, color: "#aaa" }}>
+                <div
+                  style={{ textAlign: "center", padding: 24, color: "#aaa" }}
+                >
                   Đang tải...
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 4 }}
+                >
                   {filteredProvinces.map((p) => (
                     <div
                       key={p.code}
@@ -149,21 +319,33 @@ export default function AddressModal({ onClose, onConfirm, initialDetail = "" }:
                         setStep("ward");
                       }}
                       style={{
-                        padding: "10px 14px", borderRadius: 8,
-                        cursor: "pointer", fontSize: 14,
-                        background: selectedProvince?.code === p.code ? "#e8f0fe" : "transparent",
-                        color: selectedProvince?.code === p.code ? "#007bff" : "#333",
-                        fontWeight: selectedProvince?.code === p.code ? 600 : 400,
-                        display: "flex", justifyContent: "space-between",
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        cursor: "pointer",
+                        fontSize: 14,
+                        background:
+                          selectedProvince?.code === p.code
+                            ? "#e8f0fe"
+                            : "transparent",
+                        color:
+                          selectedProvince?.code === p.code
+                            ? "#007bff"
+                            : "#333",
+                        fontWeight:
+                          selectedProvince?.code === p.code ? 600 : 400,
+                        display: "flex",
+                        justifyContent: "space-between",
                         alignItems: "center",
                       }}
                       onMouseEnter={(e) => {
                         if (selectedProvince?.code !== p.code)
-                          (e.currentTarget as HTMLDivElement).style.background = "#f8f9fa";
+                          (e.currentTarget as HTMLDivElement).style.background =
+                            "#f8f9fa";
                       }}
                       onMouseLeave={(e) => {
                         if (selectedProvince?.code !== p.code)
-                          (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                          (e.currentTarget as HTMLDivElement).style.background =
+                            "transparent";
                       }}
                     >
                       {p.name}
@@ -173,7 +355,13 @@ export default function AddressModal({ onClose, onConfirm, initialDetail = "" }:
                     </div>
                   ))}
                   {filteredProvinces.length === 0 && (
-                    <p style={{ color: "#aaa", textAlign: "center", padding: 16 }}>
+                    <p
+                      style={{
+                        color: "#aaa",
+                        textAlign: "center",
+                        padding: 16,
+                      }}
+                    >
                       Không tìm thấy kết quả
                     </p>
                   )}
@@ -186,11 +374,17 @@ export default function AddressModal({ onClose, onConfirm, initialDetail = "" }:
           {step === "ward" && (
             <>
               {selectedProvince && (
-                <div style={{
-                  padding: "8px 12px", borderRadius: 8,
-                  background: "#f0f6ff", marginBottom: 12,
-                  fontSize: 13, color: "#007bff", fontWeight: 600,
-                }}>
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    background: "#f0f6ff",
+                    marginBottom: 12,
+                    fontSize: 13,
+                    color: "#007bff",
+                    fontWeight: 600,
+                  }}
+                >
                   📍 {selectedProvince.name}
                 </div>
               )}
@@ -204,11 +398,15 @@ export default function AddressModal({ onClose, onConfirm, initialDetail = "" }:
                 style={{ borderRadius: 8, fontSize: 14 }}
               />
               {loadingWards ? (
-                <div style={{ textAlign: "center", padding: 24, color: "#aaa" }}>
+                <div
+                  style={{ textAlign: "center", padding: 24, color: "#aaa" }}
+                >
                   Đang tải...
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 4 }}
+                >
                   {filteredWards.map((w) => (
                     <div
                       key={w.code}
@@ -218,21 +416,30 @@ export default function AddressModal({ onClose, onConfirm, initialDetail = "" }:
                         setTimeout(() => detailRef.current?.focus(), 100);
                       }}
                       style={{
-                        padding: "10px 14px", borderRadius: 8,
-                        cursor: "pointer", fontSize: 14,
-                        background: selectedWard?.code === w.code ? "#e8f0fe" : "transparent",
-                        color: selectedWard?.code === w.code ? "#007bff" : "#333",
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        cursor: "pointer",
+                        fontSize: 14,
+                        background:
+                          selectedWard?.code === w.code
+                            ? "#e8f0fe"
+                            : "transparent",
+                        color:
+                          selectedWard?.code === w.code ? "#007bff" : "#333",
                         fontWeight: selectedWard?.code === w.code ? 600 : 400,
-                        display: "flex", justifyContent: "space-between",
+                        display: "flex",
+                        justifyContent: "space-between",
                         alignItems: "center",
                       }}
                       onMouseEnter={(e) => {
                         if (selectedWard?.code !== w.code)
-                          (e.currentTarget as HTMLDivElement).style.background = "#f8f9fa";
+                          (e.currentTarget as HTMLDivElement).style.background =
+                            "#f8f9fa";
                       }}
                       onMouseLeave={(e) => {
                         if (selectedWard?.code !== w.code)
-                          (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                          (e.currentTarget as HTMLDivElement).style.background =
+                            "transparent";
                       }}
                     >
                       {w.name}
@@ -242,7 +449,13 @@ export default function AddressModal({ onClose, onConfirm, initialDetail = "" }:
                     </div>
                   ))}
                   {filteredWards.length === 0 && !loadingWards && (
-                    <p style={{ color: "#aaa", textAlign: "center", padding: 16 }}>
+                    <p
+                      style={{
+                        color: "#aaa",
+                        textAlign: "center",
+                        padding: 16,
+                      }}
+                    >
                       Không tìm thấy kết quả
                     </p>
                   )}
@@ -255,17 +468,30 @@ export default function AddressModal({ onClose, onConfirm, initialDetail = "" }:
           {step === "detail" && (
             <>
               {selectedProvince && selectedWard && (
-                <div style={{
-                  padding: "10px 14px", borderRadius: 8,
-                  background: "#f0f6ff", marginBottom: 16,
-                  fontSize: 13, color: "#555", lineHeight: 1.6,
-                }}>
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 8,
+                    background: "#f0f6ff",
+                    marginBottom: 16,
+                    fontSize: 13,
+                    color: "#555",
+                    lineHeight: 1.6,
+                  }}
+                >
                   <span style={{ color: "#007bff", fontWeight: 600 }}>
                     {selectedWard.name}, {selectedProvince.name}
                   </span>
                 </div>
               )}
-              <label style={{ fontSize: 13, color: "#888", marginBottom: 6, display: "block" }}>
+              <label
+                style={{
+                  fontSize: 13,
+                  color: "#888",
+                  marginBottom: 6,
+                  display: "block",
+                }}
+              >
                 Số nhà, tên đường, tòa nhà...
               </label>
               <input
@@ -282,10 +508,15 @@ export default function AddressModal({ onClose, onConfirm, initialDetail = "" }:
         </div>
 
         {/* Footer */}
-        <div style={{
-          padding: "16px 24px", borderTop: "1px solid #f0f0f0",
-          display: "flex", gap: 12, flexShrink: 0,
-        }}>
+        <div
+          style={{
+            padding: "16px 24px",
+            borderTop: "1px solid #f0f0f0",
+            display: "flex",
+            gap: 12,
+            flexShrink: 0,
+          }}
+        >
           <button
             onClick={onClose}
             className="btn btn-outline-secondary"

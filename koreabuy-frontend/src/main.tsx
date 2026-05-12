@@ -18,11 +18,16 @@ import "./assets/fonts/icomoon/style.css";
 import "./assets/fonts/flaticon/font/flaticon.css";
 
 import { CartProvider } from "./contexts/CartContext";
+import { AuthProvider } from "./contexts/AuthContext.tsx";
 
 createRoot(document.getElementById("root")!).render(
-  <CartProvider>
+  <StrictMode>
     <BrowserRouter>
-      <App />
+      <AuthProvider>
+        <CartProvider>
+          <App />
+        </CartProvider>
+      </AuthProvider>
     </BrowserRouter>
-  </CartProvider>,
+  </StrictMode>,
 );

@@ -56,13 +56,22 @@ async function createOrder(req, res) {
   }
 }
 
-// GET /api/orders/:id
+// GET /api/orders/:orderCode
 async function getOrder(req, res) {
   try {
-    const order = await OrderService.getOrderDetail(Number(req.params.id));
-    res.json({ success: true, data: order });
+    const order = await OrderService.getOrderDetail(
+      req.params.orderCode
+    );
+
+    res.json({
+      success: true,
+      data: order,
+    });
   } catch (err) {
-    res.status(404).json({ error: err.message });
+    res.status(404).json({
+      success: false,
+      error: err.message,
+    });
   }
 }
 

@@ -4,6 +4,9 @@ const crypto = require("crypto");
 const OrderModel = require("../models/order.model");
 const { COD_OTP_THRESHOLD } = require("../config/otp.config");
 const OtpService = require("./otp.service");
+const db = require("../config/db.config");
+const { mapOrderDetail } = require("../mappers/order.mapper");
+const { normalizePhone } = require("../utils/phone.util");
 
 function generateOrderCode() {
   const prefix = "KB";
@@ -65,17 +68,26 @@ const OrderService = {
 
     // Validate OTP token nếu COD > 2 triệu
     if (paymentMethod === "cod" && grandTotal >= COD_OTP_THRESHOLD) {
-      if (!verifyToken) {
-        throw new Error(
-          `Yêu cầu xác minh OTP cho đơn COD trên ${COD_OTP_THRESHOLD}`,
+      const requireOtp = await OtpService.shouldRequireOtp({
+        phone: normalizePhone(customer.phone),
+        paymentMethod,
+        grandTotal,
+      });
+
+      // Chỉ verify token nếu thật sự cần OTP
+      if (requireOtp) {
+        if (!verifyToken) {
+          throw new Error(`Yêu cầu xác minh OTP cho số điện thoại`);
+        }
+
+        const tokenCheck = OtpService.validateVerifyToken(
+          verifyToken,
+          normalizePhone(customer.phone),
         );
-      }
-      const tokenCheck = OtpService.validateVerifyToken(
-        verifyToken,
-        customer.phone,
-      );
-      if (!tokenCheck.valid) {
-        throw new Error(tokenCheck.error);
+
+        if (!tokenCheck.valid) {
+          throw new Error(tokenCheck.error);
+        }
       }
     }
 
@@ -150,10 +162,14 @@ const OrderService = {
     });
   },
 
-  async getOrderDetail(orderId) {
-    const order = await OrderModel.findWithItems(orderId);
-    if (!order) throw new Error("Không tìm thấy đơn hàng");
-    return order;
+  async getOrderDetail(orderCode) {
+    const order = await OrderModel.findWithItemsByOrderCode(orderCode);
+
+    if (!order) {
+      throw new Error("Không tìm thấy đơn hàng");
+    }
+
+    return mapOrderDetail(order);
   },
 };
 

@@ -11,7 +11,9 @@ const categoriesRoutes = require('./routes/categories.route');
 const productsRoutes = require('./routes/products.route');
 const otpRoutes = require("./routes/otp.route");
 const orderRoutes = require("./routes/order.route");
-
+const authRoutes = require("./routes/auth.route");
+const addressRoutes = require("./routes/address.routes")
+const path = require("path");
 
 dotenv.config();
 
@@ -31,6 +33,14 @@ app.use("/api/products", productsRoutes);
 app.use("/api/orders", orderRoutes);
 
 app.use("/api/otp", otpRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/auth/addresses", addressRoutes);
+
+const rootPath = process.cwd();
+app.use(
+  "/uploads",
+  express.static(path.join(rootPath, "uploads"))
+);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

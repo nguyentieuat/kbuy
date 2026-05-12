@@ -498,12 +498,10 @@ export default function CheckoutPage() {
       {/* ── Address Modal ── */}
       {showAddressModal && (
         <AddressModal
-          initialDetail={selectedAddress?.detail ?? ""}
           onClose={() => setShowAddressModal(false)}
           onConfirm={(result) => {
             setSelectedAddress(result);
             setShowAddressModal(false);
-            setErrors((prev) => ({ ...prev, address: undefined }));
           }}
         />
       )}

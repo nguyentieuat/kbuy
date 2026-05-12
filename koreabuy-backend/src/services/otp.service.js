@@ -2,18 +2,10 @@
 
 const { COD_OTP_THRESHOLD } = require("../config/otp.config");
 const PhoneVerification = require("../models/phoneVerification.model");
+const { normalizePhone } = require("../utils/phone.util");
 
 const TOKEN_EXPIRY_MS = 10 * 60 * 1000;
 
-function normalizePhone(phone) {
-  return (
-    "+84" +
-    phone
-      .replace(/\D/g, "")
-      .replace(/^84/, "")
-      .replace(/^0/, "")
-  );
-}
 const OtpService = {
   async shouldRequireOtp({ phone, paymentMethod, grandTotal }) {
     if (paymentMethod !== "cod") {
@@ -42,7 +34,7 @@ const OtpService = {
 
   async markVerified(phone, uid, method = "firebase") {
     return PhoneVerification.upsertVerified({
-      phone,
+      phone: normalizePhone(phone),
       uid,
       method,
     });
@@ -50,7 +42,7 @@ const OtpService = {
 
   async increaseAttempt(phone, method = "firebase") {
     return PhoneVerification.incrementAttempt({
-      phone,
+      phone: normalizePhone(phone),
       method,
     });
   },
@@ -58,7 +50,7 @@ const OtpService = {
   createVerifyToken(phone) {
     return Buffer.from(
       JSON.stringify({
-        phone,
+        phone: normalizePhone(phone),
         verifiedAt: Date.now(),
       }),
     ).toString("base64");

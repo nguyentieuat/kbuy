@@ -21,6 +21,26 @@ const OrderModel = {
     return db("orders").where("order_code", orderCode).first();
   },
 
+  async findWithItemsByOrderCode(orderCode) {
+    const order = await db("orders").where("order_code", orderCode).first();
+
+    if (!order) return null;
+
+    const [items, statusLogs] = await Promise.all([
+      db("order_items").where("order_id", order.id),
+
+      db("order_status_logs")
+        .where("order_id", order.id)
+        .orderBy("created_at", "desc"),
+    ]);
+
+    return {
+      ...order,
+      items,
+      status_logs: statusLogs,
+    };
+  },
+
   async findWithItems(id) {
     const order = await db("orders").where("orders.id", id).first();
     if (!order) return null;

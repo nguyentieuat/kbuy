@@ -36,8 +36,10 @@ async function verifyOtpCode(req, res) {
 async function checkOtpRequirement(req, res) {
   try {
     const { phone, paymentMethod, grandTotal } = req.body;
+    const normalizedPhone =
+      "+84" + phone.replace(/\D/g, "").replace(/^84/, "").replace(/^0/, "");
     const requireOtp = await OtpService.shouldRequireOtp({
-      phone,
+       phone: normalizedPhone,
       paymentMethod,
       grandTotal,
     });

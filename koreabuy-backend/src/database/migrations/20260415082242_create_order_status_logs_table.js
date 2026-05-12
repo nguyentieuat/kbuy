@@ -26,6 +26,9 @@ exports.up = async function (knex) {
       .inTable("users")
       .onDelete("SET NULL");
 
+    table.string("location", 255).nullable();
+    table.string("handler_name", 255).nullable();
+
     table.timestamp("created_at").defaultTo(knex.fn.now());
 
     // index ngay trong createTable (clean hơn)

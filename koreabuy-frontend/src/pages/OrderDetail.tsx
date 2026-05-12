@@ -2,8 +2,12 @@
 
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useOrderDetail } from "../hooks/useOrderDetail";
+import TrackingTimeline from "../components/orders/TrackingTimeline";
+import { useEffect } from "react";
 
-const fmt = (n: number) => n.toLocaleString("vi-VN") + "₫";
+const fmt = (n?: number | string | null) => {
+  return Number(n ?? 0).toLocaleString("vi-VN") + "₫";
+};
 
 const normalizeImageUrl = (url?: string | null) => {
   if (!url) return "";
@@ -17,8 +21,13 @@ export default function OrderDetail() {
   const location = useLocation();
 
   const fromCheckout = location.state?.fromCheckout === true;
+  useEffect(() => {
+    if (fromCheckout) {
+      window.history.replaceState({}, "", location.pathname);
+    }
+  }, [fromCheckout, location.pathname]);
 
-  const { order, loading, error } = useOrderDetail(orderCode);
+  const { order, loading } = useOrderDetail(orderCode);
 
   if (loading) {
     return (
@@ -63,10 +72,12 @@ export default function OrderDetail() {
                 color: "#007bff",
               }}
             >
-              #{order.order_code}
+              #{order.orderCode}
             </div>
           </div>
         )}
+
+        {order.logs?.length > 0 && <TrackingTimeline logs={order.logs} />}
 
         {/* Thông tin đơn */}
         <div
@@ -82,20 +93,20 @@ export default function OrderDetail() {
             Thông tin giao hàng
           </h6>
           {[
-            { label: "Người nhận", value: order.receiver_name },
-            { label: "Số điện thoại", value: `+84 ${order.receiver_phone}` },
-            { label: "Địa chỉ", value: order.receiver_address },
+            { label: "Người nhận", value: order.receiverName },
+            { label: "Số điện thoại", value: `+84 ${order.receiverPhone}` },
+            { label: "Địa chỉ", value: order.receiverAddress },
             {
               label: "Vận chuyển",
               value:
-                order.shipping_method === "fast"
+                order.shippingMethod === "fast"
                   ? "⚡ Giao hàng nhanh (1–2 ngày)"
                   : "📦 Giao hàng tiết kiệm (3–5 ngày)",
             },
             {
               label: "Thanh toán",
               value:
-                order.payment_method === "cod"
+                order.paymentMethod === "cod"
                   ? "💵 Thanh toán khi nhận hàng"
                   : "💳 Chuyển khoản VietQR",
             },
@@ -155,7 +166,7 @@ export default function OrderDetail() {
                 {item.image ? (
                   <img
                     src={normalizeImageUrl(item.image)}
-                    alt={item.product_name}
+                    alt={item.productName ?? ""}
                     style={{
                       width: "100%",
                       height: "100%",
@@ -188,11 +199,11 @@ export default function OrderDetail() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {item.product_name}
+                  {item.productName}
                 </p>
-                {item.variant_name && (
+                {item.variantName && (
                   <p style={{ fontSize: 11, color: "#888", margin: "2px 0 0" }}>
-                    {item.variant_name}
+                    {item.variantName}
                   </p>
                 )}
                 <p style={{ fontSize: 12, color: "#888", margin: "2px 0 0" }}>
@@ -207,7 +218,7 @@ export default function OrderDetail() {
                   flexShrink: 0,
                 }}
               >
-                {fmt(item.total_price)}
+                {fmt(item.totalPrice)}
               </span>
             </div>
           ))}
@@ -222,7 +233,7 @@ export default function OrderDetail() {
             }}
           >
             <span>Tổng cộng</span>
-            <span style={{ color: "#e53935" }}>{fmt(order.final_price)}</span>
+            <span style={{ color: "#e53935" }}>{fmt(order.finalPrice)}</span>
           </div>
         </div>
 
