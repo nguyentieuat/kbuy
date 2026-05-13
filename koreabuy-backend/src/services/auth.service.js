@@ -1,6 +1,7 @@
 // services/auth.service.js
 
 const UserModel = require("../models/user.model");
+const UserAddressModel = require("../models/userAddress.model");
 
 const { hashPassword, comparePassword } = require("../utils/password");
 
@@ -99,7 +100,27 @@ const AuthService = {
       throw new Error("User not found");
     }
 
-    return sanitizeUser(user);
+    const rawAddresses = await UserAddressModel.findByUserId(userId);
+
+    const addresses = rawAddresses.map((a) => ({
+      ...a,
+
+      province: {
+        code: a.province_code,
+        name: a.province,
+      },
+
+      ward: {
+        code: a.ward_code,
+        name: a.ward,
+      },
+    }));
+
+    return {
+      ...sanitizeUser(user),
+      addresses,
+      default_address: addresses.find((a) => a.is_default) || null,
+    };
   },
 
   async updateProfile(userId, payload) {

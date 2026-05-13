@@ -1,10 +1,11 @@
 // components/AddressModal.tsx
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useProvinces, useWards } from "../hooks/useAddress";
 import type { Province, Ward } from "../hooks/useAddress";
 
 type AddressModalResult = {
+  receiver_gender: "male" | "female" | "other";
   receiver_name?: string;
   receiver_phone?: string;
 
@@ -25,6 +26,7 @@ type AddressModalProps = {
     ward?: Ward | null;
     detail?: string;
 
+    receiver_gender: "male" | "female" | "other";
     receiver_name?: string;
     receiver_phone?: string;
   };
@@ -62,6 +64,10 @@ export default function AddressModal({
   );
   const detailRef = useRef<HTMLInputElement>(null);
 
+  const [receiverGender, setReceiverGender] = useState<
+    "male" | "female" | "other"
+  >("male");
+
   const [receiverName, setReceiverName] = useState(
     initialData?.receiver_name ?? "",
   );
@@ -69,6 +75,27 @@ export default function AddressModal({
   const [receiverPhone, setReceiverPhone] = useState(
     initialData?.receiver_phone ?? "",
   );
+  useEffect(() => {
+    if (!initialData) return;
+
+    setSelectedProvince(initialData.province ?? null);
+    setSelectedWard(initialData.ward ?? null);
+    setDetail(initialData.detail ?? "");
+
+    setReceiverGender(initialData.receiver_gender ?? "other");
+
+    setReceiverName(initialData.receiver_name ?? "");
+    setReceiverPhone(initialData.receiver_phone ?? "");
+
+    // sync lại step
+    if (initialData.province && initialData.ward) {
+      setStep("detail");
+    } else if (initialData.province) {
+      setStep("ward");
+    } else {
+      setStep("province");
+    }
+  }, [initialData]);
 
   const filteredProvinces = provinces.filter((p) =>
     p.name.toLowerCase().includes(searchProvince.toLowerCase()),
@@ -88,6 +115,7 @@ export default function AddressModal({
         province: selectedProvince,
         ward: selectedWard,
         detail,
+        receiver_gender: receiverGender,
 
         receiver_name: mode === "profile" ? receiverName.trim() : undefined,
 
@@ -101,6 +129,7 @@ export default function AddressModal({
       province: selectedProvince,
       ward: selectedWard,
       detail,
+      receiver_gender: receiverGender,
     });
   };
 
@@ -140,72 +169,167 @@ export default function AddressModal({
           overflow: "hidden",
         }}
       >
-        {mode === "profile" && (
-          <>
-            <div className="mb-3">
-              <label
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  marginBottom: 6,
-                  display: "block",
-                }}
-              >
-                Người nhận:
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                value={receiverName}
-                onChange={(e) => setReceiverName(e.target.value)}
-                autoFocus
-              />
-            </div>
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "18px 24px",
+            borderBottom: "1px solid #f0f0f0",
+            flexShrink: 0,
+          }}
+        >
+          <h6 style={{ fontWeight: 700, margin: 0, fontSize: 16 }}>
+            {mode === "profile"
+              ? "Thêm / Sửa địa chỉ"
+              : "Chọn địa chỉ nhận hàng"}
+          </h6>
+          <button
+            onClick={onClose}
+            style={{
+              border: "none",
+              background: "none",
+              fontSize: 20,
+              cursor: "pointer",
+              color: "#888",
+              lineHeight: 1,
+            }}
+          >
+            ✕
+          </button>
+        </div>
 
-            <div className="mb-3">
+        {/* Profile mode — thông tin người nhận */}
+        {mode === "profile" && (
+          <div
+            style={{
+              padding: "16px 24px",
+              borderBottom: "1px solid #f0f0f0",
+              flexShrink: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            {/* Giới tính */}
+            <div>
               <label
                 style={{
                   fontSize: 13,
                   fontWeight: 600,
-                  marginBottom: 6,
+                  marginBottom: 8,
                   display: "block",
                 }}
               >
-                Số điện thoại
+                Giới tính
               </label>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  border: `1px solid  "#dee2e6"`,
-                  borderRadius: 8,
-                  overflow: "hidden",
-                }}
-              >
-                <span
-                  style={{
-                    padding: "8px 12px",
-                    background: "#f8f8f8",
-                    borderRight: "1px solid #dee2e6",
-                    fontSize: 13,
-                    color: "#555",
-                  }}
-                >
-                  +84
-                </span>
-                <input
-                  type="tel"
-                  className="form-control border-0 shadow-none"
-                  placeholder="912345678"
-                  value={receiverPhone}
-                  onChange={(e) => setReceiverPhone(e.target.value)}
-                  style={{ borderRadius: 0, fontSize: 14 }}
-                />
+
+              <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                {(["male", "female", "other"] as const).map((g) => (
+                  <label
+                    key={g}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      cursor: "pointer",
+                      fontSize: 14,
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="gender"
+                      value={g}
+                      checked={receiverGender === g}
+                      onChange={(e) =>
+                        setReceiverGender(
+                          e.target.value as "male" | "female" | "other",
+                        )
+                      }
+                    />
+                    {g === "male" ? "Nam" : g === "female" ? "Nữ" : "Khác"}
+                  </label>
+                ))}
               </div>
             </div>
-          </>
-        )}
+            {/* Tên người nhận + SĐT */}
+            <div className="row g-3">
+              <div className="col-sm-6">
+                <label
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    marginBottom: 6,
+                    display: "block",
+                  }}
+                >
+                  Người nhận *
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Họ và tên"
+                  value={receiverName}
+                  onChange={(e) => setReceiverName(e.target.value)}
+                  style={{ borderRadius: 8, fontSize: 14 }}
+                />
+              </div>
 
+              <div className="col-sm-6">
+                <label
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    marginBottom: 6,
+                    display: "block",
+                  }}
+                >
+                  Số điện thoại *
+                </label>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    border: "1px solid #dee2e6",
+                    borderRadius: 8,
+                    overflow: "hidden",
+                  }}
+                >
+                  <span
+                    style={{
+                      padding: "8px 10px",
+                      background: "#f8f8f8",
+                      borderRight: "1px solid #dee2e6",
+                      fontSize: 13,
+                      color: "#555",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    +84
+                  </span>
+                  <input
+                    type="tel"
+                    className="form-control border-0 shadow-none"
+                    placeholder="912345678"
+                    value={receiverPhone}
+                    onChange={(e) =>
+                      setReceiverPhone(e.target.value.replace(/\D/g, ""))
+                    }
+                    style={{ borderRadius: 0, fontSize: 14 }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Preview validation */}
+            {(!receiverName.trim() || !receiverPhone.trim()) && (
+              <p style={{ fontSize: 12, color: "#e59335", margin: 0 }}>
+                ⚠️ Vui lòng điền đầy đủ tên người nhận và số điện thoại
+              </p>
+            )}
+          </div>
+        )}
         {/* Header */}
         <div
           style={{

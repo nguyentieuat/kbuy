@@ -2,10 +2,12 @@
 
 const crypto = require("crypto");
 const OrderModel = require("../models/order.model");
+const OrderItemModel = require("../models/orderItem.model");
+const OrderStatusLogModel = require("../models/orderStatusLog.model");
 const { COD_OTP_THRESHOLD } = require("../config/otp.config");
 const OtpService = require("./otp.service");
 const db = require("../config/db.config");
-const { mapOrderDetail } = require("../mappers/order.mapper");
+const { mapOrderDetail, mapOrderSummary } = require("../mappers/order.mapper");
 const { normalizePhone } = require("../utils/phone.util");
 
 function generateOrderCode() {
@@ -127,22 +129,26 @@ const OrderService = {
 
           // Vận chuyển
           shipping_method: shipping,
-          shipping_region: payload.shippingRegion ?? null,
+          shipping_region: customer.region ?? null,
 
           // Thanh toán
           payment_method: paymentMethod,
           payment_status: "unpaid",
           status: "pending",
 
-          // Thông tin nhận hàng
+          // ─────────────────────────────
+          // Thông tin người nhận
+          receiver_gender: customer.gender ?? null,
           receiver_name: customer.full_name,
           receiver_phone: customer.phone,
           receiver_email: customer.email ?? null,
           receiver_address: customer.address,
-          receiver_ward: customer.ward ?? null,
-          receiver_province: customer.province ?? null,
 
-          // OTP token (lưu để audit)
+          receiver_ward: customer.ward ?? null,
+          receiver_ward_code: customer.wardCode ?? null,
+          receiver_province: customer.province ?? null,
+          receiver_province_code: customer.provinceCode ?? null,
+          // OTP
           otp_verify_token: verifyToken ?? null,
 
           note: note ?? null,
@@ -170,6 +176,52 @@ const OrderService = {
     }
 
     return mapOrderDetail(order);
+  },
+
+  async getOrdersByUser(userId) {
+    const orders = await OrderModel.findByUserId(userId);
+
+    if (orders.length === 0) {
+      return [];
+    }
+
+    const orderIds = orders.map((o) => o.id);
+
+    // parallel query
+    const [items, logs] = await Promise.all([
+      OrderItemModel.findByOrderIds(orderIds),
+      OrderStatusLogModel.findByOrderIds(orderIds),
+    ]);
+
+    // items map
+    const itemsMap = {};
+
+    for (const item of items) {
+      if (!itemsMap[item.order_id]) {
+        itemsMap[item.order_id] = [];
+      }
+
+      itemsMap[item.order_id].push(item);
+    }
+
+    // logs map
+    const logsMap = {};
+
+    for (const log of logs) {
+      if (!logsMap[log.order_id]) {
+        logsMap[log.order_id] = [];
+      }
+
+      logsMap[log.order_id].push(log);
+    }
+
+    return orders.map((order) =>
+      mapOrderSummary({
+        ...order,
+        items: itemsMap[order.id] || [],
+        status_logs: logsMap[order.id] || [],
+      }),
+    );
   },
 };
 

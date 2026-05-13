@@ -21,4 +21,11 @@ module.exports = {
       .where({ order_code: orderCode })
       .orderBy("created_at", "asc");
   },
+
+  async findByOrderIds(orderIds) {
+  return db("order_status_logs")
+    .whereIn("order_id", orderIds)
+    .orderBy("created_at", "desc");
+}
+
 };

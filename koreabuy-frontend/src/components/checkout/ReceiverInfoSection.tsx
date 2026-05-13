@@ -2,21 +2,14 @@
 
 import SectionCard from "./SectionCard";
 
-import type {
-  FormData,
-  FormErrors,
-  SelectedAddress,
-} from "./types";
+import type { FormData, FormErrors, SelectedAddress } from "./types";
 
 type Props = {
   form: FormData;
   errors: FormErrors;
   selectedAddress: SelectedAddress | null;
 
-  onChange: (
-    field: keyof FormData,
-    value: string,
-  ) => void;
+  onChange: (field: keyof FormData, value: string) => void;
 
   onOpenAddress: () => void;
 };
@@ -32,7 +25,7 @@ export default function ReceiverInfoSection({
     <SectionCard title="Thông tin người nhận">
       {/* Giới tính */}
       <div className="d-flex gap-4 mb-3">
-        {(["male", "female"] as const).map((g) => (
+        {(["male", "female", "other"] as const).map((g) => (
           <label
             key={g}
             style={{
@@ -46,10 +39,11 @@ export default function ReceiverInfoSection({
             <input
               type="radio"
               name="gender"
+              value={g}
               checked={form.gender === g}
               onChange={() => onChange("gender", g)}
             />
-            {g === "male" ? "Nam" : "Nữ"}
+            {g === "male" ? "Nam" : g === "female" ? "Nữ" : "Khác"}
           </label>
         ))}
       </div>
@@ -63,15 +57,11 @@ export default function ReceiverInfoSection({
             placeholder="Họ và tên *"
             value={form.full_name}
             data-error={!!errors.full_name}
-            onChange={(e) =>
-              onChange("full_name", e.target.value)
-            }
+            onChange={(e) => onChange("full_name", e.target.value)}
             style={{
               borderRadius: 8,
               fontSize: 14,
-              borderColor: errors.full_name
-                ? "#e53935"
-                : undefined,
+              borderColor: errors.full_name ? "#e53935" : undefined,
             }}
           />
 
@@ -95,9 +85,7 @@ export default function ReceiverInfoSection({
             style={{
               display: "flex",
               alignItems: "center",
-              border: `1px solid ${
-                errors.phone ? "#e53935" : "#dee2e6"
-              }`,
+              border: `1px solid ${errors.phone ? "#e53935" : "#dee2e6"}`,
               borderRadius: 8,
               overflow: "hidden",
             }}
@@ -120,9 +108,7 @@ export default function ReceiverInfoSection({
               className="form-control border-0 shadow-none"
               placeholder="Số điện thoại *"
               value={form.phone}
-              onChange={(e) =>
-                onChange("phone", e.target.value)
-              }
+              onChange={(e) => onChange("phone", e.target.value)}
               style={{
                 borderRadius: 0,
                 fontSize: 14,
@@ -152,9 +138,7 @@ export default function ReceiverInfoSection({
           className="form-control"
           placeholder="Email nhận xác nhận đơn hàng"
           value={form.email}
-          onChange={(e) =>
-            onChange("email", e.target.value)
-          }
+          onChange={(e) => onChange("email", e.target.value)}
           style={{
             borderRadius: 8,
             fontSize: 14,
@@ -170,9 +154,7 @@ export default function ReceiverInfoSection({
             padding: "10px 14px",
             borderRadius: 8,
             cursor: "pointer",
-            border: `1px solid ${
-              errors.address ? "#e53935" : "#dee2e6"
-            }`,
+            border: `1px solid ${errors.address ? "#e53935" : "#dee2e6"}`,
             background: "#fff",
             fontSize: 14,
             display: "flex",
@@ -183,15 +165,11 @@ export default function ReceiverInfoSection({
         >
           {selectedAddress ? (
             <span style={{ color: "#333", lineHeight: 1.5 }}>
-              {selectedAddress.detail &&
-                `${selectedAddress.detail}, `}
-              {selectedAddress.ward.name},{" "}
-              {selectedAddress.province.name}
+              {selectedAddress.detail && `${selectedAddress.detail}, `}
+              {selectedAddress.ward.name}, {selectedAddress.province.name}
             </span>
           ) : (
-            <span style={{ color: "#aaa" }}>
-              Chọn địa chỉ nhận hàng *
-            </span>
+            <span style={{ color: "#aaa" }}>Chọn địa chỉ nhận hàng *</span>
           )}
 
           <span

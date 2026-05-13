@@ -74,6 +74,32 @@ function mapOrderDetail(order) {
   };
 }
 
+function mapOrderSummary(order) {
+  return {
+    id: order.id,
+
+    orderCode: order.order_code,
+
+    status: order.status,
+    paymentStatus: order.payment_status,
+
+    finalPrice: Number(order.final_price),
+
+    createdAt: order.created_at,
+
+    items: (order.items || []).map(mapOrderItem),
+
+    logs: (order.status_logs || []).map(mapOrderLog),
+
+    latestLog: order.status_logs?.[0]
+      ? mapOrderLog(order.status_logs[0])
+      : null,
+  };
+}
+
 module.exports = {
+  mapOrderItem,
+  mapOrderLog,
   mapOrderDetail,
+  mapOrderSummary,
 };

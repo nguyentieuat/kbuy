@@ -30,6 +30,7 @@ import OrderNoteSection from "../components/checkout/OrderNoteSection";
 import CouponSection from "../components/checkout/CouponSection";
 import OrderItemList from "../components/checkout/OrderItemList";
 import OrderSummary from "../components/checkout/OrderSummary";
+import { useAuth } from "../contexts/AuthContext";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -45,14 +46,14 @@ const fmt = (n: number) => n.toLocaleString("vi-VN") + "₫";
 
 export default function CheckoutPage() {
   const { items, clearCart } = useCart();
+
   const navigate = useNavigate();
+
   const { toast, show: showToast } = useToast();
-  // Pay
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [showPayModal, setShowPayModal] = useState(false);
-  const [pendingOrderPayload, setPendingOrderPayload] = useState<any>(null);
 
   const { checkOtp } = useOtpCheck();
+
+  const { user } = useAuth();
 
   // Form
   const [form, setForm] = useState<FormData>({
@@ -61,13 +62,56 @@ export default function CheckoutPage() {
     phone: "",
     email: "",
     note: "",
+
+    province: null,
+    ward: null,
+    detail: "",
   });
+
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // Address
   const [showAddressModal, setShowAddressModal] = useState(false);
+
   const [selectedAddress, setSelectedAddress] =
     useState<SelectedAddress | null>(null);
+
+  // Auto fill user info
+  useEffect(() => {
+    if (!user) return;
+
+    const selected = user.default_address;
+
+    setForm((prev) => ({
+      ...prev,
+
+      // fallback nếu chưa có addressSelected
+      full_name:
+        prev.full_name || selected?.receiver_name || user.full_name || "",
+
+      phone: prev.phone || selected?.receiver_phone || user.phone || "",
+
+      email: prev.email || user.email || "",
+
+      gender: prev.gender || selected?.receiver_gender || "other",
+
+      province: prev.province || selected?.province || null,
+
+      ward: prev.ward || selected?.ward || null,
+
+      detail: prev.detail || selected?.detail || "",
+    }));
+  }, [user]);
+
+  // Auto fill default address
+  useEffect(() => {
+    if (!user?.default_address) return;
+
+    setSelectedAddress(user.default_address);
+  }, [user]);
+  // Pay
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [pendingOrderPayload, setPendingOrderPayload] = useState<any>(null);
 
   // Shipping
   const [shipping, setShipping] = useState<ShippingMethod>("fast");
@@ -207,52 +251,94 @@ export default function CheckoutPage() {
     return errs;
   };
 
-  const buildPayload = (verifyToken?: string): SubmitOrderPayload => {
-    const fullAddress = selectedAddress
-      ? [
-          selectedAddress.detail,
-          selectedAddress.ward.name,
-          selectedAddress.province.name,
-        ]
-          .filter(Boolean)
-          .join(", ")
-      : "";
+const buildPayload = (verifyToken?: string): SubmitOrderPayload => {
+  const fullAddress = selectedAddress
+    ? [
+        selectedAddress.detail,
+        selectedAddress.ward.name,
+        selectedAddress.province.name,
+      ]
+        .filter(Boolean)
+        .join(", ")
+    : "";
 
-    return {
-      customer: {
-        full_name: form.full_name,
-        phone: normalizePhone(form.phone),
-        email: form.email || undefined,
-        address: fullAddress,
-        ward: selectedAddress?.ward.name,
-        province: selectedAddress?.province.name,
-      },
-      items: items.map((i) => ({
-        productId: i.product.id,
-        variantId: i.variant?.id ?? null,
-        productName: i.product.name,
-        variantName: i.variant?.name_vi ?? null,
-        sku: i.variant?.sku ?? null,
-        image: i.variant?.image_url ?? i.product.image,
-        originalPrice: Number(
-          i.variant?.original_price ?? i.product.originalPrice ?? 0,
-        ),
-        price: Number(i.variant?.price ?? i.product.price ?? 0),
-        quantity: i.quantity,
-      })),
-      shipping: shipping,
-      shippingFee: shippingFee,
-      shippingRegion: region,
-      paymentMethod: paymentMethod,
-      couponCode: couponApplied,
-      couponDiscount: couponDiscount,
-      serviceFee: serviceFee,
-      totalFinal: totalFinal,
-      grandTotal: grandTotal,
-      note: form.note,
-      verifyToken: verifyToken ?? null,
-    };
+  return {
+    // user login
+    userId: user?.id ?? undefined,
+
+    customer: {
+      // receiver info
+      full_name: form.full_name,
+
+      phone: normalizePhone(form.phone),
+
+      email: form.email || undefined,
+
+      gender:
+        selectedAddress?.receiver_gender ??
+        form.gender,
+
+      // address
+      address: fullAddress,
+
+      detailAddress: selectedAddress?.detail,
+
+      province: selectedAddress?.province.name,
+      provinceCode: selectedAddress?.province.code,
+
+      ward: selectedAddress?.ward.name,
+      wardCode: selectedAddress?.ward.code,
+      region: region
+    },
+
+    items: items.map((i) => ({
+      productId: i.product.id,
+
+      variantId: i.variant?.id ?? null,
+
+      productName: i.product.name,
+
+      variantName: i.variant?.name_vi ?? null,
+
+      sku: i.variant?.sku ?? null,
+
+      image:
+        i.variant?.image_url ??
+        i.product.image,
+
+      originalPrice: Number(
+        i.variant?.original_price ??
+          i.product.originalPrice ??
+          0,
+      ),
+
+      price: Number(
+        i.variant?.price ??
+          i.product.price ??
+          0,
+      ),
+
+      quantity: i.quantity,
+    })),
+
+    shipping,
+    shippingFee,
+    shippingRegion: region,
+
+    paymentMethod,
+
+    couponCode: couponApplied,
+    couponDiscount,
+
+    serviceFee,
+    totalFinal,
+    grandTotal,
+
+    note: form.note,
+
+    verifyToken: verifyToken ?? null,
   };
+};
 
   const handleSubmit = async () => {
     const errs = validate();
@@ -499,6 +585,20 @@ export default function CheckoutPage() {
       {showAddressModal && (
         <AddressModal
           onClose={() => setShowAddressModal(false)}
+          initialData={
+            selectedAddress
+              ? {
+                  province: selectedAddress.province,
+                  ward: selectedAddress.ward,
+                  detail: selectedAddress.detail,
+
+                  receiver_gender: selectedAddress.receiver_gender,
+
+                  receiver_name: selectedAddress.receiver_name,
+                  receiver_phone: selectedAddress.receiver_phone,
+                }
+              : undefined
+          }
           onConfirm={(result) => {
             setSelectedAddress(result);
             setShowAddressModal(false);

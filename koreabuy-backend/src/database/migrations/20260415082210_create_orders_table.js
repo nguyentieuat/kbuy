@@ -36,12 +36,15 @@ exports.up = async function (knex) {
     // unpaid → paid → refunded
 
     // ── Thông tin nhận hàng ──────────────────────────
+    table.string("receiver_gender", 20).nullable();
     table.string("receiver_name", 255);
     table.string("receiver_phone", 20);
     table.string("receiver_email", 255).nullable(); // thêm
     table.text("receiver_address");
     table.string("receiver_ward", 255).nullable(); // thêm — phường/xã
+        table.string("receiver_ward_code", 50).nullable();
     table.string("receiver_province", 255).nullable(); // thêm — tỉnh/thành
+        table.string("receiver_province_code", 50).nullable();
 
     // ── Misc ─────────────────────────────────────────
     table.text("note").nullable();

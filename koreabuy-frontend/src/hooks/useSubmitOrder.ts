@@ -8,12 +8,17 @@ import type { ShippingMethod, Region } from "../utils/shipping";
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type CustomerInfo = {
+  gender: string;
   full_name: string;
   phone: string;
   email?: string;
   address: string;
+  detailAddress?: string;
   ward?: string;
+  wardCode?: number;
   province?: string;
+  provinceCode?: number;
+  region?: string
 };
 
 type OrderItem = {
@@ -29,6 +34,7 @@ type OrderItem = {
 };
 
 export type SubmitOrderPayload = {
+  userId?: number;
   customer: CustomerInfo;
   items: OrderItem[];
   shipping: ShippingMethod;
@@ -76,11 +82,16 @@ export function useSubmitOrder(
   ): Promise<OrderResult | null> => {
     setSubmitting(true);
     setError(null);
-
+    debugger
     try {
+      const token = localStorage.getItem("token");
+      const authHeaders = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
       const res = await fetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify(payload),
       });
 

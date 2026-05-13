@@ -16,7 +16,7 @@ async function createOrder(req, res) {
   try {
     const result = await OrderService.createOrder({
       ...req.body,
-      userId: req.userId ?? null, // từ auth middleware nếu có
+      userId: req.userId ?? req.body.userId ?? null, // từ auth middleware nếu có
     });
 
     await addOrderLog({
@@ -75,4 +75,24 @@ async function getOrder(req, res) {
   }
 }
 
-module.exports = { createOrder, getOrder };
+// GET /api/orders/my
+async function getMyOrders(req, res) {
+  try {
+    const orders = await OrderService.getOrdersByUser(req.userId);
+
+    return res.json({
+      success: true,
+      data: orders,
+    });
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      success: false,
+      error: "Không thể tải danh sách đơn hàng",
+    });
+  }
+}
+
+
+module.exports = { createOrder, getOrder, getMyOrders };

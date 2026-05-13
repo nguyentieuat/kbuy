@@ -57,6 +57,10 @@ const OrderModel = {
       .where({ id })
       .update({ payment_status: paymentStatus, updated_at: new Date() });
   },
+
+  async findByUserId(userId) {
+    return db("orders").where("user_id", userId).orderBy("created_at", "desc");
+  },
 };
 
 module.exports = OrderModel;

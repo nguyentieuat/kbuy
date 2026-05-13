@@ -7,16 +7,25 @@ import {
   type ReactNode,
 } from "react";
 
+import type { SelectedAddress } from "../components/checkout/types";
+
 export type User = {
   id: number;
   username: string;
+
   phone: string | null;
   email: string | null;
+
   full_name: string | null;
+
   avatar_url: string | null;
+
   phone_verified: boolean;
   email_verified: boolean;
+
   created_at: string;
+
+  default_address?: SelectedAddress | null;
 };
 
 type AuthContextType = {

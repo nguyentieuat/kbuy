@@ -6,6 +6,10 @@ import { useToast } from "../hooks/useToast";
 import Toast from "../components/Toast";
 import AddressModal from "../components/AddressModal";
 import OtpModal from "../components/OtpModal";
+import AvatarUploader from "../components/profile/AvatarUploader";
+import OrderSection from "../components/profile/OrderSection";
+import AddressSection from "../components/profile/AddressSection";
+import ChangePasswordSection from "../components/profile/ChangePasswordSection";
 
 type Tab = "info" | "address" | "orders" | "security";
 
@@ -13,6 +17,7 @@ type Tab = "info" | "address" | "orders" | "security";
 
 type UserAddress = {
   id: number;
+  receiver_gender: "male" | "female" | "other";
   receiver_name: string;
   receiver_phone: string;
   province: string;
@@ -23,380 +28,61 @@ type UserAddress = {
 };
 
 type AddressFormResult = {
+  receiver_gender?: "male" | "female" | "other";
   receiver_name?: string;
   receiver_phone?: string;
-  
+
   province: {
     name: string;
+    code: number;
   };
   ward: {
     name: string;
+    code: number;
   };
   detail: string;
 };
 
-// ── AddressSection ────────────────────────────────────────────────────────
+type Order = {
+  id: number;
+  orderCode: string;
+  status: string;
+  paymentStatus: string;
+  finalPrice: number;
+  createdAt: string;
 
-function AddressSection({
-  authHeaders,
-}: {
-  authHeaders: Record<string, string>;
-}) {
-  const [addresses, setAddresses] = useState<UserAddress[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [editTarget, setEditTarget] = useState<UserAddress | null>(null);
-  const { show: showToast } = useToast();
+  items: {
+    product_name: string;
+    image: string | null;
+    quantity: number;
+  }[];
 
-  const fetchAddresses = async () => {
-    const res = await fetch("/api/auth/addresses", { headers: authHeaders });
-    const data = await res.json();
-    setAddresses(data.data ?? []);
-    setLoading(false);
-  };
+  logs: any[];
+  latestLog: any;
+};
 
-  useEffect(() => {
-    fetchAddresses();
-  }, []);
+const ORDER_TABS = [
+  { key: "all", label: "Tất cả" },
+  { key: "waiting_payment", label: "Chờ TT" },
+  { key: "pending", label: "Chờ xác nhận" },
+  { key: "processing", label: "Đang xử lý" },
+  { key: "shipped", label: "Đang giao" },
+  { key: "delivered", label: "Hoàn thành" },
+  { key: "cancelled", label: "Đã huỷ" },
+];
 
-  const handleSetDefault = async (id: number) => {
-    await fetch(`/api/auth/addresses/${id}/default`, {
-      method: "PUT",
-      headers: authHeaders,
-    });
-    fetchAddresses();
-    showToast("Đã đặt địa chỉ mặc định", "success");
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!confirm("Xóa địa chỉ này?")) return;
-    await fetch(`/api/auth/addresses/${id}`, {
-      method: "DELETE",
-      headers: authHeaders,
-    });
-    fetchAddresses();
-    showToast("Đã xóa địa chỉ", "info");
-  };
-
-  const handleSaveAddress = async (result: AddressFormResult) => {
-    const body = {
-      receiver_name: result.receiver_name,
-      receiver_phone: result.receiver_phone,
-      province: result.province.name,
-      ward: result.ward.name,
-      detail: result.detail,
-      full_address: [result.detail, result.ward.name, result.province.name]
-        .filter(Boolean)
-        .join(", "),
-    };
-
-    if (editTarget) {
-      await fetch(`/api/auth/addresses/${editTarget.id}`, {
-        method: "PUT",
-        headers: authHeaders,
-        body: JSON.stringify(body),
-      });
-    } else {
-      await fetch("/api/auth/addresses", {
-        method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify(body),
-      });
-    }
-
-    setShowModal(false);
-    setEditTarget(null);
-    fetchAddresses();
-    showToast(
-      editTarget ? "Đã cập nhật địa chỉ" : "Đã thêm địa chỉ",
-      "success",
-    );
-  };
-
-  if (loading)
-    return (
-      <div style={{ textAlign: "center", padding: 32 }}>
-        <div className="spinner-border spinner-border-sm text-primary" />
-      </div>
-    );
-
-  return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 12,
-        padding: 24,
-        border: "1px solid #eee",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
-        <h6 style={{ fontWeight: 700, margin: 0 }}>Địa chỉ giao hàng</h6>
-        <button
-          onClick={() => {
-            setEditTarget(null);
-            setShowModal(true);
-          }}
-          className="btn btn-primary btn-sm"
-          style={{ borderRadius: 8, fontWeight: 600 }}
-        >
-          + Thêm địa chỉ
-        </button>
-      </div>
-
-      {addresses.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "24px 0", color: "#aaa" }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>📍</div>
-          <p style={{ fontSize: 13 }}>Chưa có địa chỉ nào</p>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {addresses.map((addr) => (
-            <div
-              key={addr.id}
-              style={{
-                padding: "14px 16px",
-                borderRadius: 10,
-                border: addr.is_default
-                  ? "2px solid #007bff"
-                  : "1px solid #eee",
-                background: addr.is_default ? "#f0f6ff" : "#fff",
-                position: "relative",
-              }}
-            >
-              {/* Badge mặc định */}
-              {addr.is_default && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: -1,
-                    right: 12,
-                    background: "#007bff",
-                    color: "#fff",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: "2px 8px",
-                    borderRadius: "0 0 6px 6px",
-                  }}
-                >
-                  MẶC ĐỊNH
-                </span>
-              )}
-
-              <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>
-                {addr.receiver_name}
-                <span
-                  style={{
-                    color: "#888",
-                    fontWeight: 400,
-                    marginLeft: 8,
-                    fontSize: 13,
-                  }}
-                >
-                  +84 {addr.receiver_phone}
-                </span>
-              </p>
-              <p style={{ fontSize: 13, color: "#555", margin: "4px 0 0" }}>
-                {addr.full_address}
-              </p>
-
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                {!addr.is_default && (
-                  <button
-                    onClick={() => handleSetDefault(addr.id)}
-                    style={{
-                      border: "1px solid #007bff",
-                      background: "none",
-                      color: "#007bff",
-                      fontSize: 12,
-                      borderRadius: 6,
-                      padding: "3px 10px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Đặt mặc định
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    setEditTarget(addr);
-                    setShowModal(true);
-                  }}
-                  style={{
-                    border: "1px solid #ddd",
-                    background: "none",
-                    color: "#555",
-                    fontSize: 12,
-                    borderRadius: 6,
-                    padding: "3px 10px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Sửa
-                </button>
-                {!addr.is_default && (
-                  <button
-                    onClick={() => handleDelete(addr.id)}
-                    style={{
-                      border: "1px solid #ffcdd2",
-                      background: "none",
-                      color: "#e53935",
-                      fontSize: 12,
-                      borderRadius: 6,
-                      padding: "3px 10px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Xóa
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {showModal && (
-        <AddressModal
-          mode="profile"
-          initialData={{
-            detail: editTarget?.detail ?? "",
-            receiver_name: editTarget?.receiver_name ?? "",
-            receiver_phone: editTarget?.receiver_phone ?? "",
-          }}
-          onClose={() => {
-            setShowModal(false);
-            setEditTarget(null);
-          }}
-          onConfirm={handleSaveAddress}
-        />
-      )}
-    </div>
-  );
-}
-
-// ── AvatarUploader ────────────────────────────────────────────────────────
-
-function AvatarUploader({
-  currentAvatar,
-  authHeaders,
-  onUploaded,
-}: {
-  currentAvatar: string | null;
-  authHeaders: Record<string, string>;
-  onUploaded: () => void;
-}) {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
-  const { show: showToast } = useToast();
-
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Preview
-    const reader = new FileReader();
-    reader.onload = () => setPreview(reader.result as string);
-    reader.readAsDataURL(file);
-
-    // Upload
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("avatar", file);
-
-      const res = await fetch("/api/auth/profile", {
-        method: "PUT",
-        headers: {
-          Authorization: authHeaders.Authorization,
-        },
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      onUploaded();
-      showToast("Đã cập nhật ảnh đại diện", "success");
-    } catch (err: any) {
-      showToast(err.message, "error");
-      setPreview(null);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const displayAvatar = preview ?? currentAvatar;
-
-  return (
-    <div style={{ position: "relative", width: 64, height: 64 }}>
-      <div
-        style={{
-          width: 64,
-          height: 64,
-          borderRadius: "50%",
-          overflow: "hidden",
-          background: "#f0f6ff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 28,
-          border: "2px solid #007bff",
-        }}
-      >
-        {displayAvatar ? (
-          <img
-            src={`http://localhost:5000${displayAvatar}`}
-            alt="avatar"
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        ) : (
-          "👤"
-        )}
-      </div>
-
-      {/* Edit button */}
-      <button
-        onClick={() => {
-          fileRef.current?.click();
-        }}
-        disabled={uploading}
-        style={{
-          position: "absolute",
-          bottom: -2,
-          right: -2,
-          width: 22,
-          height: 22,
-          borderRadius: "50%",
-          background: "#007bff",
-          border: "2px solid #fff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          fontSize: 10,
-          color: "#fff",
-        }}
-        title="Đổi ảnh"
-      >
-        {uploading ? "⏳" : "✏️"}
-      </button>
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFile}
-        style={{ display: "none" }}
-      />
-    </div>
-  );
-}
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; bg: string }
+> = {
+  waiting_payment: { label: "Chờ thanh toán", color: "#7b3fe4", bg: "#f3eeff" },
+  pending: { label: "Chờ xác nhận", color: "#e59335", bg: "#fff8e1" },
+  confirmed: { label: "Đã xác nhận", color: "#007bff", bg: "#e8f4ff" },
+  processing: { label: "Đang xử lý", color: "#ff6b00", bg: "#fff3e8" },
+  shipped: { label: "Đang giao", color: "#ff6b00", bg: "#fff3e8" },
+  delivered: { label: "Hoàn thành", color: "#27ae60", bg: "#f0fff4" },
+  cancelled: { label: "Đã huỷ", color: "#e53935", bg: "#fff0f0" },
+};
 
 // ── Main ProfilePage ──────────────────────────────────────────────────────
 
@@ -819,29 +505,7 @@ export default function ProfilePage() {
         )}
 
         {/* Tab: Đơn hàng */}
-        {activeTab === "orders" && (
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              padding: 24,
-              border: "1px solid #eee",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: 48, marginBottom: 12 }}>📦</div>
-            <p style={{ color: "#888", marginBottom: 12 }}>
-              Xem tất cả đơn hàng của bạn
-            </p>
-            <button
-              onClick={() => navigate("/orders")}
-              className="btn btn-primary"
-              style={{ borderRadius: 8, fontWeight: 600 }}
-            >
-              Đến trang đơn hàng
-            </button>
-          </div>
-        )}
+        {activeTab === "orders" && <OrderSection authHeaders={authHeaders} />}
 
         {/* Tab: Bảo mật */}
         {activeTab === "security" && (
@@ -871,152 +535,6 @@ export default function ProfilePage() {
         message={toast.message}
         type={toast.type}
       />
-    </div>
-  );
-}
-
-// ── ChangePasswordSection ──────────────────────────────────────────────────
-
-function ChangePasswordSection({
-  authHeaders,
-  onSuccess,
-  onError,
-}: {
-  authHeaders: Record<string, string>;
-  onSuccess: () => void;
-  onError: (msg: string) => void;
-}) {
-  const [form, setForm] = useState({ current: "", next: "", confirm: "" });
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showPass, setShowPass] = useState(false);
-
-  const handleSubmit = async () => {
-    const errs: Record<string, string> = {};
-    if (!form.current) errs.current = "Nhập mật khẩu hiện tại";
-    if (!form.next) errs.next = "Nhập mật khẩu mới";
-    else if (form.next.length < 6) errs.next = "Tối thiểu 6 ký tự";
-    if (form.next !== form.confirm) errs.confirm = "Mật khẩu không khớp";
-    if (Object.keys(errs).length > 0) return setErrors(errs);
-
-    setLoading(true);
-    setErrors({});
-    try {
-      const res = await fetch("/api/auth/change-password", {
-        method: "PUT",
-        headers: authHeaders,
-        body: JSON.stringify({
-          currentPassword: form.current,
-          newPassword: form.next,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setForm({ current: "", next: "", confirm: "" });
-      onSuccess();
-    } catch (err: any) {
-      onError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 12,
-        padding: 24,
-        border: "1px solid #eee",
-      }}
-    >
-      <h6 style={{ fontWeight: 700, marginBottom: 20 }}>Đổi mật khẩu</h6>
-
-      {(["current", "next", "confirm"] as const).map((field) => (
-        <div key={field} className="mb-3">
-          <label
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              marginBottom: 6,
-              display: "block",
-            }}
-          >
-            {field === "current"
-              ? "Mật khẩu hiện tại"
-              : field === "next"
-                ? "Mật khẩu mới"
-                : "Xác nhận mật khẩu mới"}
-          </label>
-          <div style={{ position: "relative" }}>
-            <input
-              type={showPass ? "text" : "password"}
-              className="form-control"
-              value={form[field]}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, [field]: e.target.value }))
-              }
-              style={{
-                borderRadius: 8,
-                fontSize: 14,
-                paddingRight: 40,
-                borderColor: errors[field] ? "#e53935" : undefined,
-              }}
-            />
-            {field === "current" && (
-              <button
-                type="button"
-                onClick={() => setShowPass(!showPass)}
-                style={{
-                  position: "absolute",
-                  right: 12,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  border: "none",
-                  background: "none",
-                  color: "#888",
-                  cursor: "pointer",
-                }}
-              >
-                {showPass ? "🙈" : "👁️"}
-              </button>
-            )}
-          </div>
-          {errors[field] && (
-            <p
-              style={{
-                color: "#e53935",
-                fontSize: 12,
-                marginTop: 4,
-                marginBottom: 0,
-              }}
-            >
-              {errors[field]}
-            </p>
-          )}
-        </div>
-      ))}
-
-      <button
-        onClick={handleSubmit}
-        disabled={loading}
-        className="btn btn-primary"
-        style={{
-          borderRadius: 8,
-          fontWeight: 600,
-          padding: "10px 28px",
-          marginTop: 4,
-        }}
-      >
-        {loading ? (
-          <span>
-            <span className="spinner-border spinner-border-sm me-2" />
-            Đang xử lý...
-          </span>
-        ) : (
-          "Đổi mật khẩu"
-        )}
-      </button>
     </div>
   );
 }

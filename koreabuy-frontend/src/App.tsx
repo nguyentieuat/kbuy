@@ -10,7 +10,6 @@ import ScrollToTopButton from "./components/common/ScrollToTopButton";
 import ScrollToTop from "./components/ScrollToTop";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderDetail from "./pages/OrderDetail";
-import OrderListPage from "./pages/OrderListPage";
 import LoginPage from "./pages/LoginPage";
 import ProfilePage from "./pages/ProfilePage";
 
@@ -27,7 +26,6 @@ export default function App() {
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order/:orderCode" element={<OrderDetail />} />
-          <Route path="/orders" element={<OrderListPage />} />
         </Route>
 
         <Route >
