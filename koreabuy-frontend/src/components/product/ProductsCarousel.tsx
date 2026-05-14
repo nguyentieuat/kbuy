@@ -20,12 +20,14 @@ interface Props {
   products: Product[];
   title?: string;
   isHome?: boolean;
+  showTitle?: boolean;
 }
 
 export default function ProductsCarousel({
   products,
   title = "Sản phẩm mới",
   isHome = false,
+  showTitle = true
 }: Props) {
   const desktopSlides = isHome ? 3 : 4;
   return (
@@ -38,8 +40,10 @@ export default function ProductsCarousel({
           alignItems: "center",
         }}
       >
+
+        
         <h2 className="text-muted" style={{ cursor: "pointer" }}>
-          {title}
+          {showTitle ? title : ""}
         </h2>
 
         <div className="nav-buttons" style={{ display: "flex", gap: "8px" }}>

@@ -7,12 +7,14 @@ import ProductsCarousel from "../product/ProductsCarousel";
 import { useProducts, useRecommendedProducts } from "../../hooks/useProducts";
 import Pagination from "../Pagination";
 import { useCategoriesWithCount } from "../../hooks/useCategories";
+import { SOURCES } from "../../constains/sourceConstain";
 
 export default function CategoryProduct() {
   const [params, setParams] = useSearchParams();
   const productsRef = useRef<HTMLDivElement>(null);
 
   const category = params.get("category") || undefined;
+  const source = params.get("source") || undefined;
   const page = Number(params.get("page") || 1);
   const sort = params.get("sort") || "newest";
   const search = params.get("search") || undefined;
@@ -34,6 +36,7 @@ export default function CategoryProduct() {
   } = useProducts({
     search,
     category,
+    source,
     page,
     limit: 12,
     sort,
@@ -43,6 +46,7 @@ export default function CategoryProduct() {
 
   const { products: recommendedProducts } = useRecommendedProducts({
     category,
+    source,
     excludeIds: currentIds,
     limit: 12,
   });
@@ -83,14 +87,31 @@ export default function CategoryProduct() {
   const flatCategories = flattenCategories(categories);
 
   // Build breadcrumb trail đầy đủ từ selected lên đến root
+  const getSourceLabel = (value?: string) => {
+    return SOURCES.find((s) => s.value === value)?.label ?? value;
+  };
   const buildBreadcrumb = (slug: string | undefined) => {
     if (!slug) return [];
 
+    // source mode
+    if (source) {
+      return [
+        {
+          id: -1,
+          name: getSourceLabel(source),
+          slug: source,
+        },
+      ];
+    }
+
+    // category mode
     const trail: typeof categories = [];
+
     let current = flatCategories.find((cat) => cat.slug === slug);
 
     while (current) {
-      trail.unshift(current); // thêm vào đầu để giữ thứ tự root → leaf
+      trail.unshift(current);
+
       current = current.parent_id
         ? flatCategories.find(
             (cat) => String(cat.id) === String(current!.parent_id),
@@ -101,11 +122,15 @@ export default function CategoryProduct() {
     return trail;
   };
 
-  const breadcrumb = buildBreadcrumb(category);
+  const breadcrumb = buildBreadcrumb(category || source);
 
   return (
     <div className="untree_co-section pt-3">
-      <div  ref={productsRef} className="container" style={{ paddingTop: "100px" }}>
+      <div
+        ref={productsRef}
+        className="container"
+        style={{ paddingTop: "100px" }}
+      >
         <div className="row align-items-center mb-5">
           <div className="col-lg-9">
             {/* Thay đổi tiêu đề theo context */}
@@ -169,7 +194,8 @@ export default function CategoryProduct() {
                     setParams({
                       ...(search && { search }),
                       ...(category && { category }),
-                      page: "1", // đổi sort thì reset page
+                      ...(source && { source }),
+                      page: "1",
                       sort: e.target.value,
                     });
                     productsRef.current?.scrollIntoView({
@@ -213,8 +239,9 @@ export default function CategoryProduct() {
               setParams({
                 ...(search && { search }),
                 ...(category && { category }),
+                ...(source && { source }),
                 page: String(newPage),
-                sort: sort,
+                sort,
               });
             }}
           />

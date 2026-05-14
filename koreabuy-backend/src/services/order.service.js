@@ -9,6 +9,7 @@ const OtpService = require("./otp.service");
 const db = require("../config/db.config");
 const { mapOrderDetail, mapOrderSummary } = require("../mappers/order.mapper");
 const { normalizePhone } = require("../utils/phone.util");
+const CouponService = require("./coupons.service");
 
 function generateOrderCode() {
   const prefix = "KB";
@@ -48,6 +49,7 @@ const OrderService = {
       shipping,
       shippingFee,
       paymentMethod,
+      couponId,
       couponCode,
       couponDiscount,
       totalFinal,
@@ -106,6 +108,20 @@ const OrderService = {
 
     // ── Tạo order ───────────────────────────────────────
 
+    // validate coupon lại
+    if (payload.couponCode) {
+      const couponResult = await CouponService.validateCoupon({
+        code: payload.couponCode,
+        userId: payload.userId,
+        email: payload.customer.email,
+        phone: payload.customer.phone,
+        orderAmount: payload.totalFinal,
+        shippingFee: payload.shippingFee,
+      });
+      couponDiscount = couponResult.discount;
+      couponId = couponResult.coupon.id;
+    }
+
     return db.transaction(async (trx) => {
       const orderCode = generateOrderCode();
       const order = await OrderModel.create(
@@ -159,6 +175,15 @@ const OrderService = {
       // ── Tạo order items ─────────────────────────────────
       const orderItems = formatOrderItems(items, order.id);
       await OrderModel.createItems(orderItems, trx);
+
+      await CouponService.markCouponUsed({
+        couponId: payload.couponId,
+        userId: payload.userId,
+        orderId: order.id,
+        email: payload.customer.email,
+        phone: payload.customer.phone,
+        discountAmount: payload.couponDiscount,
+      });
 
       return {
         orderId: order.id,

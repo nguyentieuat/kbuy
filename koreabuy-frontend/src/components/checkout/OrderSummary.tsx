@@ -5,7 +5,10 @@ type Props = {
   totalOriginal: number;
   totalProductDiscount: number;
 
-  couponApplied: string | null;
+  couponApplied: {
+    code: string;
+    couponId: number;
+  } | null;
   couponDiscount: number;
 
   shippingResult: any;
@@ -72,7 +75,8 @@ export default function OrderSummary({
             color: "#27ae60",
           }}
         >
-          <span>Mã giảm giá ({couponApplied})</span>
+          <span>Mã giảm giá ({couponApplied.code})</span>
+
           <span>-{fmt(couponDiscount)}</span>
         </div>
       )}
@@ -92,6 +96,7 @@ export default function OrderSummary({
       </div>
 
       {/* Shipping nội địa */}
+      {/* Shipping nội địa */}
       <div
         style={{
           display: "flex",
@@ -102,13 +107,15 @@ export default function OrderSummary({
         }}
       >
         <span>Phí vận chuyển nội địa VN</span>
+
         <span
           style={{
-            color: couponApplied === "FREESHIP" ? "#27ae60" : "#007bff",
+            color: couponApplied?.code === "FREESHIP" ? "#27ae60" : "#007bff",
+
             fontWeight: 600,
           }}
         >
-          {couponApplied === "FREESHIP" ? (
+          {couponApplied?.code === "FREESHIP" ? (
             <>
               <s style={{ color: "#aaa", fontWeight: 400 }}>
                 {fmt(shippingResult.localFee)}
@@ -149,8 +156,8 @@ export default function OrderSummary({
             lineHeight: 1.5,
           }}
         >
-          ⚠️ Một số sản phẩm trong đơn thuộc nhóm hàng cồng kềnh. Phí vận
-          chuyển đã bao gồm phụ phí kích thước.
+          ⚠️ Một số sản phẩm trong đơn thuộc nhóm hàng cồng kềnh. Phí vận chuyển
+          đã bao gồm phụ phí kích thước.
         </div>
       )}
 

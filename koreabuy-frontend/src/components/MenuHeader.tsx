@@ -3,11 +3,31 @@
 import { useState, useEffect } from "react";
 import { NavLink, useSearchParams } from "react-router-dom";
 import type { Category } from "../types/category";
+import { SOURCES } from "../constains/sourceConstain";
 
 type Props = {
   isMobile?: boolean;
   categories: Category[];
 };
+
+const SOURCE_NODE: Category = {
+  id: -999,
+  name: "Nguồn",
+  slug: "source",
+  full_slug: "source",
+  children: [],
+  is_source_group: true,
+  to: "",
+};
+
+SOURCE_NODE.children = SOURCES.map((s, idx) => ({
+  id: -1000 - idx,
+  name: s.label,
+  slug: s.value,
+  full_slug: `source/${s.value}`,
+  is_source_group: true,
+  to: "",
+}));
 
 export default function MenuHeader({ isMobile, categories }: Props) {
   const [openIds, setOpenIds] = useState<number[]>([]);
@@ -21,13 +41,13 @@ export default function MenuHeader({ isMobile, categories }: Props) {
 
   const isInPath = (node: Category, target: string | null): boolean => {
     if (!target) return false;
-
     if (node.slug === target) return true;
 
     return node.children?.some((child) => isInPath(child, target)) ?? false;
   };
 
-  const selectedCategory = params.get("category");
+  const selectedCategory = params.get("category") || params.get("source");
+
   useEffect(() => {
     if (!selectedCategory) return;
 
@@ -49,6 +69,14 @@ export default function MenuHeader({ isMobile, categories }: Props) {
     const path = findPath(categories);
     if (path) setOpenIds(path);
   }, [selectedCategory, categories]);
+
+  const getTo = (item: Category) => {
+    if (item.is_source_group) {
+      return `/products?source=${item.slug}`;
+    }
+    return `/products?category=${item.slug}`;
+  };
+
   const renderMenu = (data: Category[], level = 0) => {
     if (!data) return null;
 
@@ -66,7 +94,7 @@ export default function MenuHeader({ isMobile, categories }: Props) {
           {/* Desktop: */}
           {!isMobile && (
             <NavLink
-              to={`/products?category=${item.slug}`}
+              to={getTo(item)}
               className={() => ""}
             >
               {item.name}
@@ -82,9 +110,12 @@ export default function MenuHeader({ isMobile, categories }: Props) {
                 paddingLeft: `${level * 14}px`,
               }}
             >
-              <NavLink to={`/products?category=${item.slug}`}>
-                {item.name}
-              </NavLink>
+              <NavLink
+              to={getTo(item)}
+              className={() => ""}
+            >
+              {item.name}
+            </NavLink>
 
               {(item.children?.length ?? 0) > 0 && (
                 <span
@@ -112,7 +143,7 @@ export default function MenuHeader({ isMobile, categories }: Props) {
       );
     });
   };
-
+  const mergedCategories = [...categories, SOURCE_NODE];
   return (
     <ul className={isMobile ? "site-nav-wrap" : "site-menu"}>
       <li>
@@ -121,7 +152,7 @@ export default function MenuHeader({ isMobile, categories }: Props) {
         </NavLink>
       </li>
 
-      {renderMenu(categories)}
+      {renderMenu(mergedCategories)}
     </ul>
   );
 }

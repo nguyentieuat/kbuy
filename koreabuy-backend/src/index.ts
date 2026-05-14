@@ -12,7 +12,11 @@ const productsRoutes = require('./routes/products.route');
 const otpRoutes = require("./routes/otp.route");
 const orderRoutes = require("./routes/order.route");
 const authRoutes = require("./routes/auth.route");
-const addressRoutes = require("./routes/address.routes")
+const addressRoutes = require("./routes/address.route");
+const couponRoutes = require("./routes/coupons.route");
+const newsletterRoutes = require("./routes/newsletter.route")
+const importRequestRoutes = require("./routes/importRequest.route")
+
 const path = require("path");
 
 dotenv.config();
@@ -35,6 +39,12 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/otp", otpRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/auth/addresses", addressRoutes);
+
+app.use("/api/coupons", couponRoutes);
+
+app.use("/api/newsletter", newsletterRoutes);
+
+app.use("/api/import-requests", importRequestRoutes);
 
 const rootPath = process.cwd();
 app.use(

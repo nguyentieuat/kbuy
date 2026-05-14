@@ -23,11 +23,12 @@ async function getNewArrivalProducts(limit = 12) {
  * Get a list of products with filters/sorts/pagination.
  */
 async function getProducts(query = {}) {
-  const limit = parseInt(query.limit ?? 9);
+  const limit = parseInt(query.limit ?? 12);
   const page = parseInt(query.page ?? 1);
 
   const result = await ProductModel.getProducts({
     categorySlug: query.category_slug ?? null,
+    source: query.source ?? null,
     search: query.search ?? null,
     sort: query.sort ?? null,
     page,

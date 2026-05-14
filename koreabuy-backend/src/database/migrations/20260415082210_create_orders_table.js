@@ -42,9 +42,9 @@ exports.up = async function (knex) {
     table.string("receiver_email", 255).nullable(); // thêm
     table.text("receiver_address");
     table.string("receiver_ward", 255).nullable(); // thêm — phường/xã
-        table.string("receiver_ward_code", 50).nullable();
+    table.string("receiver_ward_code", 50).nullable();
     table.string("receiver_province", 255).nullable(); // thêm — tỉnh/thành
-        table.string("receiver_province_code", 50).nullable();
+    table.string("receiver_province_code", 50).nullable();
 
     // ── Misc ─────────────────────────────────────────
     table.text("note").nullable();

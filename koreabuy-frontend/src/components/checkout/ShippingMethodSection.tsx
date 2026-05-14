@@ -9,9 +9,7 @@ import { calculateShippingTotal, type Region } from "../../utils/shipping";
 
 import type { CartItem } from "../../types/cart";
 
-import type {
-  ShippingMethod,
-} from "./types";
+import type { ShippingMethod } from "./types";
 
 type Props = {
   items: CartItem[];
@@ -20,7 +18,10 @@ type Props = {
 
   region: Region;
 
-  couponApplied: string | null;
+  couponApplied: {
+    code: string;
+    couponId: number;
+  } | null;
 
   setShipping: (value: ShippingMethod) => void;
 
@@ -48,14 +49,14 @@ export default function ShippingMethodSection({
             onClick={() => {
               setShipping(opt.id);
 
-              // Nếu đang freeship → update lại discount
-              if (couponApplied === "FREESHIP") {
-                const newFee =
-                  SHIPPING_OPTIONS.find(
-                    (s) => s.id === opt.id,
-                  )?.baseFee ?? 0;
+              if (couponApplied?.code === "FREESHIP") {
+                const shippingResult = calculateShippingTotal({
+                  items,
+                  method: opt.id,
+                  region,
+                });
 
-                setCouponDiscount(newFee);
+                setCouponDiscount(shippingResult.total);
               }
             }}
             icon={opt.icon}

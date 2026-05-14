@@ -4,7 +4,10 @@ type Props = {
   coupon: string;
   setCoupon: (v: string) => void;
 
-  couponApplied: string | null;
+  couponApplied: {
+    code: string;
+    couponId: number;
+  } | null;
   couponDiscount: number;
 
   couponError: string;
@@ -57,7 +60,7 @@ export default function CouponSection({
                   color: "#27ae60",
                 }}
               >
-                {couponApplied}
+                {couponApplied.code}
               </p>
               <p style={{ fontSize: 12, color: "#555", margin: 0 }}>
                 Giảm {fmt(couponDiscount)}

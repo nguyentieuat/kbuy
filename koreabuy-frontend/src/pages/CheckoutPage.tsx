@@ -31,6 +31,7 @@ import CouponSection from "../components/checkout/CouponSection";
 import OrderItemList from "../components/checkout/OrderItemList";
 import OrderSummary from "../components/checkout/OrderSummary";
 import { useAuth } from "../contexts/AuthContext";
+import { useValidateCoupon } from "../hooks/useValidateCoupon";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,8 @@ export default function CheckoutPage() {
   const { checkOtp } = useOtpCheck();
 
   const { user } = useAuth();
+
+  const { validateCoupon, loading: validatingCoupon } = useValidateCoupon();
 
   // Form
   const [form, setForm] = useState<FormData>({
@@ -118,7 +121,10 @@ export default function CheckoutPage() {
 
   // Coupon
   const [coupon, setCoupon] = useState("");
-  const [couponApplied, setCouponApplied] = useState<string | null>(null);
+  const [couponApplied, setCouponApplied] = useState<{
+    code: string;
+    couponId: number;
+  } | null>(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
@@ -148,6 +154,12 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (submitError) showToast(submitError, "error");
   }, [submitError]);
+
+  useEffect(() => {
+    if (!couponApplied) return;
+
+    handleRemoveCoupon();
+  }, [shipping]);
 
   // ── Computed ──────────────────────────────────────────────────────────────
   const region = useRegion(selectedAddress?.province ?? null);
@@ -193,26 +205,36 @@ export default function CheckoutPage() {
 
   const handleApplyCoupon = async () => {
     if (!coupon.trim()) return;
-    setCouponError("");
-    setCouponLoading(true);
 
-    // TODO: replace với API thật
-    await new Promise((r) => setTimeout(r, 600));
-    const code = coupon.trim().toUpperCase();
+    try {
+      setCouponError("");
 
-    if (code === "SALE10") {
-      const discount = Math.round(totalFinal * 0.1);
-      setCouponDiscount(discount);
-      setCouponApplied(code);
-    } else if (code === "FREESHIP") {
-      setCouponDiscount(shippingFee);
-      setCouponApplied(code);
-    } else {
-      setCouponError("Mã khuyến mãi không hợp lệ hoặc đã hết hạn");
-      setCouponDiscount(0);
+      const result = await validateCoupon({
+        code: coupon.trim().toUpperCase(),
+
+        userId: user?.id,
+
+        email: form.email || undefined,
+
+        phone: normalizePhone(form.phone),
+
+        orderAmount: totalFinal,
+
+        shippingFee,
+      });
+
+      setCouponApplied({
+        code: result.coupon.code,
+        couponId: result.coupon.id,
+      });
+
+      setCouponDiscount(result.discount);
+    } catch (err: any) {
       setCouponApplied(null);
+      setCouponDiscount(0);
+
+      setCouponError(err.message || "Không thể áp dụng mã giảm giá");
     }
-    setCouponLoading(false);
   };
 
   const handleRemoveCoupon = () => {
@@ -251,94 +273,86 @@ export default function CheckoutPage() {
     return errs;
   };
 
-const buildPayload = (verifyToken?: string): SubmitOrderPayload => {
-  const fullAddress = selectedAddress
-    ? [
-        selectedAddress.detail,
-        selectedAddress.ward.name,
-        selectedAddress.province.name,
-      ]
-        .filter(Boolean)
-        .join(", ")
-    : "";
+  const buildPayload = (verifyToken?: string): SubmitOrderPayload => {
+    const fullAddress = selectedAddress
+      ? [
+          selectedAddress.detail,
+          selectedAddress.ward.name,
+          selectedAddress.province.name,
+        ]
+          .filter(Boolean)
+          .join(", ")
+      : "";
 
-  return {
-    // user login
-    userId: user?.id ?? undefined,
+    return {
+      // user login
+      userId: user?.id ?? undefined,
 
-    customer: {
-      // receiver info
-      full_name: form.full_name,
+      customer: {
+        // receiver info
+        full_name: form.full_name,
 
-      phone: normalizePhone(form.phone),
+        phone: normalizePhone(form.phone),
 
-      email: form.email || undefined,
+        email: form.email || undefined,
 
-      gender:
-        selectedAddress?.receiver_gender ??
-        form.gender,
+        gender: selectedAddress?.receiver_gender ?? form.gender,
 
-      // address
-      address: fullAddress,
+        // address
+        address: fullAddress,
 
-      detailAddress: selectedAddress?.detail,
+        detailAddress: selectedAddress?.detail,
 
-      province: selectedAddress?.province.name,
-      provinceCode: selectedAddress?.province.code,
+        province: selectedAddress?.province.name,
+        provinceCode: selectedAddress?.province.code,
 
-      ward: selectedAddress?.ward.name,
-      wardCode: selectedAddress?.ward.code,
-      region: region
-    },
+        ward: selectedAddress?.ward.name,
+        wardCode: selectedAddress?.ward.code,
+        region: region,
+      },
 
-    items: items.map((i) => ({
-      productId: i.product.id,
+      items: items.map((i) => ({
+        productId: i.product.id,
 
-      variantId: i.variant?.id ?? null,
+        variantId: i.variant?.id ?? null,
 
-      productName: i.product.name,
+        productName: i.product.name,
 
-      variantName: i.variant?.name_vi ?? null,
+        variantName: i.variant?.name_vi ?? null,
 
-      sku: i.variant?.sku ?? null,
+        sku: i.variant?.sku ?? null,
 
-      image:
-        i.variant?.image_url ??
-        i.product.image,
+        image: i.variant?.image_url ?? i.product.image,
 
-      originalPrice: Number(
-        i.variant?.original_price ??
-          i.product.originalPrice ??
-          0,
-      ),
+        originalPrice: Number(
+          i.variant?.original_price ?? i.product.originalPrice ?? 0,
+        ),
 
-      price: Number(
-        i.variant?.price ??
-          i.product.price ??
-          0,
-      ),
+        price: Number(i.variant?.price ?? i.product.price ?? 0),
 
-      quantity: i.quantity,
-    })),
+        quantity: i.quantity,
+      })),
 
-    shipping,
-    shippingFee,
-    shippingRegion: region,
+      shipping,
+      shippingFee,
+      shippingRegion: region,
 
-    paymentMethod,
+      paymentMethod,
 
-    couponCode: couponApplied,
-    couponDiscount,
+      couponId: couponApplied?.couponId ?? null,
 
-    serviceFee,
-    totalFinal,
-    grandTotal,
+      couponCode: couponApplied?.code ?? null,
+      couponDiscount,
 
-    note: form.note,
+      serviceFee,
+      totalFinal,
+      grandTotal,
 
-    verifyToken: verifyToken ?? null,
+      note: form.note,
+
+      verifyToken: verifyToken ?? null,
+    };
   };
-};
 
   const handleSubmit = async () => {
     const errs = validate();
@@ -484,7 +498,7 @@ const buildPayload = (verifyToken?: string): SubmitOrderPayload => {
                 couponApplied={couponApplied}
                 couponDiscount={couponDiscount}
                 couponError={couponError}
-                couponLoading={couponLoading}
+                couponLoading={validatingCoupon}
                 onApply={handleApplyCoupon}
                 onRemove={handleRemoveCoupon}
                 fmt={fmt}

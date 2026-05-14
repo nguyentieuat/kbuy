@@ -72,7 +72,7 @@ export default function AvatarUploader({
       >
         {displayAvatar ? (
           <img
-            src={`http://localhost:5173${displayAvatar}`}
+            src={`${displayAvatar}`}
             alt="avatar"
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />

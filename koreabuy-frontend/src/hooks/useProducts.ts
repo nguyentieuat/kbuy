@@ -76,6 +76,7 @@ export function useNewArrivalProducts(limit = 12): UseProductsResult {
 
 type Params = {
   category?: string;
+  source?: string;
   search?: string;
   sort?: string;
   page?: number;
@@ -102,6 +103,7 @@ export function useProducts(params: Params) {
 
         const query = new URLSearchParams({
           ...(params.category && { category: params.category }),
+          ...(params.source && { source: params.source }),
           ...(params.search && { q: params.search }),
           ...(params.sort && { sort: params.sort }),
           ...(params.page && { page: String(params.page) }),
@@ -121,7 +123,14 @@ export function useProducts(params: Params) {
     }
 
     fetchData();
-  }, [params.category, params.search, params.sort, params.page, params.limit]);
+  }, [
+    params.category,
+    params.source,
+    params.search,
+    params.sort,
+    params.page,
+    params.limit,
+  ]);
 
   return { products, pagination, loading, error };
 }
@@ -155,10 +164,12 @@ export function useProduct(slug: string | undefined) {
 
 export function useRecommendedProducts({
   category,
+  source,
   excludeIds = [],
   limit = 12,
 }: {
   category?: string;
+  source?: string;
   excludeIds?: number[];
   limit?: number;
 }) {
@@ -180,6 +191,10 @@ export function useRecommendedProducts({
 
         if (category) {
           query.set("category", category);
+        }
+
+        if (source) {
+          query.set("source", source);
         }
 
         if (excludeIds.length > 0) {

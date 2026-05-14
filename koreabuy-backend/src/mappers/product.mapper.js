@@ -54,6 +54,8 @@ function mapProduct(row) {
 
     name: row.name ?? row.name_kr ?? "",
     nameKr: row.name_kr ?? null,
+    
+    source: row.source ?? null,
 
     price: Number(row.price_min ?? 0),
 

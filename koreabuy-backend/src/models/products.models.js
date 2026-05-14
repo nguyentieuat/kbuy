@@ -147,6 +147,7 @@ async function getNewArrivalProducts(limit = 12) {
 
 async function getProducts({
   categorySlug,
+  source,
   search,
   sort = "newest",
   page = 1,
@@ -157,6 +158,12 @@ async function getProducts({
   // ===== BASE =====
 
   const baseQuery = baseProductQuery();
+
+  // ===== SOURCE =====
+
+  if (source) {
+    baseQuery.andWhereRaw("LOWER(p.source) = LOWER(?)", [source]);
+  }
 
   // ===== CATEGORY TREE =====
 
@@ -275,9 +282,7 @@ async function getProductBySlug(slug) {
     `),
   );
 
-  query
-    .where("p.slug", slug)
-    .first();
+  query.where("p.slug", slug).first();
 
   return query;
 }

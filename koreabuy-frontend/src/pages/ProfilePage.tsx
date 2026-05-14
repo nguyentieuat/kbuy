@@ -1,10 +1,9 @@
 // pages/ProfilePage.tsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../hooks/useToast";
 import Toast from "../components/Toast";
-import AddressModal from "../components/AddressModal";
 import OtpModal from "../components/OtpModal";
 import AvatarUploader from "../components/profile/AvatarUploader";
 import OrderSection from "../components/profile/OrderSection";
@@ -12,79 +11,6 @@ import AddressSection from "../components/profile/AddressSection";
 import ChangePasswordSection from "../components/profile/ChangePasswordSection";
 
 type Tab = "info" | "address" | "orders" | "security";
-
-// ── Types ─────────────────────────────────────────────────────────────────
-
-type UserAddress = {
-  id: number;
-  receiver_gender: "male" | "female" | "other";
-  receiver_name: string;
-  receiver_phone: string;
-  province: string;
-  ward: string;
-  detail: string | null;
-  full_address: string;
-  is_default: boolean;
-};
-
-type AddressFormResult = {
-  receiver_gender?: "male" | "female" | "other";
-  receiver_name?: string;
-  receiver_phone?: string;
-
-  province: {
-    name: string;
-    code: number;
-  };
-  ward: {
-    name: string;
-    code: number;
-  };
-  detail: string;
-};
-
-type Order = {
-  id: number;
-  orderCode: string;
-  status: string;
-  paymentStatus: string;
-  finalPrice: number;
-  createdAt: string;
-
-  items: {
-    product_name: string;
-    image: string | null;
-    quantity: number;
-  }[];
-
-  logs: any[];
-  latestLog: any;
-};
-
-const ORDER_TABS = [
-  { key: "all", label: "Tất cả" },
-  { key: "waiting_payment", label: "Chờ TT" },
-  { key: "pending", label: "Chờ xác nhận" },
-  { key: "processing", label: "Đang xử lý" },
-  { key: "shipped", label: "Đang giao" },
-  { key: "delivered", label: "Hoàn thành" },
-  { key: "cancelled", label: "Đã huỷ" },
-];
-
-const STATUS_CONFIG: Record<
-  string,
-  { label: string; color: string; bg: string }
-> = {
-  waiting_payment: { label: "Chờ thanh toán", color: "#7b3fe4", bg: "#f3eeff" },
-  pending: { label: "Chờ xác nhận", color: "#e59335", bg: "#fff8e1" },
-  confirmed: { label: "Đã xác nhận", color: "#007bff", bg: "#e8f4ff" },
-  processing: { label: "Đang xử lý", color: "#ff6b00", bg: "#fff3e8" },
-  shipped: { label: "Đang giao", color: "#ff6b00", bg: "#fff3e8" },
-  delivered: { label: "Hoàn thành", color: "#27ae60", bg: "#f0fff4" },
-  cancelled: { label: "Đã huỷ", color: "#e53935", bg: "#fff0f0" },
-};
-
-// ── Main ProfilePage ──────────────────────────────────────────────────────
 
 export default function ProfilePage() {
   const { user, initialized, logout, refetchUser } = useAuth();

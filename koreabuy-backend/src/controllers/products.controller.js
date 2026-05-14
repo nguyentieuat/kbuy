@@ -9,7 +9,15 @@ const ProductsService = require("../services/products.service");
  */
 async function getProducts(req, res) {
   try {
-    const { type, category, search, sort, page = 1, limit = 9 } = req.query;
+    const {
+      type,
+      category,
+      source,
+      search,
+      sort,
+      page = 1,
+      limit = 12,
+    } = req.query;
 
     // Featured
     if (type === "featured") {
@@ -40,10 +48,11 @@ async function getProducts(req, res) {
     // Default list
     const normalizedQuery = {
       category_slug: category,
-      search: req.query.q ?? req.query.search,
-      sort: req.query.sort,
-      page: req.query.page,
-      limit: req.query.limit ?? 9,
+      source: source,
+      search: search,
+      sort: sort,
+      page: page,
+      limit: limit,
     };
 
     const result = await ProductsService.getProducts(normalizedQuery);
@@ -90,35 +99,24 @@ async function getProductBySlug(req, res) {
  */
 async function getRecommendedProducts(req, res) {
   try {
-    const {
-      category,
-      exclude,
-      limit = 12,
-    } = req.query;
+    const { category, exclude, limit = 12 } = req.query;
 
     const excludeIds = exclude
-      ? exclude
-          .split(",")
-          .map(Number)
-          .filter(Boolean)
+      ? exclude.split(",").map(Number).filter(Boolean)
       : [];
 
-    const products =
-      await ProductsService.getRecommendedProducts({
-        categorySlug: category,
-        excludeIds,
-        limit: Number(limit),
-      });
+    const products = await ProductsService.getRecommendedProducts({
+      categorySlug: category,
+      excludeIds,
+      limit: Number(limit),
+    });
 
     return res.json({
       success: true,
       data: products,
     });
   } catch (err) {
-    console.error(
-      "[products.controller] getRecommendedProducts:",
-      err.message,
-    );
+    console.error("[products.controller] getRecommendedProducts:", err.message);
 
     return res.status(500).json({
       success: false,

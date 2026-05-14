@@ -1,14 +1,21 @@
 // pages/CategoryPage.tsx
 
+import { useSearchParams } from "react-router-dom";
+
 import CategoryProduct from "../components/containers/CategoryProduct";
-import { useProducts } from "../hooks/useProducts";
+import ProductsLanding from "../components/containers/ProductsLanding";
 
 export default function CategoryPage() {
-//   const { products, loading } = useProducts({});
+  const [params] = useSearchParams();
 
-  return (
-    <CategoryProduct
-      
-    />
-  );
+  const category = params.get("category");
+  const source = params.get("source");
+
+  const isListingPage = !!category || !!source;
+
+  if (!isListingPage) {
+    return <ProductsLanding />;
+  }
+
+  return <CategoryProduct />;
 }

@@ -4,7 +4,7 @@ import { useFeaturedProducts } from "../../hooks/useProducts";
 import ProductsGrid from "../product/ProductsGrid";
 
 export default function ProductListGrid() {
-  const { products, loading, error } = useFeaturedProducts(12);
+  const { products, loading, error } = useFeaturedProducts(6);
   // Loading skeleton
   if (loading) {
     return (

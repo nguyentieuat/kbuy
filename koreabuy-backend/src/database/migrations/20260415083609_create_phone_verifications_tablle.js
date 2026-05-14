@@ -19,7 +19,7 @@ exports.up = async function (knex) {
     table.timestamp("created_at").notNullable().defaultTo(knex.fn.now());
 
     table.integer("risk_level").notNullable().defaultTo(0);
-    
+
     table.boolean("cod_blocked").notNullable().defaultTo(false);
 
     table.timestamp("updated_at").notNullable().defaultTo(knex.fn.now());

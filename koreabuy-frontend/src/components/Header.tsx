@@ -12,14 +12,32 @@ export default function Header() {
   const { categories } = useCategories();
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const { user } = useAuth();
+
+  const closeQuickActions = () => {
+    setShowQuickActions(false);
+  };
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchValue.trim()) {
       navigate(`/products?search=${encodeURIComponent(searchValue.trim())}`);
+      closeQuickActions();
     }
   };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowQuickActions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (openMenu) {
@@ -66,7 +84,7 @@ export default function Header() {
 
               <div className="menu-icons d-flex align-items-center gap-2">
                 {/* Search input*/}
-                <div className="search-inline">
+                <div ref={searchRef} className="search-inline">
                   <svg
                     width="1em"
                     height="1em"
@@ -91,7 +109,45 @@ export default function Header() {
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
                     onKeyDown={handleSearch}
+                    onFocus={() => setShowQuickActions(true)}
+                    onBlur={() =>
+                      setTimeout(() => setShowQuickActions(false), 150)
+                    }
                   />
+                  {showQuickActions && !searchValue.trim() && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        right: 0,
+                        background: "#fff",
+                        border: "1px solid #eee",
+                        borderRadius: 10,
+                        marginTop: 6,
+                        zIndex: 999,
+                        boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        onMouseDown={() => {
+                          setShowQuickActions(false);
+                          navigate("/input-link");
+                        }}
+                        style={{
+                          cursor: "pointer",
+                          fontWeight: 350,
+                          color: "#98c6f8",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        🔥 Nhập link sản phẩm tại đây →
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <CartIcon />
@@ -106,9 +162,9 @@ export default function Header() {
                   title={user ? user.username : "Đăng nhập"}
                   style={{ position: "relative" }}
                 >
-                  {user?.avatar ? (
+                  {user?.avatar_url ? (
                     <img
-                      src={user.avatar}
+                      src={user.avatar_url}
                       alt={user.username}
                       style={{
                         width: 28,

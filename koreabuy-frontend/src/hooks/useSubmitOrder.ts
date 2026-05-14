@@ -18,7 +18,7 @@ type CustomerInfo = {
   wardCode?: number;
   province?: string;
   provinceCode?: number;
-  region?: string
+  region?: string;
 };
 
 type OrderItem = {
@@ -41,6 +41,7 @@ export type SubmitOrderPayload = {
   shippingFee: number;
   shippingRegion: Region;
   paymentMethod: "cod" | "qrpay";
+  couponId?: number | null;
   couponCode?: string | null;
   couponDiscount?: number;
   serviceFee?: number;
@@ -82,7 +83,7 @@ export function useSubmitOrder(
   ): Promise<OrderResult | null> => {
     setSubmitting(true);
     setError(null);
-    debugger
+    debugger;
     try {
       const token = localStorage.getItem("token");
       const authHeaders = {

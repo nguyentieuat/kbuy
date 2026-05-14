@@ -26,10 +26,10 @@ exports.up = async function (knex) {
     table.integer("chargeable_weight_grams").nullable();
 
     // ===== META =====
-    table.string("weight_source", 50).nullable(); 
+    table.string("weight_source", 50).nullable();
     // ai | regex | manual | supplier
 
-    table.decimal("weight_confidence", 3, 2).nullable(); 
+    table.decimal("weight_confidence", 3, 2).nullable();
     // 0.00 → 1.00
 
     table.boolean("is_weight_estimated").defaultTo(true);

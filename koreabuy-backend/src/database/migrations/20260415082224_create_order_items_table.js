@@ -29,14 +29,14 @@ exports.up = async function (knex) {
     // Quan trọng: lưu lại thông tin sản phẩm lúc mua
     // vì sau này product/variant có thể bị sửa hoặc xóa
     table.string("product_name", 255);
-    table.string("variant_name", 255).nullable();  // thêm — tên variant lúc mua
-    table.string("sku", 100).nullable();           // thêm
+    table.string("variant_name", 255).nullable(); // thêm — tên variant lúc mua
+    table.string("sku", 100).nullable(); // thêm
     table.text("product_link").nullable();
     table.text("image").nullable();
 
     // ── Giá ─────────────────────────────────────────
     table.decimal("original_price", 12, 2).nullable(); // thêm — giá gốc
-    table.decimal("price", 12, 2);                     // Giá bán
+    table.decimal("price", 12, 2); // Giá bán
     table.integer("quantity");
     table.decimal("total_price", 12, 2);
 
@@ -54,5 +54,5 @@ exports.up = async function (knex) {
  * @param {import('knex').Knex} knex
  */
 exports.down = async function (knex) {
-  await knex.schema.dropTableIfExists('order_items');
+  await knex.schema.dropTableIfExists("order_items");
 };

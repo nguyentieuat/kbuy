@@ -12,6 +12,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import OrderDetail from "./pages/OrderDetail";
 import LoginPage from "./pages/LoginPage";
 import ProfilePage from "./pages/ProfilePage";
+import ImportRequestPage from "./pages/ImportRequestPage";
 
 
 export default function App() {
@@ -25,12 +26,14 @@ export default function App() {
           <Route path="/products" element={<CategoryPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/order/:orderCode" element={<OrderDetail />} />
+          <Route path="/input-link" element={<ImportRequestPage />} />
+          
         </Route>
 
         <Route >
           <Route path="/login" element={<LoginPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/order/:orderCode" element={<OrderDetail />} />
         </Route>
       </Routes>
       <ScrollToTopButton />
