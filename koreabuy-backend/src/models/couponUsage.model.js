@@ -39,8 +39,8 @@ class CouponUsageModel {
     return Number(result.total);
   }
 
-  static async create(data) {
-    return db("coupon_usages")
+  static async create(data, trx = db) {
+    return trx("coupon_usages")
       .insert(data)
       .returning("*");
   }

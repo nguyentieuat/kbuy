@@ -50,6 +50,12 @@ async function getProductBySlug(slug) {
   return mapProduct(row);
 }
 
+async function getProductById(productId) {
+  const row = await ProductModel.getProductById(productId);
+  if (!row) return null;
+  return mapProduct(row);
+}
+
 /**
  * Get a list of products recommend.
  */
@@ -132,5 +138,6 @@ module.exports = {
   getNewArrivalProducts,
   getProducts,
   getProductBySlug,
+  getProductById,
   getRecommendedProducts,
 };

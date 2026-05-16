@@ -32,18 +32,9 @@ import OrderItemList from "../components/checkout/OrderItemList";
 import OrderSummary from "../components/checkout/OrderSummary";
 import { useAuth } from "../contexts/AuthContext";
 import { useValidateCoupon } from "../hooks/useValidateCoupon";
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const normalizeImageUrl = (url?: string | null) => {
-  if (!url) return "";
-  if (url.startsWith("http")) return url;
-  return url.startsWith("/") ? url : `/${url}`;
-};
-
-const fmt = (n: number) => n.toLocaleString("vi-VN") + "₫";
-
-// ─── Main Component ───────────────────────────────────────────────────────────
+import { normalizeImageUrl } from "../utils/image";
+import { fmt } from "../utils/format";
+import type { AppliedCoupon } from "../types/coupon";
 
 export default function CheckoutPage() {
   const { items, clearCart } = useCart();
@@ -121,13 +112,10 @@ export default function CheckoutPage() {
 
   // Coupon
   const [coupon, setCoupon] = useState("");
-  const [couponApplied, setCouponApplied] = useState<{
-    code: string;
-    couponId: number;
-  } | null>(null);
+  const [couponApplied, setCouponApplied] = useState<AppliedCoupon | null>(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
+  const [shippingDiscount, setShippingDiscount] = useState(0);
   const [couponError, setCouponError] = useState("");
-  const [couponLoading, setCouponLoading] = useState(false);
 
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
@@ -190,10 +178,19 @@ export default function CheckoutPage() {
     return sum + price * item.quantity;
   }, 0);
 
-  const serviceFee = Math.round(totalFinal * 0.08);
+  const serviceFee = useMemo(() => {
+    if (paymentMethod === "cod") {
+      return (
+        Math.round(totalFinal * 0.08) +
+        Math.max(5000, Math.round(totalFinal * 0.01))
+      ); // 1%, tối thiểu 5,000₫
+    }
+    return Math.round(totalFinal * 0.08); // phí nền tảng
+  }, [paymentMethod, totalFinal]);
 
   const totalProductDiscount = totalOriginal - totalFinal;
-  const grandTotal = totalFinal + serviceFee + shippingFee - couponDiscount;
+  const grandTotal =
+    totalFinal + serviceFee + shippingFee - couponDiscount - shippingDiscount;
   const totalQuantity = items.reduce((s, i) => s + i.quantity, 0);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -202,6 +199,7 @@ export default function CheckoutPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
+  
 
   const handleApplyCoupon = async () => {
     if (!coupon.trim()) return;
@@ -211,24 +209,26 @@ export default function CheckoutPage() {
 
       const result = await validateCoupon({
         code: coupon.trim().toUpperCase(),
-
         userId: user?.id,
-
         email: form.email || undefined,
-
         phone: normalizePhone(form.phone),
-
         orderAmount: totalFinal,
-
         shippingFee,
       });
 
-      setCouponApplied({
-        code: result.coupon.code,
-        couponId: result.coupon.id,
-      });
+      debugger
 
+      setCouponApplied(result.coupon);
       setCouponDiscount(result.discount);
+
+      if (result.coupon.discountType === "freeship") {
+        setShippingDiscount(shippingFee);
+
+        setCouponDiscount(0);
+      } else {
+        setShippingDiscount(0);
+        setCouponDiscount(result.discount);
+      }
     } catch (err: any) {
       setCouponApplied(null);
       setCouponDiscount(0);
@@ -241,6 +241,7 @@ export default function CheckoutPage() {
     setCoupon("");
     setCouponApplied(null);
     setCouponDiscount(0);
+    setShippingDiscount(0);
     setCouponError("");
   };
 
@@ -339,7 +340,7 @@ export default function CheckoutPage() {
 
       paymentMethod,
 
-      couponId: couponApplied?.couponId ?? null,
+      couponId: couponApplied?.id ?? null,
 
       couponCode: couponApplied?.code ?? null,
       couponDiscount,
@@ -466,7 +467,6 @@ export default function CheckoutPage() {
               region={region}
               couponApplied={couponApplied}
               setShipping={setShipping}
-              setCouponDiscount={setCouponDiscount}
               fmt={fmt}
             />
 
@@ -510,14 +510,39 @@ export default function CheckoutPage() {
               </h6>
               <div className="d-flex flex-column gap-2 mb-4">
                 {PAYMENT_OPTIONS.map((opt) => (
-                  <RadioCard
-                    key={opt.id}
-                    selected={paymentMethod === opt.id}
-                    onClick={() => setPaymentMethod(opt.id)}
-                    icon={opt.icon}
-                    name={opt.name}
-                    desc={opt.desc}
-                  />
+                  <div key={opt.id}>
+                    <RadioCard
+                      selected={paymentMethod === opt.id}
+                      onClick={() => setPaymentMethod(opt.id)}
+                      icon={opt.icon}
+                      name={opt.name}
+                      desc={opt.desc}
+                    />
+                    {/* Note phí dịch vụ COD */}
+                    {opt.id === "cod" && paymentMethod === "cod" && (
+                      <div
+                        style={{
+                          marginTop: 6,
+                          padding: "6px 12px",
+                          borderRadius: 6,
+                          background: "#fff8e1",
+                          border: "1px solid #f5c542",
+                          fontSize: 12,
+                          color: "#8a6d1d",
+                        }}
+                      >
+                        ℹ️ COD tính thêm phí dịch vụ <strong>1%</strong> (tối
+                        thiểu 5.000₫) — hiện tại:{" "}
+                        <strong>
+                          {Math.max(
+                            5000,
+                            Math.round(totalFinal * 0.01),
+                          ).toLocaleString("vi-VN")}
+                          ₫
+                        </strong>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
 
@@ -542,6 +567,7 @@ export default function CheckoutPage() {
                 totalOriginal={totalOriginal}
                 totalProductDiscount={totalProductDiscount}
                 couponApplied={couponApplied}
+                shippingDiscount={shippingDiscount}
                 couponDiscount={couponDiscount}
                 shippingResult={shippingResult}
                 shippingFee={shippingFee}

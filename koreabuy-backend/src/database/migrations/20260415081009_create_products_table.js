@@ -30,6 +30,7 @@ exports.up = async function (knex) {
     table.text("shop_url");
 
     table.integer("category_id").unsigned().nullable();
+    table.string("category_slug", 150).unsigned().nullable();
 
     table.text("meta_title");
     table.text("meta_description");

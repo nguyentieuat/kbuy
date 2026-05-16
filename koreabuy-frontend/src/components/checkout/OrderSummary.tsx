@@ -6,10 +6,16 @@ type Props = {
   totalProductDiscount: number;
 
   couponApplied: {
+    id: number;
     code: string;
-    couponId: number;
+
+    discountType: "percent" | "fixed" | "freeship";
+
+    discountValue: number;
   } | null;
+
   couponDiscount: number;
+  shippingDiscount: number;
 
   shippingResult: any;
   shippingFee: number;
@@ -25,6 +31,7 @@ export default function OrderSummary({
   totalOriginal,
   totalProductDiscount,
   couponApplied,
+  shippingDiscount,
   couponDiscount,
   shippingResult,
   shippingFee,
@@ -32,6 +39,7 @@ export default function OrderSummary({
   grandTotal,
   fmt,
 }: Props) {
+  debugger
   return (
     <div style={{ borderTop: "1px solid #eee", paddingTop: 14 }}>
       {/* Tổng tiền */}
@@ -96,7 +104,6 @@ export default function OrderSummary({
       </div>
 
       {/* Shipping nội địa */}
-      {/* Shipping nội địa */}
       <div
         style={{
           display: "flex",
@@ -110,15 +117,20 @@ export default function OrderSummary({
 
         <span
           style={{
-            color: couponApplied?.code === "FREESHIP" ? "#27ae60" : "#007bff",
+            color: shippingDiscount > 0 ? "#27ae60" : "#007bff",
 
             fontWeight: 600,
           }}
         >
-          {couponApplied?.code === "FREESHIP" ? (
+          {shippingDiscount > 0 ? (
             <>
-              <s style={{ color: "#aaa", fontWeight: 400 }}>
-                {fmt(shippingResult.localFee)}
+              <s
+                style={{
+                  color: "#aaa",
+                  fontWeight: 400,
+                }}
+              >
+                {fmt(shippingFee)}
               </s>{" "}
               Miễn phí
             </>
@@ -138,7 +150,7 @@ export default function OrderSummary({
           color: "#555",
         }}
       >
-        <span>Phí nền tảng</span>
+        <span>Phí dịch vụ</span>
         <span>{fmt(serviceFee)}</span>
       </div>
 

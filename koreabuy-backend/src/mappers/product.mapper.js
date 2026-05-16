@@ -54,31 +54,26 @@ function mapProduct(row) {
 
     name: row.name ?? row.name_kr ?? "",
     nameKr: row.name_kr ?? null,
-    
+
     source: row.source ?? null,
 
     price: Number(row.price_min ?? 0),
 
-    originalPrice: row.original_price
-      ? Number(row.original_price)
-      : null,
+    categoryId: row.category_id,
+    categoryId: row.category_slug,
+
+    originalPrice: row.original_price ? Number(row.original_price) : null,
 
     discountPercent: row.discount_percent ?? null,
 
     image: row.image ?? "",
-    images: Array.isArray(row.images)
-      ? row.images
-      : [],
+    images: Array.isArray(row.images) ? row.images : [],
 
-    variants: Array.isArray(row.variants)
-      ? row.variants
-      : [],
+    variants: Array.isArray(row.variants) ? row.variants : [],
 
     description: buildDescription(specsVi),
 
-    ratingAvg: row.source_rating_avg
-      ? Number(row.source_rating_avg)
-      : null,
+    ratingAvg: row.source_rating_avg ? Number(row.source_rating_avg) : null,
 
     ratingCount: row.source_rating_count ?? 0,
 
@@ -88,19 +83,16 @@ function mapProduct(row) {
     widthMm: row.widthMm ?? null,
     heightMm: row.heightMm ?? null,
 
-    volumetricWeightGrams:
-      row.volumetricWeightGrams ?? null,
+    volumetricWeightGrams: row.volumetricWeightGrams ?? null,
 
-    chargeableWeightGrams:
-      row.chargeableWeightGrams ?? null,
+    chargeableWeightGrams: row.chargeableWeightGrams ?? null,
 
     isBulky: row.isBulky ?? false,
 
     weightSource: row.weightSource ?? null,
     weightConfidence: row.weightConfidence ?? null,
 
-    isWeightEstimated:
-      row.isWeightEstimated ?? true,
+    isWeightEstimated: row.isWeightEstimated ?? true,
 
     isFeatured: row.is_featured ?? false,
 
@@ -108,11 +100,7 @@ function mapProduct(row) {
       ? new Date(row.new_arrival_until) > new Date()
       : false,
 
-    isSale:
-      !!(
-        row.original_price &&
-        row.price_min < row.original_price
-      ),
+    isSale: !!(row.original_price && row.price_min < row.original_price),
 
     productUrl: row.product_url ?? "",
 

@@ -23,6 +23,8 @@ exports.up = async function (knex) {
     table.integer("quantity").defaultTo(1);
 
     table.timestamp("created_at").defaultTo(knex.fn.now());
+
+    table.unique(["cart_id", "product_id", "variant_id"]);
   });
 
   // INDEX (tăng tốc query)

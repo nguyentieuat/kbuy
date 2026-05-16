@@ -16,6 +16,9 @@ const addressRoutes = require("./routes/address.route");
 const couponRoutes = require("./routes/coupons.route");
 const newsletterRoutes = require("./routes/newsletter.route")
 const importRequestRoutes = require("./routes/importRequest.route")
+const adminOrderRoutes = require("./routes/adminOrder.route")
+const shipmentRoutes = require("./routes/shipment.route")
+const cartRoutes = require("./routes/cart.route")
 
 const path = require("path");
 
@@ -42,9 +45,14 @@ app.use("/api/auth/addresses", addressRoutes);
 
 app.use("/api/coupons", couponRoutes);
 
+app.use("/api/cart", cartRoutes);
+
 app.use("/api/newsletter", newsletterRoutes);
 
 app.use("/api/import-requests", importRequestRoutes);
+
+app.use("/api/admin/orders", adminOrderRoutes);
+app.use("/api/admin/shipments", shipmentRoutes);
 
 const rootPath = process.cwd();
 app.use(

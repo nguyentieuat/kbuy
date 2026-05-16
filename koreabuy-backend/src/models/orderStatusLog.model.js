@@ -23,9 +23,12 @@ module.exports = {
   },
 
   async findByOrderIds(orderIds) {
-  return db("order_status_logs")
-    .whereIn("order_id", orderIds)
-    .orderBy("created_at", "desc");
-}
+    return db("order_status_logs")
+      .whereIn("order_id", orderIds)
+      .orderBy("created_at", "desc");
+  },
 
+  create(data, trx = db) {
+    return trx("order_status_logs").insert(data);
+  },
 };

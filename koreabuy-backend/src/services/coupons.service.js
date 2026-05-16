@@ -2,6 +2,7 @@
 
 const CouponModel = require("../models/coupon.model");
 const CouponUsageModel = require("../models/couponUsage.model");
+const { toCouponDTO } = require("../mappers/coupon.mapper");
 
 class CouponService {
   static async validateCoupon({
@@ -14,13 +15,8 @@ class CouponService {
   }) {
     const coupon = await CouponModel.findByCode(code);
 
-    if (!coupon) {
-      throw new Error("Mã giảm giá không tồn tại");
-    }
-
-    if (!coupon.is_active) {
-      throw new Error("Mã giảm giá đã bị khóa");
-    }
+    if (!coupon) throw new Error("Mã giảm giá không tồn tại");
+    if (!coupon.is_active) throw new Error("Mã giảm giá đã bị khóa");
 
     const now = new Date();
 
@@ -32,53 +28,30 @@ class CouponService {
       throw new Error("Mã đã hết hạn");
     }
 
-    if (
-      coupon.usage_limit &&
-      coupon.used_count >= coupon.usage_limit
-    ) {
+    if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
       throw new Error("Mã đã hết lượt");
     }
 
     if (orderAmount < Number(coupon.min_order_value || 0)) {
-      throw new Error(
-        `Đơn tối thiểu ${coupon.min_order_value}`
-      );
+      throw new Error(`Đơn tối thiểu ${coupon.min_order_value}`);
     }
 
-    // user limit
     if (userId && coupon.usage_limit_per_user) {
-      const used =
-        await CouponUsageModel.countByUser(
-          coupon.id,
-          userId,
-        );
-
+      const used = await CouponUsageModel.countByUser(coupon.id, userId);
       if (used >= coupon.usage_limit_per_user) {
         throw new Error("Bạn đã dùng mã này");
       }
     }
 
-    // email limit
     if (email && coupon.usage_limit_per_email) {
-      const used =
-        await CouponUsageModel.countByEmail(
-          coupon.id,
-          email,
-        );
-
+      const used = await CouponUsageModel.countByEmail(coupon.id, email);
       if (used >= coupon.usage_limit_per_email) {
         throw new Error("Email đã dùng mã này");
       }
     }
 
-    // phone limit
     if (phone && coupon.usage_limit_per_phone) {
-      const used =
-        await CouponUsageModel.countByPhone(
-          coupon.id,
-          phone,
-        );
-
+      const used = await CouponUsageModel.countByPhone(coupon.id, phone);
       if (used >= coupon.usage_limit_per_phone) {
         throw new Error("Số điện thoại đã dùng mã");
       }
@@ -88,9 +61,7 @@ class CouponService {
 
     switch (coupon.discount_type) {
       case "percent":
-        discount =
-          orderAmount *
-          (Number(coupon.discount_value) / 100);
+        discount = orderAmount * (Number(coupon.discount_value) / 100);
 
         if (coupon.max_discount_value) {
           discount = Math.min(
@@ -110,7 +81,7 @@ class CouponService {
     }
 
     return {
-      coupon,
+      coupon: toCouponDTO(coupon), // 👈 IMPORTANT FIX
       discount: Math.round(discount),
     };
   }
@@ -122,7 +93,7 @@ class CouponService {
     email,
     phone,
     discountAmount,
-  }) {
+  },trx) {
     await CouponUsageModel.create({
       coupon_id: couponId,
       user_id: userId ?? null,
@@ -130,9 +101,9 @@ class CouponService {
       email,
       phone,
       discount_amount: discountAmount,
-    });
+    }, trx);
 
-    await CouponModel.incrementUsedCount(couponId);
+    await CouponModel.incrementUsedCount(couponId, trx);
   }
 }
 

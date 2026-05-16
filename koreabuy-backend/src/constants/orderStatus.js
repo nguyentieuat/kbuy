@@ -4,20 +4,12 @@ const { PAYMENT_CONFIRMED } = require("./orderLogMessages");
 
 module.exports = {
   PENDING: "pending",
-
   WAITING_PAYMENT: "waiting_payment",
-
-  CONFIRMED:"confirmed",
-
+  CONFIRMED: "confirmed",
   PAID: "paid",
-
   PROCESSING: "processing",
-
-  SHIPPING: "shipping",
-
-  COMPLETED: "completed",
-
+  SHIPPED: "shipped",
+  DELIVERED: "delivered",
   CANCELLED: "cancelled",
-
   REFUNDED: "refunded",
 };

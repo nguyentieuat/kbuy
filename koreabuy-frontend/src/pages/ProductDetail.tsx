@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useProduct } from "../hooks/useProducts";
+import { useProduct, useRecommendedProducts } from "../hooks/useProducts";
 import type { ProductVariant } from "../types/product";
 import { useCart } from "../contexts/CartContext";
 import { useToast } from "../hooks/useToast";
@@ -10,6 +10,7 @@ import Toast from "../components/Toast";
 import ProductGallery from "../components/product/ProductGallery";
 import ProductInfoPanel from "../components/product/ProductInfoPanel";
 import ProductDetailSkeleton from "../components/product/ProductDetailSkeleton";
+import ProductsCarousel from "../components/product/ProductsCarousel";
 
 export default function ProductDetail() {
   const navigate = useNavigate();
@@ -29,6 +30,13 @@ export default function ProductDetail() {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [variantSelectedByUser, setVariantSelectedByUser] = useState(false);
 
+  const category = product?.categorySlug;
+  const excludeIds = product?.id ? [product.id] : [];
+
+  const { products: recommendedProducts } = useRecommendedProducts({
+    category,
+    excludeIds,
+  });
   // Derived data
   const images = product?.images ?? [];
 
@@ -163,6 +171,32 @@ export default function ProductDetail() {
           />
         </div>
       </div>
+
+      <div style={{ margin: "60px 0", textAlign: "center" }}>
+        <div
+          style={{
+            height: 1,
+            background: "#eee",
+            position: "relative",
+          }}
+        >
+          <span
+            style={{
+              position: "absolute",
+              top: -10,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "#fff",
+              padding: "0 12px",
+              fontWeight: 600,
+              color: "#888",
+            }}
+          >
+            Sản phẩm gợi ý
+          </span>
+        </div>
+      </div>
+      <ProductsCarousel products={recommendedProducts} title="" />
       <Toast
         visible={toast.visible}
         message={toast.message}
@@ -171,4 +205,3 @@ export default function ProductDetail() {
     </div>
   );
 }
-

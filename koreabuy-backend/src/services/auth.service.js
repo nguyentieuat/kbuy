@@ -179,6 +179,8 @@ function sanitizeUser(user) {
 
     phone_verified: user.phone_verified ?? false,
     email_verified: user.email_verified ?? false,
+
+     is_active: user.is_active ?? true,
   };
 }
 

@@ -40,7 +40,7 @@ async function login(req, res) {
 
 async function getMe(req, res) {
   try {
-    const user = await AuthService.getMe(req.userId);
+    const user = req.user;
 
     if (!user) {
       return res.status(404).json({
@@ -63,7 +63,7 @@ async function getMe(req, res) {
 }
 
 async function updateProfile(req, res) {
-  const userId = req.userId;
+  const userId = req.user.id;
   const { full_name } = req.body;
 
   if (!req.file && !full_name) {
@@ -100,7 +100,7 @@ async function updateProfile(req, res) {
 // POST /api/auth/verify-email/send
 async function sendEmailOtp(req, res) {
   try {
-    const user = await AuthService.getMe(req.userId);
+    const user = req.user;
     const { email, email_verified } = user;
 
     if (!email) {
@@ -126,7 +126,7 @@ async function sendEmailOtp(req, res) {
 async function confirmEmailOtp(req, res) {
   try {
     const { otp } = req.body;
-    const user = await AuthService.getMe(req.userId);
+    const user = req.user;
     const { email, email_verified } = user;
 
     if (!otp || otp.length !== 6) {
@@ -148,7 +148,7 @@ async function confirmEmailOtp(req, res) {
 
 async function changePassword(req, res) {
   try {
-    const userId = req.userId;
+    const userId = req.user.id;
 
     const { currentPassword, newPassword } = req.body;
 

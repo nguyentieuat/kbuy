@@ -1,12 +1,11 @@
 // middlewares/auth.middleware.js
 
 const { verifyToken } = require("../utils/jwt");
+const db = require("../config/db.config");
 
-module.exports = function authMiddleware(
-  req,
-  res,
-  next,
-) {
+const AuthService = require("../services/auth.service");
+
+module.exports = async function authMiddleware(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
 
@@ -20,7 +19,23 @@ module.exports = function authMiddleware(
 
     const payload = verifyToken(token);
 
-    req.userId = payload.userId;
+    // lấy user từ DB
+    const user = await AuthService.getMe(payload.userId);
+
+    if (!user) {
+      return res.status(401).json({
+        error: "User not found",
+      });
+    }
+
+    if (!user.is_active) {
+      return res.status(403).json({
+        error: "User is inactive",
+      });
+    }
+
+    // gắn toàn bộ user vào req
+    req.user = user;
 
     next();
   } catch (err) {

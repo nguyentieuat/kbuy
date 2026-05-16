@@ -4,8 +4,7 @@ const AddressService = require("../services/address.service");
 
 async function getAddresses(req, res) {
   try {
-    const data = await AddressService.getList(req.userId);
-
+    const data = await AddressService.getList(req.user.id);
     res.json({
       success: true,
       data,
@@ -20,7 +19,7 @@ async function getAddresses(req, res) {
 
 async function createAddress(req, res) {
   try {
-    const data = await AddressService.create(req.userId, req.body);
+    const data = await AddressService.create(req.user.id, req.body);
 
     res.json({
       success: true,
@@ -37,7 +36,7 @@ async function createAddress(req, res) {
 async function updateAddress(req, res) {
   try {
     const data = await AddressService.update(
-      req.userId,
+      req.user.id,
       req.params.id,
       req.body,
     );
@@ -56,7 +55,7 @@ async function updateAddress(req, res) {
 
 async function deleteAddress(req, res) {
   try {
-    await AddressService.delete(req.userId, req.params.id);
+    await AddressService.delete(req.user.id, req.params.id);
 
     res.json({
       success: true,
@@ -72,7 +71,7 @@ async function deleteAddress(req, res) {
 async function setDefault(req, res) {
   try {
     const data = await AddressService.setDefault(
-      req.userId,
+      req.user.id,
       req.params.id,
     );
 

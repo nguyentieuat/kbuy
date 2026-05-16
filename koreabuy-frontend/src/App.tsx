@@ -13,6 +13,7 @@ import OrderDetail from "./pages/OrderDetail";
 import LoginPage from "./pages/LoginPage";
 import ProfilePage from "./pages/ProfilePage";
 import ImportRequestPage from "./pages/ImportRequestPage";
+import AdminOrderPage from "./components/admin/AdminOrderPage";
 
 
 export default function App() {
@@ -34,6 +35,8 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/order/:orderCode" element={<OrderDetail />} />
+
+          <Route path="/admin" element={<AdminOrderPage />} />
         </Route>
       </Routes>
       <ScrollToTopButton />

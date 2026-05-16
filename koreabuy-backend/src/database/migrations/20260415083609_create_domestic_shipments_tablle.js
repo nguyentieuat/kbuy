@@ -13,6 +13,8 @@ exports.up = async function (knex) {
       .inTable("orders")
       .onDelete("CASCADE");
 
+    table.string("order_code", 50).notNullable();
+
     // tracking nội địa
     table.string("tracking_code", 100).notNullable().unique();
 

@@ -94,6 +94,26 @@ async function getProductBySlug(req, res) {
   }
 }
 
+async function getProductById(req, res) {
+  try {
+    const { productId } = req.params;
+    const product = await ProductsService.getProductById(productId);
+
+    if (!product) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Product not found" });
+    }
+
+    return res.json({ success: true, data: product });
+  } catch (err) {
+    console.error("[products.controller] getProductBySlug:", err.message);
+    return res
+      .status(500)
+      .json({ success: false, error: "Internal Server Error" });
+  }
+}
+
 /**
  * GET /api/products/recommended
  */
@@ -128,5 +148,6 @@ async function getRecommendedProducts(req, res) {
 module.exports = {
   getProducts,
   getProductBySlug,
+  getProductById,
   getRecommendedProducts,
 };

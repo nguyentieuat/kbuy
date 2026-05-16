@@ -1,6 +1,7 @@
 // components/product/ProductsGrid.tsx
 
 import type { Product } from "../../types/product";
+import { normalizeImageUrl } from "../../utils/image";
 import ProductCard from "../product/ProductCard";
 
 interface Props {
@@ -23,7 +24,7 @@ export default function ProductListGrid({ products, isHome = false }: Props) {
             originalPrice={
               product.originalPrice ? Number(product.originalPrice) : undefined
             }
-            image={product.image || ""}
+            image={normalizeImageUrl(product.image)}
             link={`${product.link}`}
             isNew={!!product.newArrivalUntil}
             isSale={!!product.discountPercent}

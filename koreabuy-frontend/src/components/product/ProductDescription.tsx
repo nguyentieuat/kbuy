@@ -38,6 +38,7 @@ export default function ProductDescription({
             height: 100,
             width: "100%",
             background: "linear-gradient(to bottom, transparent, #fff)",
+            pointerEvents: "none", 
           }}
         />
       )}

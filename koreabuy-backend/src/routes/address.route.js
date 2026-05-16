@@ -3,10 +3,10 @@
 const express = require("express");
 const router = express.Router();
 
-const auth = require("../middlewares/auth.middleware");
+const authMiddleware = require("../middlewares/auth.middleware");
 const controller = require("../controllers/address.controller");
 
-router.use(auth);
+router.use(authMiddleware);
 
 router.get("/", controller.getAddresses);
 router.post("/", controller.createAddress);

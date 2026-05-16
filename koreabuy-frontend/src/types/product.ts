@@ -29,6 +29,9 @@ export interface Product {
   name_kr?: string | null;
   link: string;
 
+  categoryId: number;
+  categorySlug: string;
+
   // ── Giá ──
   price: number | null;
   originalPrice: number | null;

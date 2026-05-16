@@ -4,16 +4,9 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useOrderDetail } from "../hooks/useOrderDetail";
 import TrackingTimeline from "../components/orders/TrackingTimeline";
 import { useEffect } from "react";
-
-const fmt = (n?: number | string | null) => {
-  return Number(n ?? 0).toLocaleString("vi-VN") + "₫";
-};
-
-const normalizeImageUrl = (url?: string | null) => {
-  if (!url) return "";
-  if (url.startsWith("http")) return url;
-  return url.startsWith("/") ? url : `/${url}`;
-};
+import { normalizeImageUrl } from "../utils/image";
+import { fmt } from "../utils/format";
+import { useCart } from "../contexts/CartContext";
 
 export default function OrderDetail() {
   const { orderCode } = useParams<{ orderCode: string }>();
@@ -28,6 +21,45 @@ export default function OrderDetail() {
   }, [fromCheckout, location.pathname]);
 
   const { order, loading } = useOrderDetail(orderCode);
+
+  const { addToCart, clearCart } = useCart();
+
+const handleBuyAgain = async () => {
+  try {
+    clearCart();
+
+    if (!order) return;
+    
+    for (const item of order.items) {
+      // fetch latest product
+      const res = await fetch(`/api/products/byid/${item.productId}`);
+      debugger
+      if (!res.ok) continue;
+
+      const data = await res.json();
+
+      const product = data.data;
+
+      // find latest variant
+      const variant =
+        product.variants?.find(
+          (v: any) => String(v.id) === String(item.variantId)
+        ) ?? null;
+
+      // nếu variant cũ bị xoá
+      if (item.variantId && !variant) {
+        console.warn("Variant no longer exists");
+        continue;
+      }
+
+      addToCart(product, variant, item.quantity);
+    }
+
+    navigate("/checkout");
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   if (loading) {
     return (
@@ -240,11 +272,11 @@ export default function OrderDetail() {
         {/* Actions */}
         <div className="d-flex gap-3">
           <button
-            onClick={() => navigate("/orders")}
+            onClick={handleBuyAgain}
             className="btn btn-outline-primary"
             style={{ flex: 1, borderRadius: 8, fontWeight: 600 }}
           >
-            Xem đơn hàng
+            Mua lại
           </button>
           <button
             onClick={() => navigate("/products")}

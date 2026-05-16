@@ -3,8 +3,14 @@
 const db = require("../config/db.config");
 
 const OrderModel = {
+  // =========================
+  // CREATE
+  // =========================
+
   async create(orderData, trx = db) {
-    const [order] = await trx("orders").insert(orderData).returning("*");
+    const [order] = await trx("orders")
+      .insert(orderData)
+      .returning("*");
 
     return order;
   },
@@ -13,23 +19,71 @@ const OrderModel = {
     return trx("order_items").insert(items);
   },
 
-  async findById(id) {
-    return db("orders").where({ id }).first();
+  // =========================
+  // FIND SINGLE
+  // =========================
+
+  async findById(id, trx = db) {
+    return trx("orders").where({ id }).first();
   },
 
-  async findByOrderCode(orderCode) {
-    return db("orders").where("order_code", orderCode).first();
+  async findByOrderCode(orderCode, trx = db) {
+    return trx("orders")
+      .where("order_code", orderCode)
+      .first();
   },
 
-  async findWithItemsByOrderCode(orderCode) {
-    const order = await db("orders").where("order_code", orderCode).first();
+  async findOrderById(orderId, trx = db) {
+    return trx("orders")
+      .where("id", orderId)
+      .first();
+  },
+
+  async findOrderByIds(orderIds, trx = db) {
+    return trx("orders")
+      .whereIn("id", orderIds)
+      .select("id", "order_code", "status");
+  },
+
+  // =========================
+  // FIND RELATIONS
+  // =========================
+
+  async findItems(orderId, trx = db) {
+    return trx("order_items")
+      .where("order_id", orderId);
+  },
+
+  async findLogs(orderId, trx = db) {
+    return trx("order_status_logs")
+      .where("order_id", orderId)
+      .orderBy("created_at", "asc");
+  },
+
+  async findWithItems(orderId, trx = db) {
+    const order = await trx("orders")
+      .where("id", orderId)
+      .first();
+
+    if (!order) return null;
+
+    const items = await this.findItems(orderId, trx);
+
+    return {
+      ...order,
+      items,
+    };
+  },
+
+  async findWithItemsByOrderCode(orderCode, trx = db) {
+    const order = await this.findByOrderCode(orderCode, trx);
 
     if (!order) return null;
 
     const [items, statusLogs] = await Promise.all([
-      db("order_items").where("order_id", order.id),
+      this.findItems(order.id, trx),
 
-      db("order_status_logs")
+      trx("order_status_logs")
         .where("order_id", order.id)
         .orderBy("created_at", "desc"),
     ]);
@@ -41,25 +95,98 @@ const OrderModel = {
     };
   },
 
-  async findWithItems(id) {
-    const order = await db("orders").where("orders.id", id).first();
-    if (!order) return null;
-    const items = await db("order_items").where("order_id", id);
-    return { ...order, items };
+  // =========================
+  // USER ORDERS
+  // =========================
+
+  async findByUserId(userId, trx = db) {
+    return trx("orders")
+      .where("user_id", userId)
+      .orderBy("created_at", "desc");
   },
 
-  async updateStatus(id, status) {
-    await db("orders").where({ id }).update({ status, updated_at: new Date() });
+  // =========================
+  // ADMIN ORDERS
+  // =========================
+
+  async getOrders({ where = {}, limit = 20, offset = 0 }, trx = db) {
+    let query = trx("orders");
+
+    if (where.status) {
+      query.where("status", where.status);
+    }
+
+    if (where.payment) {
+      query.where("payment_status", where.payment);
+    }
+
+    if (where.search) {
+      query.where(function () {
+        this.where("order_code", "like", `%${where.search}%`)
+          .orWhere("receiver_name", "like", `%${where.search}%`)
+          .orWhere("receiver_phone", "like", `%${where.search}%`);
+      });
+    }
+
+    const totalResult = await query
+      .clone()
+      .count("* as total")
+      .first();
+
+    const data = await query
+      .clone()
+      .orderBy("created_at", "desc")
+      .limit(limit)
+      .offset(offset);
+
+    return {
+      total: Number(totalResult.total),
+      data,
+    };
   },
 
-  async updatePaymentStatus(id, paymentStatus) {
-    await db("orders")
-      .where({ id })
-      .update({ payment_status: paymentStatus, updated_at: new Date() });
+  // =========================
+  // UPDATE
+  // =========================
+
+  async updateStatus(orderId, status, trx = db) {
+    return trx("orders")
+      .where("id", orderId)
+      .update({
+        status,
+        updated_at: trx.fn.now(),
+
+        ...(status === "confirmed" && {
+          confirmed_at: trx.fn.now(),
+        }),
+      });
   },
 
-  async findByUserId(userId) {
-    return db("orders").where("user_id", userId).orderBy("created_at", "desc");
+  async updateOrderStatus(orderId, data, trx = db) {
+    return trx("orders")
+      .where("id", orderId)
+      .update({
+        ...data,
+        updated_at: trx.fn.now(),
+      });
+  },
+
+    async updateOrderStatusList(orderIds, data, trx = db) {
+    return trx("orders")
+      .whereIn("id", orderIds)
+      .update({
+        ...data,
+        updated_at: trx.fn.now(),
+      });
+  },
+
+  async updatePayment(orderId, payment_status, trx = db) {
+    return trx("orders")
+      .where("id", orderId)
+      .update({
+        payment_status,
+        updated_at: trx.fn.now(),
+      });
   },
 };
 

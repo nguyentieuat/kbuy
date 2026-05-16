@@ -78,7 +78,7 @@ async function getOrder(req, res) {
 // GET /api/orders/my
 async function getMyOrders(req, res) {
   try {
-    const orders = await OrderService.getOrdersByUser(req.userId);
+    const orders = await OrderService.getOrdersByUser(req.user.id);
 
     return res.json({
       success: true,

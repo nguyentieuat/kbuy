@@ -1,15 +1,14 @@
 // components/checkout/CouponSection.tsx
 
+import type { AppliedCoupon } from "../../types/coupon";
+
 type Props = {
   coupon: string;
   setCoupon: (v: string) => void;
 
-  couponApplied: {
-    code: string;
-    couponId: number;
-  } | null;
-  couponDiscount: number;
+  couponApplied: AppliedCoupon | null;
 
+  couponDiscount: number;
   couponError: string;
   couponLoading: boolean;
 

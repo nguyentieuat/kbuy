@@ -8,6 +8,7 @@ import { Navigation, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
+import { normalizeImageUrl } from "../../utils/image";
 
 const iconStyle = {
   fontSize: "30px",
@@ -84,7 +85,7 @@ export default function ProductsCarousel({
                   ? Number(product.originalPrice)
                   : undefined
               }
-              image={product.image || ""}
+              image={normalizeImageUrl(product.image)}
               link={`${product.link}`}
               isNew={!!product.newArrivalUntil}
               isSale={!!product.discountPercent}

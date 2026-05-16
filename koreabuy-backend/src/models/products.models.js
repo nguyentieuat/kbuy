@@ -287,6 +287,37 @@ async function getProductBySlug(slug) {
   return query;
 }
 
+async function getProductById(productId) {
+  const query = baseProductQuery();
+
+  query.modify(productSelect);
+
+  query.select(
+    "p.extra_data",
+
+    db.raw(`
+      (
+        SELECT json_agg(pi ORDER BY pi.sort_order)
+        FROM product_images pi
+        WHERE pi.product_id = p.id
+      ) AS images
+    `),
+
+    db.raw(`
+      (
+        SELECT json_agg(pv ORDER BY pv.id)
+        FROM product_variants pv
+        WHERE pv.product_id = p.id
+          AND pv.is_active = true
+      ) AS variants
+    `),
+  );
+
+  query.where("p.id", productId).first();
+
+  return query;
+}
+
 // ==============================
 // RECOMMENDATION
 // ==============================
@@ -408,6 +439,7 @@ module.exports = {
   getNewArrivalProducts,
   getProducts,
   getProductBySlug,
+  getProductById,
 
   // recommendation
   getProductsByCategory,

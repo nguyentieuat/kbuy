@@ -14,7 +14,7 @@ export default function AppLayout() {
         <Outlet />
       </main>
 
-      <Features />
+      {/* <Features /> */}
       <Footer />
     </>
   );

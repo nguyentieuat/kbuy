@@ -5,28 +5,17 @@ import RadioCard from "./RadioCard";
 
 import { SHIPPING_OPTIONS } from "./constants";
 
-import { calculateShippingTotal, type Region } from "../../utils/shipping";
-
-import type { CartItem } from "../../types/cart";
-
-import type { ShippingMethod } from "./types";
+import { calculateShippingTotal } from "../../utils/shipping";
+import type { AppliedCoupon } from "../../types/coupon";
 
 type Props = {
-  items: CartItem[];
+  items: any[];
+  shipping: string;
+  region: any;
 
-  shipping: ShippingMethod;
+  couponApplied: AppliedCoupon | null;
 
-  region: Region;
-
-  couponApplied: {
-    code: string;
-    couponId: number;
-  } | null;
-
-  setShipping: (value: ShippingMethod) => void;
-
-  setCouponDiscount: (value: number) => void;
-
+  setShipping: (v: any) => void;
   fmt: (n: number) => string;
 };
 
@@ -36,7 +25,6 @@ export default function ShippingMethodSection({
   region,
   couponApplied,
   setShipping,
-  setCouponDiscount,
   fmt,
 }: Props) {
   return (
@@ -48,16 +36,6 @@ export default function ShippingMethodSection({
             selected={shipping === opt.id}
             onClick={() => {
               setShipping(opt.id);
-
-              if (couponApplied?.code === "FREESHIP") {
-                const shippingResult = calculateShippingTotal({
-                  items,
-                  method: opt.id,
-                  region,
-                });
-
-                setCouponDiscount(shippingResult.total);
-              }
             }}
             icon={opt.icon}
             name={opt.name}

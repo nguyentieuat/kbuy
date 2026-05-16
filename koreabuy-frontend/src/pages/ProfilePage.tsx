@@ -52,6 +52,7 @@ export default function ProfilePage() {
   const handleUpdateInfo = async () => {
     setLoading(true);
     try {
+      debugger
       const res = await fetch("/api/auth/profile", {
         method: "PUT",
         headers: authHeaders,

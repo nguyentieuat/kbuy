@@ -10,7 +10,10 @@ router.get("/", controller.getProducts);
 // GET /api/products/recommended
 router.get("/recommended", controller.getRecommendedProducts);
 
+router.get("/byid/:productId", controller.getProductById);
+
 // GET /api/products/:slug
 router.get("/:slug", controller.getProductBySlug);
+
 
 module.exports = router;

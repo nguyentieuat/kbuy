@@ -20,6 +20,12 @@ exports.up = async function (knex) {
     table.decimal("final_price", 12, 2); // Thực trả
 
     // ── Coupon ───────────────────────────────────────
+    table
+      .bigInteger("coupon_id")
+      .nullable()
+      .references("id")
+      .inTable("coupons")
+      .onDelete("SET NULL");
     table.string("coupon_code", 50).nullable(); // thêm — lưu mã đã dùng
 
     // ── Vận chuyển ───────────────────────────────────
