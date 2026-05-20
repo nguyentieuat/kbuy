@@ -9,37 +9,67 @@ export interface ProductImage {
 
 export interface ProductVariant {
   id: number;
-  product_id: number;
+  productId: number;
   sku: string;
-  name_vi?: string | null;
-  name_kr?: string | null;
-  price: number | null;
-  original_price: number | null;
-  discount_percent?: number | null;
-  is_soldout: boolean;
-  image_url?: string | null;
+  name?: string | null;
+  nameKr?: string | null;
+  pricing: {
+    price: number | null;
+    originalPrice: number | null;
+    discountPercent?: number | null;
+  };
+  media: {
+    image?: string | null;
+    images?: ProductImage[];
+  };
   attributes?: Record<string, string> | null;
-  is_active: boolean;
+  isActive: boolean;
+  flags: {
+    isActive: boolean;
+    isSoldout: boolean;
+  };
+  shipping?: {
+    weightGrams?: number | null;
+    dimensions: {
+      lengthMm?: number | null;
+      widthMm?: number | null;
+      heightMm?: number | null;
+    };
+
+    volumetricWeightGrams?: number | null;
+    chargeableWeightGrams?: number | null;
+
+    isBulky?: boolean;
+
+    weightSource?: string | null;
+    weightConfidence?: number | null;
+    isWeightEstimated?: boolean;
+  };
 }
 
 export interface Product {
   id: number;
   slug: string;
   name: string;
-  name_kr?: string | null;
-  link: string;
+  nameKr?: string | null;
 
-  categoryId: number;
-  categorySlug: string;
+  category: {
+    id: number;
+    slug: string;
+  };
 
   // ── Giá ──
-  price: number | null;
-  originalPrice: number | null;
-  discountPercent?: number | null;
+  pricing: {
+    price: number | null;
+    originalPrice: number | null;
+    discountPercent?: number | null;
+  };
 
   // ── Ảnh ──
-  image: string | null;
-  images?: ProductImage[];
+  media: {
+    image: string | null;
+    images?: ProductImage[];
+  };
 
   // ── Variants ──
   variants?: ProductVariant[];
@@ -48,25 +78,33 @@ export interface Product {
   description?: string | null;
 
   // ── Đánh giá ──
-  ratingAvg?: number | null;
-  ratingCount?: number | null;
+
+  rating: {
+    avg: number | null;
+    count: number | null;
+  };
 
   // ── Flags ──
-  isFeatured: boolean;
-  isNew?: boolean;
-  isSale?: boolean;
+  flags: {
+    featured: boolean;
+    new: boolean;
+  };
 
   // ── Misc ──
-  productUrl?: string;
-  newArrivalUntil?: string | null;
-  created_at: string;
+  metadata: {
+    productUrl: string;
+    link: string;
+    createdAt: string;
+  };
 
   // ── SHIPPING (NEW STRUCTURE) ──
   shipping?: {
     weightGrams?: number | null;
-    lengthMm?: number | null;
-    widthMm?: number | null;
-    heightMm?: number | null;
+    dimensions: {
+      lengthMm?: number | null;
+      widthMm?: number | null;
+      heightMm?: number | null;
+    };
 
     volumetricWeightGrams?: number | null;
     chargeableWeightGrams?: number | null;

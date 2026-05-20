@@ -4,7 +4,6 @@ const db = require("../config/db.config");
 
 const AddressModel = {
   async findByUserId(userId) {
-    console.log(userId)
     return db("user_addresses")
       .where({ user_id: userId })
       .orderBy("is_default", "desc")

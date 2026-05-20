@@ -1,7 +1,7 @@
 // pages/admin/AdminOrderPage.tsx
 
 import { useState } from "react";
-import type { Order  } from "./types/adminOrder";
+import type { Order } from "./types/adminOrder";
 import { fmt, fmtDate } from "../../utils/format";
 import { useAdminOrders } from "./hooks/useAdminOrders";
 import StatusBadge from "./order-detail/StatusBadge";
@@ -16,6 +16,7 @@ export default function AdminOrderPage() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [shippingFilter, setShippingFilter] = useState("");
 
   // Bulk select
   const [selectMode, setSelectMode] = useState(false);
@@ -27,6 +28,7 @@ export default function AdminOrderPage() {
     status: statusFilter,
     search,
     payment: paymentFilter,
+    shipping_method: shippingFilter,
   });
 
   const handleSearch = (e: React.KeyboardEvent) => {
@@ -60,6 +62,10 @@ export default function AdminOrderPage() {
     { value: "delivered", label: "Hoàn thành" },
     { value: "cancelled", label: "Đã huỷ" },
   ];
+
+  const COLS = selectMode
+  ? "40px 140px 1fr 160px 60px 90px 110px 110px 100px"
+  : "140px 1fr 160px 60px 90px 110px 110px 100px";
 
   return (
     <div
@@ -166,6 +172,25 @@ export default function AdminOrderPage() {
               }}
             />
           </div>
+          <select
+            value={shippingFilter}
+            onChange={(e) => {
+              setShippingFilter(e.target.value);
+              setPage(1);
+            }}
+            style={{
+              border: "1px solid #dee2e6",
+              borderRadius: 8,
+              padding: "6px 12px",
+              fontSize: 13,
+              outline: "none",
+              background: "#fff",
+            }}
+          >
+            <option value="">Giao hàng: Tất cả</option>
+            <option value="fast">⚡ Nhanh</option>
+            <option value="standard">📦 Tiêu chuẩn</option>
+          </select>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {STATUS_FILTERS.map((f) => (
               <button
@@ -267,9 +292,7 @@ export default function AdminOrderPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: selectMode
-                ? "40px 140px 1fr 160px 80px 110px 110px 100px"
-                : "140px 1fr 160px 80px 110px 110px 100px",
+              gridTemplateColumns: COLS,
               padding: "10px 16px",
               background: "#fafafa",
               borderBottom: "1px solid #f0f0f0",
@@ -286,6 +309,7 @@ export default function AdminOrderPage() {
             <div>Khách hàng</div>
             <div>Ngày tạo</div>
             <div style={{ textAlign: "center" }}>SP</div>
+            <div>Giao hàng</div>
             <div>Trạng thái</div>
             <div>Thanh toán</div>
             <div style={{ textAlign: "right" }}>Thành tiền</div>
@@ -305,8 +329,7 @@ export default function AdminOrderPage() {
                   key={i}
                   style={{
                     display: "grid",
-                    gridTemplateColumns:
-                      "140px 1fr 160px 80px 110px 110px 100px",
+                    gridTemplateColumns: "140px 1fr 160px 60px 90px 110px 110px 100px",
                     gap: 8,
                   }}
                 >
@@ -336,9 +359,7 @@ export default function AdminOrderPage() {
                   }}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: selectMode
-                      ? "40px 140px 1fr 160px 80px 110px 110px 100px"
-                      : "140px 1fr 160px 80px 110px 110px 100px",
+                    gridTemplateColumns: COLS,
                     padding: "12px 16px",
                     borderBottom:
                       idx < orders.length - 1 ? "1px solid #f5f5f5" : "none",
@@ -396,6 +417,36 @@ export default function AdminOrderPage() {
                     style={{ fontSize: 12, color: "#666", textAlign: "center" }}
                   >
                     {(order as any).item_count ?? "—"}
+                  </div>
+                  <div>
+                    {order.shipping_method === "fast" ? (
+                      <span
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: 20,
+                          background: "#fef3c7",
+                          color: "#92400e",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        ⚡ Nhanh
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: 20,
+                          background: "#f0f0f0",
+                          color: "#666",
+                          fontSize: 11,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        📦 Tiêu chuẩn
+                      </span>
+                    )}
                   </div>
                   <div>
                     <StatusBadge status={order.status} />

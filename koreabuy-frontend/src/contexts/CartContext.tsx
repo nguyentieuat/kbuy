@@ -66,7 +66,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const totalCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = items.reduce((sum, i) => {
-    const price = Number(i.variant?.price ?? i.product.price ?? 0);
+    const price = Number(i.variant?.pricing?.price ?? i.product.pricing?.price ?? 0);
     return sum + price * i.quantity;
   }, 0);
 
@@ -76,7 +76,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     quantity: number,
   ) => {
     const token = localStorage.getItem("token");
-
     // guest cart
     if (!token) {
       const itemId = `${product.id}-${variant?.id ?? "base"}`;

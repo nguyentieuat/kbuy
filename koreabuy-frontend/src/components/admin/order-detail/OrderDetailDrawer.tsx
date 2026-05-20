@@ -17,6 +17,7 @@ import OrderReceiverSection from "./OrderReceiverSection";
 import OrderItemsSection from "./OrderItemsSection";
 import OrderSummarySection from "./OrderSummarySection";
 import OrderLogsSection from "./OrderLogsSection";
+import { useToast } from "../../../hooks/useToast";
 
 export default function OrderDetailDrawer({
   order,
@@ -44,6 +45,8 @@ export default function OrderDetailDrawer({
   const [intTo, setIntTo] = useState("");
   const [intNote, setIntNote] = useState("");
   const [intLoading, setIntLoading] = useState(false);
+  const [intFee, setIntFee] = useState("");
+  const [intWeight, setIntWeight] = useState("");
 
   // Domestic shipment
   const [showDomForm, setShowDomForm] = useState(false);
@@ -55,6 +58,7 @@ export default function OrderDetailDrawer({
   const [domLoading, setDomLoading] = useState(false);
 
   const [intStatusLoading, setIntStatusLoading] = useState(false);
+  const { toast, show } = useToast();
 
   const refetchDetail = async () => {
     setLoading(true);
@@ -74,12 +78,16 @@ export default function OrderDetailDrawer({
     })();
   }, [order.id]);
 
-  const handleUpdateIntStatus = async (newStatus: string) => {
+  const handleUpdateIntStatus = async (newStatus: string, intFee?: number) => {
     setIntStatusLoading(true);
     try {
       await AdminOrderAPI.updateInternationalShipmentStatus(d.intShipment!.id, {
         status: newStatus,
+        additional_fee_krw: intFee ? Number(intFee) : undefined,
       });
+
+      show("Update success", "success");
+      setIntFee("");
       await refetchDetail();
     } catch {}
     setIntStatusLoading(false);
@@ -91,6 +99,7 @@ export default function OrderDetailDrawer({
       await AdminOrderAPI.updatePayment(order.id, {
         payment_status: "paid",
       });
+      show("Update success", "success");
       onUpdated();
       await refetchDetail();
     } catch {}
@@ -99,21 +108,38 @@ export default function OrderDetailDrawer({
 
   const handleCreateIntShipment = async () => {
     if (!intTracking.trim()) return;
+    if (intFee && isNaN(Number(intFee))) {
+      alert("Phí vận chuyển không hợp lệ");
+      return;
+    }
+    if (intWeight && isNaN(Number(intWeight))) {
+      alert("Cân nặng không hợp lệ");
+      return;
+    }
+
     setIntLoading(true);
     try {
       await AdminOrderAPI.createShipment(order.id, {
         tracking_code: intTracking,
-        carrier: intCarrier || undefined,
+        carrier: intCarrier || "unknown",
         from_warehouse: intFrom || undefined,
         to_warehouse: intTo || undefined,
+        actual_cost_krw: intFee ? Number(intFee) : undefined,
+        actual_weight_grams: intWeight ? Number(intWeight) * 1000 : undefined,
         note: intNote || undefined,
       });
+      show("Tạo vận chuyển quốc tế thành công", "success");
+
       setShowIntForm(false);
       setIntTracking("");
       setIntCarrier("");
+      setIntFee("");
+      setIntWeight("");
       setIntNote("");
       await refetchDetail();
-    } catch {}
+    } catch (err: any) {
+      show(err?.response?.data?.message || "Tạo vận chuyển thất bại", "error");
+    }
     setIntLoading(false);
   };
 
@@ -128,6 +154,8 @@ export default function OrderDetailDrawer({
         shipping_fee: domFee ? Number(domFee) : 0,
         note: domNote || undefined,
       });
+      show("Tạo vận chuyển nội địa thành công", "success");
+
       setShowDomForm(false);
       setDomTracking("");
       setDomCarrier("");
@@ -135,7 +163,9 @@ export default function OrderDetailDrawer({
       setDomFee("");
       setDomNote("");
       await refetchDetail();
-    } catch {}
+    } catch (err: any) {
+      show(err?.response?.data?.message || "Tạo vận chuyển thất bại", "error");
+    }
     setDomLoading(false);
   };
 
@@ -280,6 +310,10 @@ export default function OrderDetailDrawer({
               setIntNote={setIntNote}
               onCreateShipment={handleCreateIntShipment}
               onUpdateStatus={handleUpdateIntStatus}
+              intFee={intFee}
+              intWeight={intWeight}
+              setIntFee={setIntFee}
+              setIntWeight={setIntWeight}
             />
             {/* Vận chuyển nội địa */}
             <OrderDomShipmentSection

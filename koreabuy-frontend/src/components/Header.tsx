@@ -72,8 +72,18 @@ export default function Header() {
           className="sticky-nav js-sticky-header"
           style={{ padding: "10px" }}
         >
-          <a href="index.html" className="logo menu-absolute m-0">
-            UntreeStore<span className="text-primary">.</span>
+          <a
+            href="/"
+            className="logo menu-absolute m-0"
+            style={{
+              position: "absolute",
+              left: "10%",
+              transform: "translateX(-50%)",
+              top: "30%",
+              marginTop: "-10px", // căn dọc giữa
+            }}
+          >
+            KBuy<span className="text-primary">.</span>
           </a>
           <div className="container position-relative">
             <div className="site-navigation dark">

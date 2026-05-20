@@ -1,62 +1,121 @@
 /**
+ * Coupon usages table
+ *
+ * Dùng để tracking:
+ * - ai đã dùng coupon
+ * - đơn nào đã áp dụng coupon
+ * - chống abuse coupon
+ * - validate usage limit
+ * - audit marketing campaign
+ *
  * @param {import('knex').Knex} knex
  */
-await knex.schema.createTable("coupon_usages", (table) => {
-  table.bigIncrements("id").primary();
+exports.up = async function (knex) {
+  await knex.schema.createTable("coupon_usages", (table) => {
+    /**
+     * =========================================================
+     * PRIMARY KEY
+     * =========================================================
+     */
 
-  table
-    .bigInteger("coupon_id")
-    .unsigned()
-    .notNullable()
-    .references("id")
-    .inTable("coupons")
-    .onDelete("CASCADE");
+    table.bigIncrements("id").primary();
 
-  table
-    .bigInteger("user_id")
-    .unsigned()
-    .nullable()
-    .references("id")
-    .inTable("users")
-    .onDelete("SET NULL");
+    /**
+     * =========================================================
+     * RELATIONS
+     * =========================================================
+     */
 
-  table
-    .bigInteger("order_id")
-    .unsigned()
-    .nullable()
-    .references("id")
-    .inTable("orders")
-    .onDelete("SET NULL");
+    // Coupon đã sử dụng
+    table
+      .bigInteger("coupon_id")
+      .unsigned()
+      .notNullable()
+      .references("id")
+      .inTable("coupons")
+      .onDelete("CASCADE");
 
-  table.string("email", 255).nullable();
-  table.string("phone", 30).nullable();
+    // User sử dụng coupon
+    // nullable để support guest order
+    table
+      .bigInteger("user_id")
+      .unsigned()
+      .nullable()
+      .references("id")
+      .inTable("users")
+      .onDelete("SET NULL");
 
-  table.decimal("discount_amount", 12, 2).notNullable().defaultTo(0);
+    // Order áp dụng coupon
+    table
+      .bigInteger("order_id")
+      .unsigned()
+      .nullable()
+      .references("id")
+      .inTable("orders")
+      .onDelete("SET NULL");
 
-  table.timestamp("used_at").notNullable().defaultTo(knex.fn.now());
-});
+    /**
+     * =========================================================
+     * SNAPSHOT INFO
+     * =========================================================
+     * Snapshot để tracking kể cả khi user đổi info
+     */
 
-// indexes
-await knex.schema.raw(`
-    CREATE INDEX idx_coupon_usages_coupon_id
-    ON coupon_usages(coupon_id);
-  `);
+    // Email tại thời điểm dùng coupon
+    table.string("email", 255).nullable();
 
-await knex.schema.raw(`
-  CREATE INDEX idx_coupon_usages_phone
-  ON coupon_usages(phone);
-`);
+    // Số điện thoại tại thời điểm dùng coupon
+    table.string("phone", 30).nullable();
 
-await knex.schema.raw(`
-    CREATE INDEX idx_coupon_usages_user_id
-    ON coupon_usages(user_id);
-  `);
+    /**
+     * =========================================================
+     * DISCOUNT INFO
+     * =========================================================
+     */
 
-await knex.schema.raw(`
-    CREATE INDEX idx_coupon_usages_order_id
-    ON coupon_usages(order_id);
-  `);
+    // Số tiền thực tế đã được giảm
+    table.decimal("discount_amount", 12, 2)
+      .notNullable()
+      .defaultTo(0);
 
+    /**
+     * =========================================================
+     * TIMESTAMP
+     * =========================================================
+     */
+
+    // Thời điểm sử dụng coupon
+    table.timestamp("used_at")
+      .notNullable()
+      .defaultTo(knex.fn.now());
+
+    table.timestamps(true, true);
+
+    /**
+     * =========================================================
+     * INDEXES
+     * =========================================================
+     */
+
+    table.index(["coupon_id"]);
+
+    table.index(["user_id"]);
+
+    table.index(["order_id"]);
+
+    table.index(["phone"]);
+
+    table.index(["email"]);
+
+    table.index(["used_at"]);
+  });
+};
+
+/**
+ * Rollback
+ *
+ * @param {import('knex').Knex} knex
+ */
 exports.down = async function (knex) {
   await knex.schema.dropTableIfExists("coupon_usages");
 };

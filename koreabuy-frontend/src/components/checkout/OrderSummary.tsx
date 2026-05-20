@@ -20,6 +20,10 @@ type Props = {
   shippingResult: any;
   shippingFee: number;
 
+  localFee: number;
+  localBaseFee: number;
+  internationalFee: number;
+
   serviceFee: number;
   grandTotal: number;
 
@@ -35,11 +39,13 @@ export default function OrderSummary({
   couponDiscount,
   shippingResult,
   shippingFee,
+  localFee,
+  localBaseFee,
+  internationalFee,
   serviceFee,
   grandTotal,
   fmt,
 }: Props) {
-  debugger
   return (
     <div style={{ borderTop: "1px solid #eee", paddingTop: 14 }}>
       {/* Tổng tiền */}
@@ -100,7 +106,7 @@ export default function OrderSummary({
         }}
       >
         <span>Phí vận chuyển quốc tế</span>
-        <span>{fmt(shippingResult.internationalFee)}</span>
+        <span>{fmt(internationalFee)}</span>
       </div>
 
       {/* Shipping nội địa */}
@@ -115,30 +121,32 @@ export default function OrderSummary({
       >
         <span>Phí vận chuyển nội địa VN</span>
 
-        <span
-          style={{
-            color: shippingDiscount > 0 ? "#27ae60" : "#007bff",
-
-            fontWeight: 600,
-          }}
-        >
-          {shippingDiscount > 0 ? (
+        <span>
+          {!shippingResult ? (
+            <span style={{ color: "#aaa" }}>Chọn địa chỉ</span>
+          ) : shippingResult.isFreeShipping ? (
             <>
-              <s
-                style={{
-                  color: "#aaa",
-                  fontWeight: 400,
-                }}
-              >
-                {fmt(shippingFee)}
-              </s>{" "}
-              Miễn phí
+              <s style={{ color: "#aaa" }}>{fmt(localBaseFee)}</s>{" "}
+              <span style={{ color: "#27ae60" }}>Miễn phí</span>
+            </>
+          ) : shippingResult.localDiscount > 0 ? (
+            <>
+              <s style={{ color: "#aaa" }}>{fmt(localBaseFee)}</s>{" "}
+              {fmt(localFee)}
             </>
           ) : (
-            fmt(shippingFee)
+            fmt(localFee)
           )}
         </span>
       </div>
+
+      {/* Badge giải thích freeship */}
+
+      {shippingResult?.discountRule && (
+        <div style={{ fontSize: 12, color: "#2e7d32", marginTop: 4 }}>
+          {shippingResult.discountRule.name}
+        </div>
+      )}
 
       {/* Service fee */}
       <div
@@ -155,7 +163,7 @@ export default function OrderSummary({
       </div>
 
       {/* bulky warning */}
-      {shippingResult.bulkyFee > 0 && (
+      {shippingResult?.bulkyFee > 0 && (
         <div
           style={{
             marginBottom: 10,
@@ -201,7 +209,7 @@ export default function OrderSummary({
             margin: 0,
           }}
         >
-          Tiết kiệm {fmt(totalProductDiscount + couponDiscount)}
+          Tiết kiệm {fmt(totalProductDiscount + couponDiscount + shippingDiscount + (shippingResult?.localDiscount ?? 0))}
         </p>
       )}
     </div>

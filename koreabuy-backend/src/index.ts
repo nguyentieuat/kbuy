@@ -14,11 +14,12 @@ const orderRoutes = require("./routes/order.route");
 const authRoutes = require("./routes/auth.route");
 const addressRoutes = require("./routes/address.route");
 const couponRoutes = require("./routes/coupons.route");
-const newsletterRoutes = require("./routes/newsletter.route")
-const importRequestRoutes = require("./routes/importRequest.route")
-const adminOrderRoutes = require("./routes/adminOrder.route")
-const shipmentRoutes = require("./routes/shipment.route")
-const cartRoutes = require("./routes/cart.route")
+const newsletterRoutes = require("./routes/newsletter.route");
+const importRequestRoutes = require("./routes/importRequest.route");
+const adminOrderRoutes = require("./routes/adminOrder.route");
+const shipmentRoutes = require("./routes/shipment.route");
+const cartRoutes = require("./routes/cart.route");
+const shippingRoutes = require("./routes/shipping.route")
 
 const path = require("path");
 
@@ -38,6 +39,7 @@ app.use('/api/banners', bannersRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/products", productsRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/shipping", shippingRoutes);
 
 app.use("/api/otp", otpRoutes);
 app.use("/api/auth", authRoutes);
@@ -54,11 +56,13 @@ app.use("/api/import-requests", importRequestRoutes);
 app.use("/api/admin/orders", adminOrderRoutes);
 app.use("/api/admin/shipments", shipmentRoutes);
 
+
 const rootPath = process.cwd();
 app.use(
   "/uploads",
   express.static(path.join(rootPath, "uploads"))
 );
+
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

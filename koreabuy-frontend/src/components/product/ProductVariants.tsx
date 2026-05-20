@@ -15,7 +15,9 @@ export default function ProductVariants({
         Phân loại:{" "}
         {selectedVariant && (
           <span style={{ color: "#007bff" }}>
-            {selectedVariant.name_vi ?? selectedVariant.sku}
+            {selectedVariant.name ??
+              selectedVariant.nameKr ??
+              selectedVariant.sku}
           </span>
         )}
       </p>
@@ -25,14 +27,14 @@ export default function ProductVariants({
           <div
             key={v.id}
             onClick={() => {
-              if (v.is_soldout) return;
+              if (v.flags.isSoldout) return;
               setVariantSelectedByUser(true);
               setSelectedVariant(v);
             }}
             style={{
               width: 72,
-              opacity: v.is_soldout ? 0.5 : 1,
-              cursor: v.is_soldout ? "not-allowed" : "pointer",
+              opacity: v.flags.isSoldout ? 0.5 : 1,
+              cursor: v.flags.isSoldout ? "not-allowed" : "pointer",
               textAlign: "center",
             }}
           >
@@ -48,17 +50,23 @@ export default function ProductVariants({
                     : "2px solid #eee",
               }}
             >
-              {v.image_url ? (
+              {v.media.image ? (
                 <img
-                  src={normalizeImageUrl(v.image_url)}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  src={normalizeImageUrl(v.media.image)}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                  }}
                 />
               ) : (
                 <div>📦</div>
               )}
             </div>
 
-            <div style={{ fontSize: 11 }}>{v.name_vi ?? v.sku}</div>
+            <div style={{ fontSize: 11 }}>
+              {v.name ?? v.nameKr ?? v.sku}
+            </div>
           </div>
         ))}
       </div>

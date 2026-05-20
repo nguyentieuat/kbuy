@@ -16,15 +16,15 @@ export const SHIPPING_OPTIONS: {
     id: "fast",
     icon: "⚡",
     name: "Giao hàng nhanh",
-    desc: "Nhận hàng trong 1–2 ngày",
-    baseFee: 30000,
+    desc: "Xuất kho ngay sau khi nhận hàng từ Hàn Quốc",
+    baseFee: 300000,
   },
   {
     id: "standard",
     icon: "📦",
     name: "Giao hàng tiết kiệm",
-    desc: "Nhận hàng trong 3–5 ngày",
-    baseFee: 15000,
+    desc: "Gom đơn và xuất kho định kỳ mỗi tuần",
+    baseFee: 150000,
   },
 ];
 

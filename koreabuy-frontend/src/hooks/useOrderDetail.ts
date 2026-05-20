@@ -91,7 +91,6 @@ export function useOrderDetail(orderCode?: string) {
         }
 
         const data = await res.json();
-
         if (!cancelled) {
           setOrder(data.data);
         }

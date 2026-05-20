@@ -22,7 +22,6 @@ function SkeletonSlide() {
 
 export default function ProductListCarousel() {
   const { products, loading, error } = useNewArrivalProducts(12);
-
   // Show skeleton carousel while fetching
   if (loading) {
     return (

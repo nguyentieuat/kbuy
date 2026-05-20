@@ -27,7 +27,7 @@ export default function CartItemRow({
   return (
     <div className="cart-row">
       {/* Ảnh */}
-      <div className="cart-image" onClick={() => navigate(item.product.link)}>
+      <div className="cart-image" onClick={() => navigate(item.product.metadata.link)}>
         {imageUrl ? (
           <img src={imageUrl} alt={item.product.name} className="cart-img" />
         ) : (
@@ -37,7 +37,7 @@ export default function CartItemRow({
 
       {/* Info */}
       <div className="cart-info">
-        <p className="cart-name" onClick={() => navigate(item.product.link)}>
+        <p className="cart-name" onClick={() => navigate(item.product.metadata.link)}>
           {item.product.name}
         </p>
 
@@ -47,7 +47,7 @@ export default function CartItemRow({
             onClick={() => setVariantModal(item)}
           >
             {item.variant
-              ? item.variant.name_vi ?? item.variant.sku
+              ? item.variant.name ?? item.variant.nameKr ?? item.variant.sku
               : "Chọn phân loại"}
             <span>▼</span>
           </button>

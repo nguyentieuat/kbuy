@@ -75,15 +75,13 @@ export default function CartPage() {
           <div className="col-lg-8">
             {items.map((item) => {
               const imageUrl = normalizeImageUrl(
-                item.variant?.image_url ||
-                  item.product.image ||
-                  item.product.images?.[0]?.url,
+                  item.product.media.image 
               );
               const price = Number(
-                item.variant?.price ?? item.product.price ?? 0,
+                item.variant?.pricing.price ?? item.product.pricing.price ?? 0,
               );
               const originalPrice = Number(
-                item.variant?.original_price ?? item.product.originalPrice ?? 0,
+                item.variant?.pricing.originalPrice ?? item.product.pricing.originalPrice ?? 0,
               );
 
               return (

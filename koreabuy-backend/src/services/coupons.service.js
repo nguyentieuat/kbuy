@@ -81,7 +81,7 @@ class CouponService {
     }
 
     return {
-      coupon: toCouponDTO(coupon), // 👈 IMPORTANT FIX
+      coupon: toCouponDTO(coupon),
       discount: Math.round(discount),
     };
   }

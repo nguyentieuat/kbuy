@@ -30,9 +30,11 @@ const ShipmentModel = {
     return trx("international_shipments").where("id", id).first();
   },
 
-  async updateStatus(id, status) {
+  async updateStatus(id, status, actual_cost_krw, actual_cost_vnd) {
     return db("international_shipments").where({ id }).update({
       status,
+      actual_cost_krw,
+      actual_cost_vnd,
       updated_at: new Date(),
     });
   },

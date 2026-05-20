@@ -49,7 +49,7 @@ export default function ProductGallery({
             style={{
               width: "100%",
               height: "100%",
-              objectFit: "cover",
+              objectFit: "contain",
             }}
           />
         ) : (
@@ -129,7 +129,7 @@ export default function ProductGallery({
                       style={{
                         width: "100%",
                         height: "100%",
-                        objectFit: "cover",
+                        objectFit: "contain",
                       }}
                     />
                   </div>

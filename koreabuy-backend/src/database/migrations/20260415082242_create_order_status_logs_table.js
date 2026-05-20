@@ -13,7 +13,7 @@ exports.up = async function (knex) {
       .inTable("orders")
       .onDelete("CASCADE");
 
-    table.string("order_code", 50).notNullable().index();
+    table.string("order_code", 50).notNullable();
 
     table.string("status", 50).notNullable();
     table.text("note");

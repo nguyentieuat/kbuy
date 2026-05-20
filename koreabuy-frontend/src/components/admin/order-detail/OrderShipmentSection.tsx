@@ -4,6 +4,7 @@ import Section from "./Section";
 import InfoRow from "./InfoRow";
 import { fmtDate } from "../../../utils/format";
 import { INT_SHIPMENT_STATUS } from "../constants/adminOrder";
+import { useNumberInput } from "../hooks/useNumberInput";
 
 type Props = {
   intShipment?: any;
@@ -18,6 +19,11 @@ type Props = {
   intLoading: boolean;
   intStatusLoading: boolean;
 
+  intFee: string;
+  intWeight: string;
+  setIntFee: (v: string) => void;
+  setIntWeight: (v: string) => void;
+
   setShowIntForm: (v: boolean) => void;
   setIntTracking: (v: string) => void;
   setIntCarrier: (v: string) => void;
@@ -26,7 +32,7 @@ type Props = {
   setIntNote: (v: string) => void;
 
   onCreateShipment: () => void;
-  onUpdateStatus: (status: string) => void;
+  onUpdateStatus: (status: string, intFee?: number) => void;
 };
 
 const STEPS = [
@@ -97,7 +103,11 @@ export default function OrderShipmentSection({
 
   intLoading,
   intStatusLoading,
+  intFee,
+  intWeight,
 
+  setIntFee,
+  setIntWeight,
   setShowIntForm,
   setIntTracking,
   setIntCarrier,
@@ -108,6 +118,7 @@ export default function OrderShipmentSection({
   onCreateShipment,
   onUpdateStatus,
 }: Props) {
+  const costInput = useNumberInput();
   return (
     <Section
       title="🌏 Vận chuyển quốc tế"
@@ -161,8 +172,7 @@ export default function OrderShipmentSection({
                 fontWeight: 600,
               }}
             >
-              {INT_SHIPMENT_STATUS[intShipment.status] ??
-                intShipment.status}
+              {INT_SHIPMENT_STATUS[intShipment.status] ?? intShipment.status}
             </span>
           </div>
 
@@ -172,17 +182,11 @@ export default function OrderShipmentSection({
           )}
 
           {intShipment.from_warehouse && (
-            <InfoRow
-              label="Kho gửi"
-              value={intShipment.from_warehouse}
-            />
+            <InfoRow label="Kho gửi" value={intShipment.from_warehouse} />
           )}
 
           {intShipment.to_warehouse && (
-            <InfoRow
-              label="Kho nhận"
-              value={intShipment.to_warehouse}
-            />
+            <InfoRow label="Kho nhận" value={intShipment.to_warehouse} />
           )}
 
           {intShipment.note && (
@@ -190,10 +194,7 @@ export default function OrderShipmentSection({
           )}
 
           {intShipment.shipped_at && (
-            <InfoRow
-              label="Ngày gửi"
-              value={fmtDate(intShipment.shipped_at)}
-            />
+            <InfoRow label="Ngày gửi" value={fmtDate(intShipment.shipped_at)} />
           )}
 
           {intShipment.arrived_at && (
@@ -270,9 +271,21 @@ export default function OrderShipmentSection({
                     <span>Xong</span>
                   </div>
                 </div>
-
+                <input
+                  className="form-control form-control-sm mb-2"
+                  type="number"
+                  placeholder="Phí phát sinh thêm (nếu có, KWR)"
+                  value={costInput.display}
+                  onChange={(e) => costInput.onChangeWithCallback(e, setIntFee)}
+                  style={{ borderRadius: 8, fontSize: 13 }}
+                />
                 <button
-                  onClick={() => onUpdateStatus(next.status)}
+                  onClick={() =>
+                    onUpdateStatus(
+                      next.status,
+                      intFee ? Number(intFee) : undefined,
+                    )
+                  }
                   disabled={intStatusLoading}
                   style={{
                     width: "100%",
@@ -338,14 +351,39 @@ export default function OrderShipmentSection({
               autoFocus
             />
 
-            <input
-              className="form-control form-control-sm"
-              placeholder="Đơn vị vận chuyển"
-              value={intCarrier}
-              onChange={(e) => setIntCarrier(e.target.value)}
-              style={{ borderRadius: 8, fontSize: 13 }}
-            />
-
+            <div className="row g-2">
+              <div className="col-6">
+                <input
+                  className="form-control form-control-sm"
+                  placeholder="Đơn vị vận chuyển"
+                  value={intCarrier}
+                  onChange={(e) => setIntCarrier(e.target.value)}
+                  style={{ borderRadius: 8, fontSize: 13 }}
+                />
+              </div>
+              <div className="col-6">
+                <input
+                  className="form-control form-control-sm"
+                  type="number"
+                  placeholder="Phí vận chuyển thực tế (KWR)"
+                  value={costInput.display}
+                  onChange={(e) => costInput.onChangeWithCallback(e, setIntFee)}
+                  style={{ borderRadius: 8, fontSize: 13 }}
+                />
+              </div>
+            </div>
+            <div className="row g-2">
+              <div className="col-6">
+                <input
+                  className="form-control form-control-sm"
+                  type="number"
+                  placeholder="Cân nặng thực tế (kg)"
+                  value={intWeight}
+                  onChange={(e) => setIntWeight(e.target.value)}
+                  style={{ borderRadius: 8, fontSize: 13 }}
+                />
+              </div>
+            </div>
             <div className="row g-2">
               <div className="col-6">
                 <input

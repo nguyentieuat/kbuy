@@ -1,22 +1,37 @@
 // services/products.service.js
 
-const ProductModel = require("../models/products.models");
+const ProductModel = require("../models/products.model");
 const { mapProduct } = require("../mappers/product.mapper");
+const { getKrwToVndRate } = require("./currency.service");
+
+async function mapProducts(rows, rate) {
+  if (!rate) {
+    rate = await getKrwToVndRate();
+  }
+  return rows.map((row) => mapProduct(row, rate));
+}
 
 /**
  * Select featured products for ProductListGrid
  */
 async function getFeaturedProducts(limit = 9) {
-  const rows = await ProductModel.getFeaturedProducts(limit);
-  return rows.map(mapProduct);
+  const [rows, rate] = await Promise.all([
+    ProductModel.getFeaturedProducts(limit),
+    getKrwToVndRate(),
+  ]);
+
+  return await mapProducts(rows, rate);
 }
 
 /**
  * Bring new products to ProductListCarousel
  */
 async function getNewArrivalProducts(limit = 12) {
-  const rows = await ProductModel.getNewArrivalProducts(limit);
-  return rows.map(mapProduct);
+  const [rows, rate] = await Promise.all([
+    ProductModel.getNewArrivalProducts(limit),
+    getKrwToVndRate(),
+  ]);
+  return await mapProducts(rows, rate);
 }
 
 /**
@@ -26,17 +41,20 @@ async function getProducts(query = {}) {
   const limit = parseInt(query.limit ?? 12);
   const page = parseInt(query.page ?? 1);
 
-  const result = await ProductModel.getProducts({
-    categorySlug: query.category_slug ?? null,
-    source: query.source ?? null,
-    search: query.search ?? null,
-    sort: query.sort ?? null,
-    page,
-    limit,
-  });
+  const [result, rate] = await Promise.all([
+    ProductModel.getProducts({
+      categorySlug: query.category_slug ?? null,
+      source: query.source ?? null,
+      search: query.search ?? null,
+      sort: query.sort ?? null,
+      page,
+      limit,
+    }),
+    getKrwToVndRate(),
+  ]);
 
   return {
-    data: result.data.map(mapProduct),
+    data: await mapProducts(result.data, rate),
     pagination: result.pagination,
   };
 }
@@ -45,15 +63,23 @@ async function getProducts(query = {}) {
  * Extract details of a product by slug.
  */
 async function getProductBySlug(slug) {
-  const row = await ProductModel.getProductBySlug(slug);
+  const [row, rate] = await Promise.all([
+    ProductModel.getProductBySlug(slug),
+    getKrwToVndRate(),
+  ]);
+
   if (!row) return null;
-  return mapProduct(row);
+  return mapProduct(row, rate);
 }
 
 async function getProductById(productId) {
-  const row = await ProductModel.getProductById(productId);
+  const [row, rate] = await Promise.all([
+    ProductModel.getProductById(productId),
+    getKrwToVndRate(),
+  ]);
+
   if (!row) return null;
-  return mapProduct(row);
+  return mapProduct(row, rate);
 }
 
 /**
@@ -130,7 +156,9 @@ async function getRecommendedProducts({
     results.push(...randomProducts);
   }
 
-  return results.map(mapProduct);
+  const rate = await getKrwToVndRate();
+
+  return await mapProducts(results, rate);
 }
 
 module.exports = {

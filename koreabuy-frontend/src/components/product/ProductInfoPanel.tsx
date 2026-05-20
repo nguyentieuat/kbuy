@@ -49,11 +49,11 @@ export default function ProductInfoPanel(props: Props) {
         {product.name}
       </h1>
 
-      {product.name_kr && (
+      {product.nameKr && (
         <p style={{ color: "#888", fontSize: 13, marginBottom: 16 }}>
           Nguồn:{" "}
-          <a href={product.productUrl} target="_blank" rel="noreferrer">
-            {product.name_kr}
+          <a href={product.metadata.productUrl} target="_blank" rel="noreferrer">
+            {product.nameKr}
           </a>
         </p>
       )}

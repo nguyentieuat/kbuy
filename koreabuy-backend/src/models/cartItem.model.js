@@ -10,9 +10,9 @@ async function findItems(cartId) {
       .leftJoin("product_variants as pv", "ci.variant_id", "pv.id")
 
       // primary image
-      .leftJoin("product_images as pi", function () {
-        this.on("pi.product_id", "=", "p.id").andOn(
-          "pi.is_primary",
+      .leftJoin("product_variant_images as pvi", function () {
+        this.on("pvi.product_id", "=", "p.id").andOn(
+          "pvi.is_primary",
           "=",
           db.raw("true"),
         );
@@ -30,7 +30,9 @@ async function findItems(cartId) {
         "p.name_kr as product_name_kr",
         "p.name_vi as product_name_vi",
 
-        "p.price_min as product_price",
+        "p.sale_price as product_price",
+        "p.original_price as product_original_price",
+        
 
         "p.product_url",
 
@@ -40,9 +42,10 @@ async function findItems(cartId) {
         "pv.name_vi as variant_name_vi",
 
         "pv.price as variant_price",
+        "pv.original_price as variant_original_price",
 
         // product image
-        "pi.url as product_image",
+        "pvi.url as product_image",
       )
   );
 }

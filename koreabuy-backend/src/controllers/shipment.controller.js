@@ -31,7 +31,8 @@ const ShipmentController = {
 
   async createInternationalShipments(req, res) {
     try {
-      const data = await ShipmentService.createInternationalShipments(req.body);
+      const user = req.user || null;
+      const data = await ShipmentService.createInternationalShipments(req.body, user);
 
       res.json({
         success: true,
@@ -47,12 +48,15 @@ const ShipmentController = {
 
   async updateInternationalShipmentStatus(req, res) {
     try {
+      const user = req.user || null;
       const shipmentId = req.params.shipmentId;
-      const { status } = req.body;
+      const { status, additional_fee_krw } = req.body;
 
       const updated = await ShipmentService.updateInternationalShipmentStatus(
         shipmentId,
         status,
+        additional_fee_krw,
+        user
       );
 
       return res.json({

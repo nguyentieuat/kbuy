@@ -1,36 +1,140 @@
+/**
+ * Phone verifications table
+ *
+ * Dùng để:
+ * - xác minh số điện thoại
+ * - chống spam/fraud
+ * - block COD risk
+ * - tracking verify history
+ * - rate limit OTP
+ *
+ * @param {import('knex').Knex} knex
+ */
 exports.up = async function (knex) {
   await knex.schema.createTable("phone_verifications", (table) => {
+    /**
+     * =========================================================
+     * PRIMARY KEY
+     * =========================================================
+     */
+
     table.increments("id").primary();
 
-    table.string("phone", 20).notNullable().unique();
+    /**
+     * =========================================================
+     * PHONE INFO
+     * =========================================================
+     */
 
-    table.boolean("verified").notNullable().defaultTo(false);
+    // Số điện thoại cần verify
+    table.string("phone", 20)
+      .notNullable()
+      .unique();
 
-    table.timestamp("verified_at").nullable();
+    /**
+     * =========================================================
+     * VERIFY STATUS
+     * =========================================================
+     */
 
-    table.string("last_verified_uid", 128).nullable();
+    // Đã verify hay chưa
+    table.boolean("verified")
+      .notNullable()
+      .defaultTo(false);
 
-    table.string("verify_method", 20).notNullable().defaultTo("firebase");
+    // Thời điểm verify thành công
+    table.timestamp("verified_at")
+      .nullable();
 
-    table.integer("attempt_count").notNullable().defaultTo(0);
+    /**
+     * =========================================================
+     * VERIFY PROVIDER INFO
+     * =========================================================
+     */
 
-    table.timestamp("last_attempt_at").nullable();
+    // UID/token verify cuối cùng
+    // VD Firebase verification UID
+    table.string("last_verified_uid", 128)
+      .nullable();
 
-    table.timestamp("created_at").notNullable().defaultTo(knex.fn.now());
+    // Phương thức verify
+    // firebase | otp | sms
+    table.string("verify_method", 20)
+      .notNullable()
+      .defaultTo("firebase");
 
-    table.integer("risk_level").notNullable().defaultTo(0);
+    /**
+     * =========================================================
+     * RATE LIMIT / SECURITY
+     * =========================================================
+     */
 
-    table.boolean("cod_blocked").notNullable().defaultTo(false);
+    // Số lần gửi OTP/verify
+    table.integer("attempt_count")
+      .notNullable()
+      .defaultTo(0);
 
-    table.timestamp("updated_at").notNullable().defaultTo(knex.fn.now());
-  });
+    // Thời điểm gửi OTP gần nhất
+    table.timestamp("last_attempt_at")
+      .nullable();
 
-  await knex.schema.alterTable("phone_verifications", (table) => {
-    table.index(["phone"], "idx_phone_verifications_phone");
-    table.index(["verified"], "idx_phone_verifications_verified");
+    // IP verify gần nhất
+    table.string("last_attempt_ip", 100)
+      .nullable();
+
+    /**
+     * =========================================================
+     * FRAUD / RISK CONTROL
+     * =========================================================
+     */
+
+    // Risk score
+    // 0 = bình thường
+    // càng cao càng nguy hiểm
+    table.integer("risk_level")
+      .notNullable()
+      .defaultTo(0);
+
+    // Block COD nếu risk cao
+    table.boolean("cod_blocked")
+      .notNullable()
+      .defaultTo(false);
+
+    /**
+     * =========================================================
+     * TIMESTAMPS
+     * =========================================================
+     */
+
+    table.timestamp("created_at")
+      .notNullable()
+      .defaultTo(knex.fn.now());
+
+    table.timestamp("updated_at")
+      .notNullable()
+      .defaultTo(knex.fn.now());
+
+    /**
+     * =========================================================
+     * INDEXES
+     * =========================================================
+     */
+
+    table.index(["phone"]);
+
+    table.index(["verified"]);
+
+    table.index(["risk_level"]);
+
+    table.index(["cod_blocked"]);
   });
 };
 
+/**
+ * Rollback
+ *
+ * @param {import('knex').Knex} knex
+ */
 exports.down = async function (knex) {
   await knex.schema.dropTableIfExists("phone_verifications");
 };

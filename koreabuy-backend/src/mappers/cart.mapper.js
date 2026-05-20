@@ -1,6 +1,8 @@
 // mappers/cart.mapper.js
 
-function toCartItem(row) {
+const { convertPrice, getKrwToVndRate } = require("../services/currency.service");
+
+function toCartItem(row, rate = 19) {
   return {
     id: String(row.id),
 
@@ -9,41 +11,53 @@ function toCartItem(row) {
     product: {
       id: row.product_id,
 
-      name:
-        row.product_name_vi ??
-        row.product_name_kr,
+      name: row.product_name_vi ?? row.product_name_kr,
 
       slug: row.slug,
 
-      image: row.product_image,
+      media: {
+        image: row.product_image,
+      },
+      pricing: {
+        price: convertPrice(
+          Number(row.product_price ?? row.variant_price ?? 0),
+          rate,
+        ),
 
-      price: Number(
-        row.variant_price ??
-        row.product_price ??
-        0,
-      ),
+        originalPrice: convertPrice(
+          Number(row.product_original_price ?? row.variant_original_price ?? 0),
+          rate,
+        ),
+      },
 
-      product_url: row.product_url,
+      metadata: {
+        productUrl: row.product_url ?? row.productUrl,
+        link: `/products/${row.slug}`,
+        createdAt: row.created_at,
+      },
     },
 
     variant: row.variant_id
       ? {
           id: row.variant_id,
 
-          name:
-            row.variant_name_vi ??
-            row.variant_name_kr,
+          name: row.variant_name_vi ?? row.variant_name_kr,
 
-          price: Number(
-            row.variant_price ?? 0,
-          ),
+          pricing: {
+            price: convertPrice(Number(row.variant_price ?? 0), rate),
+
+            originalPrice: convertPrice(
+              Number(row.variant_original_price ?? 0),
+              rate,
+            ),
+          },
         }
       : null,
   };
 }
 
-function toCartItems(rows = []) {
-  return rows.map(toCartItem);
+function toCartItems(rows = [], rate = 19) {
+  return rows.map((row) => toCartItem(row, rate));
 }
 
 module.exports = {

@@ -112,6 +112,10 @@ const OrderModel = {
   async getOrders({ where = {}, limit = 20, offset = 0 }, trx = db) {
     let query = trx("orders");
 
+    if (where.shipping_method) {
+      query.where("shipping_method", where.shipping_method);
+    }
+
     if (where.status) {
       query.where("status", where.status);
     }

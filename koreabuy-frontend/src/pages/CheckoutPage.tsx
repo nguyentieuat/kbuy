@@ -7,7 +7,7 @@ import { useToast } from "../hooks/useToast";
 import Toast from "../components/Toast";
 import AddressModal from "../components/AddressModal";
 import { useRegion } from "../hooks/useAddress";
-import { calculateShippingTotal } from "../utils/shipping";
+import { calculateShippingTotal, type Region } from "../utils/shipping";
 import OtpModal from "../components/OtpModal";
 import PayQrModal from "../components/PayQrModal";
 import { useOtpCheck } from "../hooks/useOtpCheck";
@@ -35,6 +35,8 @@ import { useValidateCoupon } from "../hooks/useValidateCoupon";
 import { normalizeImageUrl } from "../utils/image";
 import { fmt } from "../utils/format";
 import type { AppliedCoupon } from "../types/coupon";
+import { calculateCartTotals } from "../utils/cartTotals";
+import { useShippingFee } from "../hooks/useShippingFee";
 
 export default function CheckoutPage() {
   const { items, clearCart } = useCart();
@@ -69,32 +71,24 @@ export default function CheckoutPage() {
   const [selectedAddress, setSelectedAddress] =
     useState<SelectedAddress | null>(null);
 
-  // Auto fill user info
+  // Chỉ chạy 1 lần khi user load xong và có default_address
   useEffect(() => {
-    if (!user) return;
+    if (!user?.default_address) return;
 
     const selected = user.default_address;
 
     setForm((prev) => ({
       ...prev,
-
-      // fallback nếu chưa có addressSelected
       full_name:
-        prev.full_name || selected?.receiver_name || user.full_name || "",
-
-      phone: prev.phone || selected?.receiver_phone || user.phone || "",
-
+        prev.full_name || selected.receiver_name || user.full_name || "",
+      phone: prev.phone || selected.receiver_phone || user.phone || "",
       email: prev.email || user.email || "",
-
-      gender: prev.gender || selected?.receiver_gender || "other",
-
-      province: prev.province || selected?.province || null,
-
-      ward: prev.ward || selected?.ward || null,
-
-      detail: prev.detail || selected?.detail || "",
+      gender: prev.gender || selected.receiver_gender || "other",
+      province: prev.province || selected.province || null,
+      ward: prev.ward || selected.ward || null,
+      detail: prev.detail || selected.detail || "",
     }));
-  }, [user]);
+  }, [user?.default_address]); // trigger khi default_address thay đổi
 
   // Auto fill default address
   useEffect(() => {
@@ -112,7 +106,9 @@ export default function CheckoutPage() {
 
   // Coupon
   const [coupon, setCoupon] = useState("");
-  const [couponApplied, setCouponApplied] = useState<AppliedCoupon | null>(null);
+  const [couponApplied, setCouponApplied] = useState<AppliedCoupon | null>(
+    null,
+  );
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [shippingDiscount, setShippingDiscount] = useState(0);
   const [couponError, setCouponError] = useState("");
@@ -150,40 +146,50 @@ export default function CheckoutPage() {
   }, [shipping]);
 
   // ── Computed ──────────────────────────────────────────────────────────────
-  const region = useRegion(selectedAddress?.province ?? null);
+  const {
+    totalChargeableWeight,
+    totalOriginal,
+    totalFinal,
+    totalDiscount,
+    totalQuantity,
+  } = calculateCartTotals(items);
 
-  const shippingResult = useMemo(() => {
-    return calculateShippingTotal({
-      items,
-      method: shipping,
-      region: region,
-    });
-  }, [items, shipping, region]);
+  const provinceCode = selectedAddress?.province?.code ?? null;
+  const wardCode = selectedAddress?.ward?.code ?? null;
 
-  const shippingFee = shippingResult.total;
+  const { result: shippingResult, loading: shippingLoading } = useShippingFee({
+    items,
+    provinceCode,
+    wardCode,
+    method: shipping,
+    orderTotal: totalFinal,
+  });
 
-  const totalOriginal = items.reduce((sum, item) => {
-    const original = Number(
-      item.variant?.original_price ??
-        item.product.originalPrice ??
-        item.variant?.price ??
-        item.product.price ??
-        0,
-    );
-    return sum + original * item.quantity;
-  }, 0);
+  const fastShipping = useShippingFee({
+    items,
+    provinceCode,
+    wardCode,
+    method: "fast",
+    orderTotal: totalFinal,
+  });
 
-  const totalFinal = items.reduce((sum, item) => {
-    const price = Number(item.variant?.price ?? item.product.price ?? 0);
-    return sum + price * item.quantity;
-  }, 0);
+  const standardShipping = useShippingFee({
+    items,
+    provinceCode,
+    wardCode,
+    method: "standard",
+    orderTotal: totalFinal,
+  });
+
+  const shippingFee = shippingResult?.total ?? 0;
+  const region = (shippingResult?.region ?? "unknown") as Region;
 
   const serviceFee = useMemo(() => {
     if (paymentMethod === "cod") {
       return (
         Math.round(totalFinal * 0.08) +
         Math.max(5000, Math.round(totalFinal * 0.01))
-      ); // 1%, tối thiểu 5,000₫
+      ); // // phí nền tảng + 1%, tối thiểu 5,000₫
     }
     return Math.round(totalFinal * 0.08); // phí nền tảng
   }, [paymentMethod, totalFinal]);
@@ -191,7 +197,6 @@ export default function CheckoutPage() {
   const totalProductDiscount = totalOriginal - totalFinal;
   const grandTotal =
     totalFinal + serviceFee + shippingFee - couponDiscount - shippingDiscount;
-  const totalQuantity = items.reduce((s, i) => s + i.quantity, 0);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -199,7 +204,6 @@ export default function CheckoutPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
-  
 
   const handleApplyCoupon = async () => {
     if (!coupon.trim()) return;
@@ -215,8 +219,6 @@ export default function CheckoutPage() {
         orderAmount: totalFinal,
         shippingFee,
       });
-
-      debugger
 
       setCouponApplied(result.coupon);
       setCouponDiscount(result.discount);
@@ -246,7 +248,7 @@ export default function CheckoutPage() {
   };
 
   const normalizePhone = (phone: string) => {
-    const cleaned = phone.replace(/\D/g, "");
+    const cleaned = phone.replace(/\s+/g, "").replace(/^\+84/, "0");
 
     if (cleaned.startsWith("0")) {
       return cleaned.slice(1);
@@ -317,21 +319,34 @@ export default function CheckoutPage() {
 
         variantId: i.variant?.id ?? null,
 
-        productName: i.product.name,
+        productName: i.product.name ?? i.product.nameKr,
 
-        variantName: i.variant?.name_vi ?? null,
+        variantName: i.variant?.name ?? i.variant?.nameKr,
 
         sku: i.variant?.sku ?? null,
 
-        image: i.variant?.image_url ?? i.product.image,
+        image: i.variant?.media.image ?? i.product.media.image,
 
         originalPrice: Number(
-          i.variant?.original_price ?? i.product.originalPrice ?? 0,
+          i.variant?.pricing.originalPrice ??
+            i.product.pricing.originalPrice ??
+            0,
         ),
 
-        price: Number(i.variant?.price ?? i.product.price ?? 0),
+        price: Number(i.variant?.pricing.price ?? i.product.pricing.price ?? 0),
 
         quantity: i.quantity,
+
+        weightGrams:
+          i.variant?.shipping?.weightGrams ??
+          i.product.shipping?.weightGrams ??
+          0,
+        chargeableWeightGrams:
+          i.variant?.shipping?.chargeableWeightGrams ??
+          i.product.shipping?.chargeableWeightGrams ??
+          0,
+        isBulky:
+          i.variant?.shipping?.isBulky ?? i.product.shipping?.isBulky ?? false,
       })),
 
       shipping,
@@ -381,7 +396,9 @@ export default function CheckoutPage() {
 
     await submitOrder(payload);
   };
-
+  const localFee = shippingResult?.localFee ?? 0;
+  const localBaseFee = shippingResult?.localBaseFee ?? 0;
+  const internationalFee = shippingResult?.internationalFee ?? 0;
   // ── Empty cart ────────────────────────────────────────────────────────────
 
   if (items.length === 0) {
@@ -462,11 +479,15 @@ export default function CheckoutPage() {
 
             {/* ── 2. Phương thức vận chuyển ── */}
             <ShippingMethodSection
-              items={items}
               shipping={shipping}
-              region={region}
-              couponApplied={couponApplied}
               setShipping={setShipping}
+              fastResult={fastShipping}
+              fastLoading={fastShipping.loading}
+              standardResult={standardShipping}
+              standardLoading={standardShipping.loading}
+              provinceCode={provinceCode}
+              wardCode={wardCode}
+              shippingDiscount={shippingDiscount}
               fmt={fmt}
             />
 
@@ -571,6 +592,9 @@ export default function CheckoutPage() {
                 couponDiscount={couponDiscount}
                 shippingResult={shippingResult}
                 shippingFee={shippingFee}
+                localFee={localFee}
+                localBaseFee={localBaseFee}
+                internationalFee={internationalFee}
                 serviceFee={serviceFee}
                 grandTotal={grandTotal}
                 fmt={fmt}

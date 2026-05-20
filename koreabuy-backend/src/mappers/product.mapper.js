@@ -1,5 +1,7 @@
 // mappers/product.mapper.js
 
+const { convertPrice } = require("../services/currency.service");
+
 function buildDescription(specsVi) {
   if (!specsVi) return null;
 
@@ -44,69 +46,133 @@ function buildDescription(specsVi) {
   `;
 }
 
-function mapProduct(row) {
-  const specsVi = row.extra_data?.specs_vi ?? null;
+function mapProduct(row, rate = 19) {
+  const specsVi = row.extra_data?.specs?.vi ?? row.extra_data?.specs_vi ?? null;
 
   return {
     id: row.id,
+    slug: row.slug,
 
-    slug: row.slug ?? "",
+    name: row.name,
+    nameKr: row.name_kr,
 
-    name: row.name ?? row.name_kr ?? "",
-    nameKr: row.name_kr ?? null,
+    source: row.source,
 
-    source: row.source ?? null,
+    pricing: {
+      price: convertPrice(Number(row.price ?? row.sale_price ?? 0), rate),
+      originalPrice: convertPrice(
+        Number(row.originalPrice ?? row.original_price ?? 0),
+        rate,
+      ),
+      discountPercent: row.discountPercent ?? row.discount_percent ?? null,
+    },
 
-    price: Number(row.price_min ?? 0),
+    category: {
+      id: row.category_id,
+      slug: row.category_slug,
+    },
 
-    categoryId: row.category_id,
-    categoryId: row.category_slug,
+    media: {
+      image: row.image,
+      images: row.images || [],
+    },
 
-    originalPrice: row.original_price ? Number(row.original_price) : null,
+    variants: Array.isArray(row.variants)
+      ? row.variants.map((v) => ({
+          ...v,
 
-    discountPercent: row.discount_percent ?? null,
+          name: v.name_vi,
+          nameKr: v.name_kr,
 
-    image: row.image ?? "",
-    images: Array.isArray(row.images) ? row.images : [],
+          productId: v.product_id,
 
-    variants: Array.isArray(row.variants) ? row.variants : [],
+          pricing: {
+            price: convertPrice(Number(v.price), rate),
+
+            originalPrice: convertPrice(Number(v.original_price), rate),
+
+            discountPercent: v.discount_percent ?? v.discountPercent ?? null,
+          },
+
+          media: {
+            image: v.image_url,
+
+            images: (v.images ?? []).map((img) => ({
+              url: img.url,
+              type: img.type,
+              isPrimary: img.is_primary,
+            })),
+          },
+
+          // =========================
+          // SHIPPING
+          // =========================
+
+          shipping: {
+            weightGrams: v.shipping?.weight_grams ?? null,
+
+            dimensions: {
+              lengthMm: v.shipping?.length_mm ?? null,
+
+              widthMm: v.shipping?.width_mm ?? null,
+
+              heightMm: v.shipping?.height_mm ?? null,
+            },
+
+            volumetricWeightGrams: v.shipping?.volumetric_weight_grams ?? null,
+
+            chargeableWeightGrams: v.shipping?.chargeable_weight_grams ?? null,
+
+            isBulky: v.shipping?.is_bulky ?? false,
+
+            weightSource: v.shipping?.weight_source ?? null,
+
+            weightConfidence: v.shipping?.weight_confidence ?? null,
+
+            isWeightEstimated: v.shipping?.is_weight_estimated ?? true,
+          },
+
+          flags: {
+            isActive: v.is_active,
+            isSoldout: v.is_soldout,
+          },
+        }))
+      : [],
 
     description: buildDescription(specsVi),
 
-    ratingAvg: row.source_rating_avg ? Number(row.source_rating_avg) : null,
+    shipping: {
+      weightGrams: row.weightGrams,
+      dimensions: {
+        lengthMm: row.lengthMm,
+        widthMm: row.widthMm,
+        heightMm: row.heightMm,
+      },
+      volumetricWeightGrams: row.volumetricWeightGrams,
+      chargeableWeightGrams: row.chargeableWeightGrams,
+      isBulky: row.isBulky,
+      weightSource: row.weightSource,
+      weightConfidence: row.weightConfidence,
+      isWeightEstimated: row.isWeightEstimated,
+    },
 
-    ratingCount: row.source_rating_count ?? 0,
+    rating: {
+      avg: row.ratingAvg ?? null,
+      count: row.ratingCount ?? 0,
+    },
 
-    weightGrams: row.weightGrams ?? null,
+    flags: {
+      featured: row.isFeatured,
+      new: row.newArrivalUntil
+        ? new Date(row.newArrivalUntil) > new Date()
+        : false,
+    },
 
-    lengthMm: row.lengthMm ?? null,
-    widthMm: row.widthMm ?? null,
-    heightMm: row.heightMm ?? null,
-
-    volumetricWeightGrams: row.volumetricWeightGrams ?? null,
-
-    chargeableWeightGrams: row.chargeableWeightGrams ?? null,
-
-    isBulky: row.isBulky ?? false,
-
-    weightSource: row.weightSource ?? null,
-    weightConfidence: row.weightConfidence ?? null,
-
-    isWeightEstimated: row.isWeightEstimated ?? true,
-
-    isFeatured: row.is_featured ?? false,
-
-    isNew: row.new_arrival_until
-      ? new Date(row.new_arrival_until) > new Date()
-      : false,
-
-    isSale: !!(row.original_price && row.price_min < row.original_price),
-
-    productUrl: row.product_url ?? "",
-
-    link: `/products/${row.slug}`,
-
-    createdAt: row.created_at,
+    metadata: {
+      productUrl: row.product_url ?? row.productUrl,
+      link: `/products/${row.slug}`,
+      createdAt: row.created_at,
+    },
   };
 }
 

@@ -1,0 +1,98 @@
+// workers/emailWorker.js
+
+const { Worker } = require("bullmq");
+const connection = require("../config/redis.config");
+const nodemailer = require("nodemailer");
+const {
+  buildOrderConfirmedTemplate,
+  buildTrackingTemplate,
+  buildArrivedVnTemplate,
+  buildDeliveredTemplate,
+} = require("../services/email/templates");
+
+// ── Transporter ──────────────────────────────
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// ── Map type → template ──────────────────────
+const EMAIL_TEMPLATES = {
+  order_confirmed: {
+    subject: (data) => `[KoreaBuy] Đơn hàng #${data.orderCode} đã được xác nhận`,
+    html: (data) => buildOrderConfirmedTemplate(data),
+  },
+  order_tracking: {
+    subject: (data) => `[KoreaBuy] Đơn hàng #${data.orderCode} đang trên đường về`,
+    html: (data) => buildTrackingTemplate(data),
+  },
+  order_arrived_vn: {
+    subject: (data) => `[KoreaBuy] Đơn hàng #${data.orderCode} đã về Việt Nam`,
+    html: (data) => buildArrivedVnTemplate(data),
+  },
+  order_delivered: {
+    subject: (data) => `[KoreaBuy] Đơn hàng #${data.orderCode} đã giao thành công`,
+    html: (data) => buildDeliveredTemplate(data),
+  },
+};
+
+// ── Worker ───────────────────────────────────
+const emailWorker = new Worker(
+  "email",
+  async (job) => {
+    const { type, to, data } = job.data;
+
+    console.log(`[Email Worker] Processing job ${job.id} — type: ${type} → ${to}`);
+
+    if (!to) {
+      console.warn(`[Email Worker] Skipping job ${job.id}: no email address`);
+      return;
+    }
+
+    const template = EMAIL_TEMPLATES[type];
+    if (!template) {
+      throw new Error(`Unknown email type: ${type}`);
+    }
+
+    await transporter.sendMail({
+      from: `"KoreaBuy" <${process.env.EMAIL_USER}>`,
+      to,
+      subject: template.subject(data),
+      html: template.html(data),
+    });
+
+    console.log(`[Email Worker] ✅ Sent ${type} to ${to}`);
+  },
+  {
+    connection,
+    concurrency: 5,
+  },
+);
+
+// ── Events ───────────────────────────────────
+emailWorker.on("completed", (job) => {
+  console.log(`[Email Worker] ✅ Job ${job.id} completed`);
+});
+
+emailWorker.on("failed", (job, err) => {
+  console.error(`[Email Worker] ❌ Job ${job.id} failed (attempt ${job.attemptsMade}):`, err);
+});
+
+emailWorker.on("error", (err) => {
+  console.error("[Email Worker] Worker error:", err);
+});
+
+// ── Graceful shutdown ─────────────────────────
+async function shutdown() {
+  console.log("[Email Worker] Closing...");
+  await emailWorker.close();
+  console.log("[Email Worker] Closed");
+}
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
+
+module.exports = emailWorker;

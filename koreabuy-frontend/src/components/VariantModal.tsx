@@ -16,7 +16,7 @@ type Props = {
 };
 
 export default function VariantModal({ item, onClose, onSelect }: Props) {
-  const variants = (item.product.variants ?? []).filter((v) => v.is_active);
+  const variants = (item.product.variants ?? []).filter((v) => v.flags.isActive);
 
   return (
     <>
@@ -82,15 +82,15 @@ export default function VariantModal({ item, onClose, onSelect }: Props) {
           {variants.map((v) => {
             const isSelected = item.variant?.id === v.id;
             const imageUrl = normalizeImageUrl(
-              v.image_url ?? item.product.image,
+              v.media.image ?? item.product.media.image,
             );
-            const price = Number(v.price ?? 0);
+            const price = Number(v.pricing.price ?? 0);
 
             return (
               <div
                 key={v.id}
                 onClick={() => {
-                  if (v.is_soldout) return;
+                  if (v.flags.isSoldout) return;
 
                   // Nếu đang chọn variant này rồi thì bỏ qua
                   if (item.variant?.id === v.id) return;
@@ -102,8 +102,8 @@ export default function VariantModal({ item, onClose, onSelect }: Props) {
                   flexDirection: "column",
                   alignItems: "center",
                   gap: 8,
-                  cursor: v.is_soldout ? "not-allowed" : "pointer",
-                  opacity: v.is_soldout ? 0.5 : 1,
+                  cursor: v.flags.isSoldout ? "not-allowed" : "pointer",
+                  opacity: v.flags.isSoldout ? 0.5 : 1,
                   width: 100,
                 }}
               >
@@ -122,7 +122,7 @@ export default function VariantModal({ item, onClose, onSelect }: Props) {
                   {imageUrl ? (
                     <img
                       src={imageUrl}
-                      alt={v.name_vi ?? v.sku}
+                      alt={v.name ?? v.nameKr ?? v.sku}
                       style={{
                         width: "100%",
                         height: "100%",
@@ -143,7 +143,7 @@ export default function VariantModal({ item, onClose, onSelect }: Props) {
                       📦
                     </div>
                   )}
-                  {v.is_soldout && (
+                  {v.flags.isSoldout && (
                     <div
                       style={{
                         position: "absolute",
@@ -192,7 +192,7 @@ export default function VariantModal({ item, onClose, onSelect }: Props) {
                     wordBreak: "break-word",
                   }}
                 >
-                  {v.name_vi ?? v.sku}
+                  {v.name ?? v.nameKr ?? v.sku}
                 </span>
 
                 {/* Giá */}

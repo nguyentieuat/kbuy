@@ -71,6 +71,8 @@ export type Order = {
   total_price: number;
   service_fee: number;
   shipping_fee: number;
+  actual_weight_grams: number;
+  international_shipping_fee: number;
   discount_amount: number;
   final_price: number;
   coupon_code: string | null;

@@ -7,6 +7,10 @@ import { useEffect } from "react";
 import { normalizeImageUrl } from "../utils/image";
 import { fmt } from "../utils/format";
 import { useCart } from "../contexts/CartContext";
+import {
+  PAYMENT_OPTIONS,
+  SHIPPING_OPTIONS,
+} from "../components/checkout/constants";
 
 export default function OrderDetail() {
   const { orderCode } = useParams<{ orderCode: string }>();
@@ -24,42 +28,41 @@ export default function OrderDetail() {
 
   const { addToCart, clearCart } = useCart();
 
-const handleBuyAgain = async () => {
-  try {
-    clearCart();
+  const handleBuyAgain = async () => {
+    try {
+      clearCart();
 
-    if (!order) return;
-    
-    for (const item of order.items) {
-      // fetch latest product
-      const res = await fetch(`/api/products/byid/${item.productId}`);
-      debugger
-      if (!res.ok) continue;
+      if (!order) return;
 
-      const data = await res.json();
+      for (const item of order.items) {
+        // fetch latest product
+        const res = await fetch(`/api/products/byid/${item.productId}`);
+        if (!res.ok) continue;
 
-      const product = data.data;
+        const data = await res.json();
 
-      // find latest variant
-      const variant =
-        product.variants?.find(
-          (v: any) => String(v.id) === String(item.variantId)
-        ) ?? null;
+        const product = data.data;
 
-      // nếu variant cũ bị xoá
-      if (item.variantId && !variant) {
-        console.warn("Variant no longer exists");
-        continue;
+        // find latest variant
+        const variant =
+          product.variants?.find(
+            (v: any) => String(v.id) === String(item.variantId),
+          ) ?? null;
+
+        // nếu variant cũ bị xoá
+        if (item.variantId && !variant) {
+          console.warn("Variant no longer exists");
+          continue;
+        }
+
+        addToCart(product, variant, item.quantity);
       }
 
-      addToCart(product, variant, item.quantity);
+      navigate("/checkout");
+    } catch (err) {
+      console.error(err);
     }
-
-    navigate("/checkout");
-  } catch (err) {
-    console.error(err);
-  }
-};
+  };
 
   if (loading) {
     return (
@@ -131,16 +134,17 @@ const handleBuyAgain = async () => {
             {
               label: "Vận chuyển",
               value:
-                order.shippingMethod === "fast"
-                  ? "⚡ Giao hàng nhanh (1–2 ngày)"
-                  : "📦 Giao hàng tiết kiệm (3–5 ngày)",
+                SHIPPING_OPTIONS.find((opt) => opt.id === order.shippingMethod)
+                  ?.name ?? order.shippingMethod,
             },
             {
               label: "Thanh toán",
-              value:
-                order.paymentMethod === "cod"
-                  ? "💵 Thanh toán khi nhận hàng"
-                  : "💳 Chuyển khoản VietQR",
+              value: (() => {
+                const opt = PAYMENT_OPTIONS.find(
+                  (o) => o.id === order.paymentMethod,
+                );
+                return opt ? `${opt.icon} ${opt.name}` : order.paymentMethod;
+              })(),
             },
           ].map(({ label, value }) => (
             <div

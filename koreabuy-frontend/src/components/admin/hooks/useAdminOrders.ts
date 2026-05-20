@@ -16,6 +16,7 @@ export function useAdminOrders(filters: {
   status: string;
   search: string;
   payment: string;
+  shipping_method: string,
 }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
@@ -35,6 +36,7 @@ export function useAdminOrders(filters: {
         ...(filters.status && { status: filters.status }),
         ...(filters.search && { search: filters.search }),
         ...(filters.payment && { payment: filters.payment }),
+        ...(filters.shipping_method && { shipping_method: filters.shipping_method }),
       });
       const token = localStorage.getItem("token");
       const res = await fetch(`/api/admin/orders?${params}`, {
@@ -50,7 +52,7 @@ export function useAdminOrders(filters: {
     } finally {
       setLoading(false);
     }
-  }, [filters.page, filters.status, filters.search, filters.payment]);
+  }, [filters.page, filters.status, filters.search, filters.payment, filters.shipping_method]);
 
   useEffect(() => {
     fetch_();

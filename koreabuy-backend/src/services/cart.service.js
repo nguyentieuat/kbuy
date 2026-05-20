@@ -3,6 +3,7 @@
 const CartModel = require("../models/cart.model");
 const CartItemModel = require("../models/cartItem.model");
 const CartMapper = require("../mappers/cart.mapper");
+const { getKrwToVndRate } = require("./currency.service");
 
 async function getOrCreateCart(userId) {
   let cart = await CartModel.findByUserId(userId);
@@ -10,7 +11,6 @@ async function getOrCreateCart(userId) {
   if (!cart) {
     cart = await CartModel.create(userId);
   }
-
   return cart;
 }
 
@@ -19,7 +19,9 @@ async function getCart(userId) {
 
   const items = await CartItemModel.findItems(cart.id);
 
-  return CartMapper.toCartItems(items);
+  const rate = await getKrwToVndRate();
+  
+  return CartMapper.toCartItems(items, rate);
 }
 
 async function addItem(userId, data) {

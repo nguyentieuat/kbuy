@@ -83,7 +83,6 @@ export function useSubmitOrder(
   ): Promise<OrderResult | null> => {
     setSubmitting(true);
     setError(null);
-    debugger;
     try {
       const token = localStorage.getItem("token");
       const authHeaders = {

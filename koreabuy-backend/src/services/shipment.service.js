@@ -5,6 +5,8 @@ const OrderModel = require("../models/order.model");
 const ShipmentModel = require("../models/shipment.model");
 const OrderStatusLogModel = require("../models/orderStatusLog.model");
 const DomesticShipmentsModel = require("../models/domesticShipments.model");
+const { getKrwToVndRate, convertPrice } = require("./currency.service");
+const EmailQueueService = require("./emailQueue.service");
 
 const VALID_STATUSES = [
   "preparing",
@@ -34,201 +36,298 @@ function mapShipmentStatusToOrderStatus(status) {
 
 const ShipmentService = {
   async createInternationalShipment(orderId, data, user = null) {
-    orderId = Number(orderId);
+    try {
+      orderId = Number(orderId);
 
-    if (Number.isNaN(orderId)) {
-      throw new Error("Invalid order id");
-    }
-
-    return db.transaction(async (trx) => {
-      const order = await OrderModel.findOrderById(orderId, trx);
-      if (!order) {
-        throw new Error("Order not found");
+      if (Number.isNaN(orderId)) {
+        throw new Error("Invalid order id");
       }
 
-      const existedShipment = await ShipmentModel.findByOrderId(orderId, trx);
+      const rate = await getKrwToVndRate();
 
-      if (existedShipment) {
-        throw new Error("Order already assigned to shipment");
-      }
+      return db.transaction(async (trx) => {
+        const order = await OrderModel.findOrderById(orderId, trx);
+        if (!order) {
+          throw new Error("Order not found");
+        }
 
-      if (!["confirmed", "processing"].includes(order.status)) {
-        throw new Error(`Cannot create shipment from status: ${order.status}`);
-      }
+        const existedShipment = await ShipmentModel.findByOrderId(orderId, trx);
 
-      const shipment = await ShipmentModel.createShipment(
-        {
-          tracking_code: data.tracking_code,
-          carrier: data.carrier || null,
-          from_warehouse: data.from_warehouse || null,
-          to_warehouse: data.to_warehouse || null,
-          note: data.note || null,
-          status: "shipped",
-          shipped_at: trx.fn.now(),
-          created_at: trx.fn.now(),
-          updated_at: trx.fn.now(),
-        },
-        trx,
-      );
+        if (existedShipment) {
+          throw new Error("Order already assigned to shipment");
+        }
 
-      await ShipmentModel.createShipmentOrder(
-        {
-          shipment_id: shipment.id,
-          order_id: orderId,
-          order_code: order.order_code,
-          created_at: trx.fn.now(),
-        },
-        trx,
-      );
+        if (!["confirmed", "processing"].includes(order.status)) {
+          throw new Error(
+            `Cannot create shipment from status: ${order.status}`,
+          );
+        }
 
-      await OrderModel.updateOrderStatus(
-        orderId,
-        {
-          status: "shipped",
-          updated_at: trx.fn.now(),
-        },
-        trx,
-      );
-
-      await OrderStatusLogModel.create(
-        {
-          order_id: orderId,
-          order_code: order.order_code,
-          status: "shipped",
-          note: data.note || "Created international shipment",
-          location: "Korea Warehouse",
-          handler_name: user?.name || "admin",
-          updated_by: user?.id || null,
-          created_at: trx.fn.now(),
-        },
-        trx,
-      );
-
-      return {
-        success: true,
-        shipment,
-      };
-    });
-  },
-
-  async createInternationalShipments({
-    tracking_code,
-    carrier,
-    from_warehouse,
-    to_warehouse,
-    note,
-    order_ids,
-    user,
-  }) {
-    return db.transaction(async (trx) => {
-      if (!order_ids?.length) {
-        throw new Error("order_ids is required");
-      }
-
-      // 1. create shipment
-      const [row] = await trx("international_shipments")
-        .insert({
-          tracking_code,
-          carrier,
-          from_warehouse,
-          to_warehouse,
-          note,
-        })
-        .returning("id");
-
-      const shipmentId = row.id;
-
-      // 2. validate orders
-      const orders = await OrderModel.findOrderByIds(order_ids, trx);
-      if (orders.length !== order_ids.length) {
-        throw new Error("Some orders not found");
-      }
-
-      // 3. insert pivot
-      await orders.map((order) => {
-        console.log(order);
-        ShipmentModel.createShipmentOrder(
+        const shipment = await ShipmentModel.createShipment(
           {
-            shipment_id: shipmentId,
-            order_id: order.id,
+            shipment_code: data.tracking_code,
+            carrier: data.carrier || "unknown",
+            from_warehouse: data.from_warehouse || "Korean warehouse",
+            to_warehouse: data.to_warehouse || "VietNam warehouse",
+            actual_cost_krw: data.actual_cost_krw || null,
+            total_actual_weight_grams: data.actual_weight_grams || null,
+            total_billed_weight_grams: order.chargeable_weight_grams,
+            exchange_rate_used: rate,
+            total_collected_fee: order.international_shipping_fee,
+            note: data.note || null,
+            status: "shipped",
+            shipped_at: trx.fn.now(),
+            created_at: trx.fn.now(),
+            updated_at: trx.fn.now(),
+          },
+          trx,
+        );
+
+        await ShipmentModel.createShipmentOrder(
+          {
+            shipment_id: shipment.id,
+            order_id: orderId,
             order_code: order.order_code,
             created_at: trx.fn.now(),
           },
           trx,
         );
-      });
 
-      // 4. update orders status
-      OrderModel.updateOrderStatusList(
-        order_ids,
-        {
-          status: "shipped",
-          updated_at: trx.fn.now(),
-        },
-        trx,
-      );
-
-      await orders.map((order) => {
-        OrderStatusLogModel.create(
+        await OrderModel.updateOrderStatus(
+          orderId,
           {
-            order_id: order.id,
+            status: "shipped",
+            updated_at: trx.fn.now(),
+          },
+          trx,
+        );
+
+        await OrderStatusLogModel.create(
+          {
+            order_id: orderId,
             order_code: order.order_code,
             status: "shipped",
-            note: note || "Created international shipment",
+            note: data.note || "Created international shipment",
             location: "Korea Warehouse",
-            handler_name: user?.name || "admin",
+            handler_name: user?.username || "admin",
             updated_by: user?.id || null,
             created_at: trx.fn.now(),
           },
           trx,
         );
-      });
 
-      return {
-        shipment_id: shipmentId,
-        order_ids,
-      };
-    });
+        // Gửi email cho order sau transaction
+        if (order.receiver_email) {
+          await EmailQueueService.sendOrderTracking(order, shipment);
+        }
+        return {
+          success: true,
+          shipment,
+        };
+      });
+    } catch (error) {
+      console.log(error);
+      throw new Error("Some error found");
+    }
   },
 
-  async updateInternationalShipmentStatus(shipmentId, status, user) {
-    if (!status) {
-      throw new Error("Missing status");
+  async createInternationalShipments(data, user = null) {
+    try {
+      const rate = await getKrwToVndRate();
+
+      return db.transaction(async (trx) => {
+        if (!data.order_ids?.length) {
+          throw new Error("order_ids is required");
+        }
+        const orders = await OrderModel.findOrderByIds(data.order_ids, trx);
+        if (orders.length !== data.order_ids.length) {
+          throw new Error("Some orders not found");
+        }
+        // Tính tổng phí quốc tế khách đã trả
+        const totalCollectedFee = orders.reduce((sum, order) => {
+          return sum + Number(order.international_shipping_fee ?? 0);
+        }, 0);
+
+        // Tổng cân tính phí
+        const totalBillWeight = orders.reduce((sum, order) => {
+          return sum + Number(order.chargeable_weight_grams ?? 0);
+        }, 0);
+
+        // 1. create shipment
+        const shipment = await ShipmentModel.createShipment(
+          {
+            shipment_code: data.tracking_code,
+            carrier: data.carrier || "unknown",
+            from_warehouse: data.from_warehouse || "Korean warehouse",
+            to_warehouse: data.to_warehouse || "VietNam warehouse",
+            actual_cost_krw: data.actual_cost_krw || null,
+            total_actual_weight_grams: data.actual_weight_grams || null,
+            exchange_rate_used: rate,
+            actual_cost_vnd: convertPrice(data.actual_cost_krw, rate),
+
+            total_collected_fee: totalCollectedFee,
+            total_billed_weight_grams: totalBillWeight,
+            note: data.note || null,
+            status: "shipped",
+            shipped_at: trx.fn.now(),
+            created_at: trx.fn.now(),
+            updated_at: trx.fn.now(),
+          },
+          trx,
+        );
+
+        const shipmentId = shipment.id;
+
+        // 3. insert pivot
+        await Promise.all(
+          orders.map((order) =>
+            ShipmentModel.createShipmentOrder(
+              {
+                shipment_id: shipmentId,
+                order_id: order.id,
+                order_code: order.order_code,
+                created_at: trx.fn.now(),
+              },
+              trx,
+            ),
+          ),
+        );
+
+        // 4. update orders status
+        OrderModel.updateOrderStatusList(
+          data.order_ids,
+          {
+            status: "shipped",
+            updated_at: trx.fn.now(),
+          },
+          trx,
+        );
+
+        await Promise.all(
+          orders.map((order) =>
+            OrderStatusLogModel.create(
+              {
+                order_id: order.id,
+                order_code: order.order_code,
+                status: "shipped",
+                note: data.note || "Created international shipment",
+                location: "Korea Warehouse",
+                handler_name: user?.username || "admin",
+                updated_by: user?.id || null,
+                created_at: trx.fn.now(),
+              },
+              trx,
+            ),
+          ),
+        );
+
+        // Gửi email cho từng order sau transaction
+        await Promise.all(
+          orders
+            .filter((o) => o.receiver_email)
+            .map((order) =>
+              EmailQueueService.sendOrderTracking(order, {
+                shipment_code: data.tracking_code,
+                carrier: data.carrier,
+              }),
+            ),
+        );
+
+        return {
+          shipment_id: shipmentId,
+          order_ids: data.order_ids,
+        };
+      });
+    } catch (error) {
+      console.log(error);
+      throw new Error("Some error found");
     }
+  },
 
-    if (!VALID_STATUSES.includes(status)) {
-      const err = new Error("Invalid status");
-      err.code = "INVALID_STATUS";
-      throw err;
+  async updateInternationalShipmentStatus(
+    shipmentId,
+    status,
+    additional_fee_krw,
+    user = null,
+  ) {
+    try {
+      if (!status) {
+        throw new Error("Missing status");
+      }
+
+      if (!VALID_STATUSES.includes(status)) {
+        const err = new Error("Invalid status");
+        err.code = "INVALID_STATUS";
+        throw err;
+      }
+
+      const shipment = await ShipmentModel.findById(shipmentId);
+
+      if (!shipment) {
+        const err = new Error("Shipment not found");
+        err.code = "NOT_FOUND";
+        throw err;
+      }
+
+      let actual_cost_krw = shipment.actual_cost_krw;
+      let actual_cost_vnd = shipment.actual_cost_vnd;
+
+      if (additional_fee_krw != null) {
+        const rate = await getKrwToVndRate();
+
+        actual_cost_krw =
+          Number(shipment.actual_cost_krw || 0) + Number(additional_fee_krw);
+
+        actual_cost_vnd =
+          Number(shipment.actual_cost_vnd || 0) +
+          convertPrice(additional_fee_krw, rate);
+      }
+
+      await ShipmentModel.updateStatus(
+        shipmentId,
+        status,
+        actual_cost_krw,
+        actual_cost_vnd,
+      );
+
+      await ShipmentModel.updateStatus(
+        shipmentId,
+        status,
+        actual_cost_krw,
+        actual_cost_vnd,
+      );
+
+      const orders = await ShipmentModel.findOrdersByShipmentId(shipmentId);
+
+      await Promise.all(
+        orders.map((order) =>
+          OrderStatusLogModel.create({
+            order_id: order.order_id,
+            order_code: order.order_code,
+            status: mapShipmentStatusToOrderStatus(status),
+            note: `International shipment: ${status}`,
+            location: "International logistics",
+            handler_name: user?.username || "admin",
+            updated_by: user?.id || null,
+            created_at: new Date(),
+          }),
+        ),
+      );
+
+      // Gửi email theo status
+      await Promise.all(
+        orders
+          .filter((o) => o.receiver_email)
+          .map(async (order) => {
+            if (status === "arrived_vn") {
+              await EmailQueueService.sendOrderArrivedVn(order);
+            }
+          }),
+      );
+    } catch (error) {
+      console.log(error);
+      throw new Error("Some error found");
     }
-
-    const shipment = await ShipmentModel.findById(shipmentId);
-
-    if (!shipment) {
-      const err = new Error("Shipment not found");
-      err.code = "NOT_FOUND";
-      throw err;
-    }
-
-    await ShipmentModel.updateStatus(shipmentId, status);
-
-    const orders = await ShipmentModel.findOrdersByShipmentId(shipmentId);
-
-    await Promise.all(
-      orders.map((order) =>
-        OrderStatusLogModel.create({
-          order_id: order.order_id,
-          order_code: order.order_code,
-          status: mapShipmentStatusToOrderStatus(status),
-          note: `International shipment: ${status}`,
-          location: "International logistics",
-          handler_name: user?.name || "system",
-          updated_by: user?.id || null,
-          created_at: new Date(),
-        }),
-      ),
-    );
-
     return ShipmentModel.findById(shipmentId);
   },
 
@@ -286,7 +385,7 @@ const ShipmentService = {
           status: "shipped",
           note: note || "Created domestic shipment",
           location: "Vietnam Warehouse",
-          handler_name: user?.name || "system",
+          handler_name: user?.username || "admin",
           updated_by: user?.id || null,
           created_at: trx.fn.now(),
         },

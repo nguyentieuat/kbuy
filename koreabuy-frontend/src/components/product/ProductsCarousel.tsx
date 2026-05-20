@@ -79,16 +79,17 @@ export default function ProductsCarousel({
           <SwiperSlide key={product.id}>
             <ProductCard
               name={product.name}
-              price={Number(product.price)}
+              price={Number(product.pricing.price)}
               originalPrice={
-                product.originalPrice
-                  ? Number(product.originalPrice)
+                product.pricing.originalPrice
+                  ? Number(product.pricing.originalPrice)
                   : undefined
               }
-              image={normalizeImageUrl(product.image)}
-              link={`${product.link}`}
-              isNew={!!product.newArrivalUntil}
-              isSale={!!product.discountPercent}
+              image={normalizeImageUrl(product.media.image)}
+              link={`${product.metadata.link}`}
+              isNew={!!product.flags.new}
+              isSale={!!product.pricing.discountPercent}
+              discountPercent={product.pricing.discountPercent}
             />
           </SwiperSlide>
         ))}

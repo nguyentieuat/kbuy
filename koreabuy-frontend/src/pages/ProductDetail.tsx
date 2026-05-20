@@ -16,7 +16,6 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
   const { product, loading, error } = useProduct(slug);
-
   // Global hooks
   const { addToCart } = useCart();
   const { toast, show } = useToast();
@@ -30,41 +29,49 @@ export default function ProductDetail() {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [variantSelectedByUser, setVariantSelectedByUser] = useState(false);
 
-  const category = product?.categorySlug;
+  const category = product?.category.slug;
   const excludeIds = product?.id ? [product.id] : [];
+
+  const [mainImageUrl, setMainImage] = useState<string>("");
 
   const { products: recommendedProducts } = useRecommendedProducts({
     category,
     excludeIds,
   });
   // Derived data
-  const images = product?.images ?? [];
+  const images = product?.media.images ?? [];
 
   // Chỉ lấy variants active
-  const activeVariants = (product?.variants ?? []).filter((v) => v.is_active);
+  const activeVariants = (product?.variants ?? []).filter(
+    (v) => v.flags.isActive,
+  );
+
+  // Ảnh hiển thị chính
+  useEffect(() => {
+    if (!product) return;
+
+    const defaultImage =
+      images[selectedImage]?.url || product.media.image || images[0]?.url || "";
+
+    setMainImage(defaultImage);
+  }, [product, selectedImage]);
 
   // Khi đổi variant thì đổi luôn ảnh chính
   useEffect(() => {
-    if (!selectedVariant && activeVariants.length > 0) {
-      const firstAvailable =
-        activeVariants.find((v) => !v.is_soldout) ?? activeVariants[0];
+    if (!variantSelectedByUser || !selectedVariant) return;
 
-      setSelectedVariant(firstAvailable);
+    const variantImages = selectedVariant.media.images ?? [];
+
+    const newImage =
+      variantImages[0]?.url ||
+      selectedVariant.media.image ||
+      images[0]?.url ||
+      "";
+
+    if (newImage) {
+      setMainImage(newImage);
     }
-  }, [product?.id]);
-
-  useEffect(() => {
-    if (!variantSelectedByUser) return;
-    if (!selectedVariant?.image_url) return;
-
-    const imageIndex = images.findIndex(
-      (img) => img.url === selectedVariant.image_url,
-    );
-
-    if (imageIndex >= 0) {
-      setSelectedImage(imageIndex);
-    }
-  }, [selectedVariant, images, variantSelectedByUser]);
+  }, [selectedVariant, variantSelectedByUser, images]);
 
   // Loading / Error
   if (loading) return <ProductDetailSkeleton />;
@@ -74,30 +81,22 @@ export default function ProductDetail() {
   }
 
   // Giá hiện tại
-  const currentPrice = selectedVariant?.price ?? product.price ?? 0;
+  const currentPrice =
+    selectedVariant?.pricing.price ?? product.pricing.price ?? 0;
 
   // Giá gốc
   const originalPrice =
-    selectedVariant?.original_price ?? product.originalPrice ?? null;
+    selectedVariant?.pricing.originalPrice ??
+    product.pricing.originalPrice ??
+    null;
 
   // % giảm giá
   const discountPercent =
-    selectedVariant?.discount_percent ??
-    product.discountPercent ??
+    selectedVariant?.pricing.discountPercent ??
+    product.pricing.discountPercent ??
     (originalPrice && originalPrice > currentPrice
       ? Math.round((1 - currentPrice / originalPrice) * 100)
       : null);
-
-  // Ảnh hiển thị chính
-  const mainImageUrl = variantSelectedByUser
-    ? selectedVariant?.image_url ||
-      images[selectedImage]?.url ||
-      product.image ||
-      images[0]?.url
-    : images[selectedImage]?.url ||
-      product.image ||
-      images[0]?.url ||
-      selectedVariant?.image_url;
 
   // Chuẩn hóa image url
   const normalizeImageUrl = (url?: string | null) => {
