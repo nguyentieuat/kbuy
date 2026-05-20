@@ -17,18 +17,65 @@ export type Order = {
   }[];
 };
 
-export function useOrders(authHeaders: Record<string, string>) {
+export type Pagination = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
+export type StatusCounts = Record<string, number>;
+
+export function useOrders(
+  authHeaders: Record<string, string>,
+  status: string,
+) {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [statusCounts, setStatusCounts] = useState<StatusCounts>({});
+
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
+
   const [loading, setLoading] = useState(true);
 
-  const fetchOrders = async () => {
+  const [page, setPage] = useState(1);
+
+  const fetchOrders = async (p = page) => {
+    setLoading(true);
+
     try {
-      const res = await fetch("/api/orders/my", {
+      const params = new URLSearchParams({
+        page: String(p),
+        limit: "10",
+      });
+
+      // chỉ append nếu không phải all
+      if (status !== "all") {
+        params.append("status", status);
+      }
+
+      const res = await fetch(`/api/orders/my?${params.toString()}`, {
         headers: authHeaders,
       });
 
       const data = await res.json();
+
       setOrders(data.data ?? []);
+
+      setPagination(
+        data.pagination ?? {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0,
+        },
+      );
+
+      setStatusCounts(data.statusCounts ?? {});
     } catch (err) {
       console.error(err);
     } finally {
@@ -36,13 +83,22 @@ export function useOrders(authHeaders: Record<string, string>) {
     }
   };
 
+  // reset page khi đổi tab
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    setPage(1);
+  }, [status]);
+
+  useEffect(() => {
+    fetchOrders(page);
+  }, [page, status]);
 
   return {
     orders,
     loading,
+    pagination,
+    statusCounts,
+    page,
+    setPage,
     refetch: fetchOrders,
   };
 }

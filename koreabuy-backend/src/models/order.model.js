@@ -8,9 +8,7 @@ const OrderModel = {
   // =========================
 
   async create(orderData, trx = db) {
-    const [order] = await trx("orders")
-      .insert(orderData)
-      .returning("*");
+    const [order] = await trx("orders").insert(orderData).returning("*");
 
     return order;
   },
@@ -28,15 +26,11 @@ const OrderModel = {
   },
 
   async findByOrderCode(orderCode, trx = db) {
-    return trx("orders")
-      .where("order_code", orderCode)
-      .first();
+    return trx("orders").where("order_code", orderCode).first();
   },
 
   async findOrderById(orderId, trx = db) {
-    return trx("orders")
-      .where("id", orderId)
-      .first();
+    return trx("orders").where("id", orderId).first();
   },
 
   async findOrderByIds(orderIds, trx = db) {
@@ -50,8 +44,7 @@ const OrderModel = {
   // =========================
 
   async findItems(orderId, trx = db) {
-    return trx("order_items")
-      .where("order_id", orderId);
+    return trx("order_items").where("order_id", orderId);
   },
 
   async findLogs(orderId, trx = db) {
@@ -61,9 +54,7 @@ const OrderModel = {
   },
 
   async findWithItems(orderId, trx = db) {
-    const order = await trx("orders")
-      .where("id", orderId)
-      .first();
+    const order = await trx("orders").where("id", orderId).first();
 
     if (!order) return null;
 
@@ -99,10 +90,34 @@ const OrderModel = {
   // USER ORDERS
   // =========================
 
-  async findByUserId(userId, trx = db) {
-    return trx("orders")
+  async findByUserId(
+    userId,
+    { limit = 10, offset = 0, status = null } = {},
+    trx = db,
+  ) {
+    const query = trx("orders").where("user_id", userId);
+
+    if (status) {
+      query.where("status", status);
+    }
+
+    return query.orderBy("created_at", "desc").limit(limit).offset(offset);
+  },
+
+  async countByUserId(userId, trx = db) {
+    const row = await trx("orders")
       .where("user_id", userId)
-      .orderBy("created_at", "desc");
+      .count("id as total")
+      .first();
+    return Number(row?.total ?? 0);
+  },
+
+  async countByStatusUserId(userId, trx = db) {
+    return (row = await trx("orders")
+      .where("user_id", userId)
+      .select("status")
+      .count("* as count")
+      .groupBy("status"));
   },
 
   // =========================
@@ -132,10 +147,7 @@ const OrderModel = {
       });
     }
 
-    const totalResult = await query
-      .clone()
-      .count("* as total")
-      .first();
+    const totalResult = await query.clone().count("* as total").first();
 
     const data = await query
       .clone()
@@ -175,7 +187,7 @@ const OrderModel = {
       });
   },
 
-    async updateOrderStatusList(orderIds, data, trx = db) {
+  async updateOrderStatusList(orderIds, data, trx = db) {
     return trx("orders")
       .whereIn("id", orderIds)
       .update({
@@ -185,12 +197,10 @@ const OrderModel = {
   },
 
   async updatePayment(orderId, payment_status, trx = db) {
-    return trx("orders")
-      .where("id", orderId)
-      .update({
-        payment_status,
-        updated_at: trx.fn.now(),
-      });
+    return trx("orders").where("id", orderId).update({
+      payment_status,
+      updated_at: trx.fn.now(),
+    });
   },
 };
 

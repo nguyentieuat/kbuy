@@ -7,10 +7,13 @@ function mapOrderItem(item) {
     variantId: item.variant_id,
 
     productName: item.product_name,
+    productNameKr: item.product_name_kr,
     variantName: item.variant_name,
+    variantNameKr: item.variant_name_kr,
 
     image: item.image,
     sku: item.sku,
+    productLink: item.product_link,
 
     price: Number(item.price),
     originalPrice: item.original_price ? Number(item.original_price) : null,
@@ -18,7 +21,6 @@ function mapOrderItem(item) {
     quantity: item.quantity,
     totalPrice: Number(item.total_price),
 
-    productLink: item.product_link,
   };
 }
 

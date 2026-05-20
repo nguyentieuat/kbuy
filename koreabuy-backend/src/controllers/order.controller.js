@@ -78,21 +78,15 @@ async function getOrder(req, res) {
 // GET /api/orders/my
 async function getMyOrders(req, res) {
   try {
-    const orders = await OrderService.getOrdersByUser(req.user.id);
+    const { page = 1, limit = 10, status } = req.query;
 
-    return res.json({
-      success: true,
-      data: orders,
-    });
+    const result = await OrderService.getOrdersByUser(req.user.id, { page, limit , status});
+
+    return res.json({ success: true, ...result });
   } catch (err) {
     console.error(err);
-
-    return res.status(500).json({
-      success: false,
-      error: "Không thể tải danh sách đơn hàng",
-    });
+    return res.status(500).json({ success: false, error: "Không thể tải danh sách đơn hàng" });
   }
 }
-
 
 module.exports = { createOrder, getOrder, getMyOrders };

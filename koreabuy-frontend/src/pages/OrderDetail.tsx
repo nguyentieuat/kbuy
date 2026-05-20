@@ -25,7 +25,7 @@ export default function OrderDetail() {
   }, [fromCheckout, location.pathname]);
 
   const { order, loading } = useOrderDetail(orderCode);
-
+  debugger;
   const { addToCart, clearCart } = useCart();
 
   const handleBuyAgain = async () => {
@@ -237,9 +237,9 @@ export default function OrderDetail() {
                 >
                   {item.productName}
                 </p>
-                {item.variantName && (
+                {(item.variantName || item.variantNameKr) && (
                   <p style={{ fontSize: 11, color: "#888", margin: "2px 0 0" }}>
-                    {item.variantName}
+                    {item.variantName || item.variantNameKr}
                   </p>
                 )}
                 <p style={{ fontSize: 12, color: "#888", margin: "2px 0 0" }}>

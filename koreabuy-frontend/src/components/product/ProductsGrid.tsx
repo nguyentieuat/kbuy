@@ -22,13 +22,15 @@ export default function ProductListGrid({ products, isHome = false }: Props) {
             name={product.name}
             price={Number(product.pricing.price)}
             originalPrice={
-              product.pricing.originalPrice ? Number(product.pricing.originalPrice) : undefined
+              product.pricing.originalPrice
+                ? Number(product.pricing.originalPrice)
+                : undefined
             }
             image={normalizeImageUrl(product.media.image)}
             link={`${product.metadata.link}`}
             isNew={!!product.flags.new}
             isSale={!!product.pricing.discountPercent}
-            discountPercent={product.pricing.discountPercent}
+            discountPercent={product.pricing.discountPercent ?? undefined}
           />
         </div>
       ))}

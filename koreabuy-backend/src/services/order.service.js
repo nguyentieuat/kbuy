@@ -50,7 +50,9 @@ function formatOrderItems(cartItems, orderId) {
     product_id: item.productId,
     variant_id: item.variantId ?? null,
     product_name: item.productName,
+    product_name_kr: item.productNameKr,
     variant_name: item.variantName ?? null,
+    variant_name_kr: item.variantNameKr ?? null,
     sku: item.sku ?? null,
     product_link: item.productLink ?? null,
     image: item.image ?? null,
@@ -109,10 +111,10 @@ const OrderService = {
     const productIds = items.map((x) => x.productId).filter(Boolean);
 
     const variantRows =
-      await ProductVariantModel.getShippingByVariants(variantIds);
+      await ProductVariantModel.getVariantSnapshotForOrder(variantIds);
 
     const productRows =
-      await ProductModel.getDefaultShippingByProducts(productIds);
+      await ProductModel.getProductsSnapshotForOrder(productIds);
 
     const variantMap = new Map(variantRows.map((v) => [v.id, v]));
 
@@ -135,9 +137,23 @@ const OrderService = {
         );
 
         resolvedItems.push({
+          type: "variant",
+
           productId: variant.product_id,
 
           variantId: variant.id,
+
+          productName: variant.product_name_vi,
+
+          productNameKr: variant.product_name_kr,
+
+          variantName: variant.name_vi,
+
+          variantNameKr: variant.name_kr,
+
+          image: variant.image ?? variant.variant_image ?? item.image,
+
+          productLink: variant.product_url ?? item.productUrl,
 
           quantity: item.quantity,
 
@@ -173,9 +189,19 @@ const OrderService = {
       );
 
       resolvedItems.push({
+        type: "product",
+
         productId: product.id,
 
         variantId: null,
+
+        productName: product.name_vi,
+
+        productNameKr: product.name_kr,
+
+        image: product.image ?? item.image,
+
+        productLink: product.product_url ?? item.productUrl,
 
         quantity: item.quantity,
 
@@ -375,7 +401,7 @@ const OrderService = {
       );
 
       // ── ORDER ITEMS ───────────────────────────────
-      const orderItems = formatOrderItems(items, order.id);
+      const orderItems = formatOrderItems(resolvedItems, order.id);
       await OrderModel.createItems(orderItems, trx);
 
       // ── COUPON USAGE LOG ──────────────────────────
@@ -411,50 +437,63 @@ const OrderService = {
     return mapOrderDetail(order);
   },
 
-  async getOrdersByUser(userId) {
-    const orders = await OrderModel.findByUserId(userId);
+  async getOrdersByUser(userId, { page = 1, limit = 10 , status = null} = {}) {
+    const offset = (page - 1) * limit;
+
+    const [orders, totalRow, statusRows] = await Promise.all([
+      OrderModel.findByUserId(userId, { limit, offset, status }),
+      OrderModel.countByUserId(userId),
+      OrderModel.countByStatusUserId(userId),
+    ]);
+
+    const total = Number(totalRow);
+    const totalPages = Math.ceil(total / limit);
+
+    const statusCounts = {};
+    for (const row of statusRows) {
+      statusCounts[row.status] = Number(row.count);
+    }
 
     if (orders.length === 0) {
-      return [];
+      return {
+        data: [],
+        pagination: { page, limit, total: 0, totalPages: 0 },
+        statusCounts:statusCounts,
+      };
     }
 
     const orderIds = orders.map((o) => o.id);
 
-    // parallel query
     const [items, logs] = await Promise.all([
       OrderItemModel.findByOrderIds(orderIds),
       OrderStatusLogModel.findByOrderIds(orderIds),
     ]);
 
-    // items map
     const itemsMap = {};
-
     for (const item of items) {
-      if (!itemsMap[item.order_id]) {
-        itemsMap[item.order_id] = [];
-      }
-
+      if (!itemsMap[item.order_id]) itemsMap[item.order_id] = [];
       itemsMap[item.order_id].push(item);
     }
 
-    // logs map
     const logsMap = {};
-
     for (const log of logs) {
-      if (!logsMap[log.order_id]) {
-        logsMap[log.order_id] = [];
-      }
-
+      if (!logsMap[log.order_id]) logsMap[log.order_id] = [];
       logsMap[log.order_id].push(log);
     }
 
-    return orders.map((order) =>
+    const data = orders.map((order) =>
       mapOrderSummary({
         ...order,
         items: itemsMap[order.id] || [],
         status_logs: logsMap[order.id] || [],
       }),
     );
+
+    return {
+      data,
+      pagination: { page, limit, total, totalPages },
+      statusCounts:statusCounts,
+    };
   },
 
   async getOrders({

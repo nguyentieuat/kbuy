@@ -319,21 +319,27 @@ export default function CheckoutPage() {
 
         variantId: i.variant?.id ?? null,
 
-        productName: i.product.name ?? i.product.nameKr,
+        productName: i.product.name,
 
-        variantName: i.variant?.name ?? i.variant?.nameKr,
+        productNameKr: i.product.nameKr,
+
+        variantName: i.variant?.name,
+
+        variantNameKr: i.variant?.nameKr,
 
         sku: i.variant?.sku ?? null,
 
-        image: i.variant?.media.image ?? i.product.media.image,
+        productUrl: i.product?.metadata?.productUrl,
+
+        image: i.variant?.media?.image ?? i.product?.media?.image,
 
         originalPrice: Number(
-          i.variant?.pricing.originalPrice ??
-            i.product.pricing.originalPrice ??
+          i.variant?.pricing?.originalPrice ??
+            i.product.pricing?.originalPrice ??
             0,
         ),
 
-        price: Number(i.variant?.pricing.price ?? i.product.pricing.price ?? 0),
+        price: Number(i.variant?.pricing?.price ?? i.product?.pricing?.price ?? 0),
 
         quantity: i.quantity,
 
@@ -381,6 +387,8 @@ export default function CheckoutPage() {
     }
 
     const payload = buildPayload();
+
+    debugger
     setPendingOrderPayload(payload);
 
     const requireOtp = await checkOtp({

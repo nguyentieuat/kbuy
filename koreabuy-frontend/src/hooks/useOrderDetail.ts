@@ -17,7 +17,9 @@ export type OrderItem = {
   variantId: string | null;
 
   productName: string | null;
+  productNameKr: string | null;
   variantName: string | null;
+  variantNameKr: string | null;
 
   image: string | null;
   sku: string | null;
@@ -89,7 +91,7 @@ export function useOrderDetail(orderCode?: string) {
         if (!res.ok) {
           throw new Error("Không tải được đơn hàng");
         }
-
+debugger
         const data = await res.json();
         if (!cancelled) {
           setOrder(data.data);

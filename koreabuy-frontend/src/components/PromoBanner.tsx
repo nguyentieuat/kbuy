@@ -27,7 +27,7 @@ export default function PromoBanner() {
   if (!banner) return null;
 
   return (
-    <div className="untree_co-section" style={{ paddingTop: "0px", paddingBottom: "68px" }}>
+    <div className="untree_co-section" style={{ paddingTop: "13px", paddingBottom: "53px" }}>
       <div className="container">
         <div
           className="deal-hero overlay"

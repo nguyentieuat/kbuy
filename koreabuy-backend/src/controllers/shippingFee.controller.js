@@ -19,8 +19,8 @@ async function calculateShipping(req, res) {
     const productIds = items.map((x) => x.productId).filter(Boolean);
 
     const [variantRows, productRows] = await Promise.all([
-      ProductVariantModel.getShippingByVariants(variantIds),
-      ProductModel.getDefaultShippingByProducts(productIds),
+      ProductVariantModel.getVariantSnapshotForOrder(variantIds),
+      ProductModel.getProductsSnapshotForOrder(productIds),
     ]);
 
     const variantMap = new Map(variantRows.map((v) => [v.id, v]));

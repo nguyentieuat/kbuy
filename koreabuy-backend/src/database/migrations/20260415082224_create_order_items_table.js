@@ -29,7 +29,9 @@ exports.up = async function (knex) {
     // Quan trọng: lưu lại thông tin sản phẩm lúc mua
     // vì sau này product/variant có thể bị sửa hoặc xóa
     table.string("product_name", 255);
+    table.string("product_name_kr", 255);
     table.string("variant_name", 255).nullable(); // thêm — tên variant lúc mua
+    table.string("variant_name_kr", 255).nullable(); // thêm — tên variant lúc mua
     table.string("sku", 100).nullable(); // thêm
     table.text("product_link").nullable();
     table.text("image").nullable();

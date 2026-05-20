@@ -1,5 +1,6 @@
 // components/cart/CartItemCard.tsx
 
+import { useProduct } from "../../hooks/useProducts";
 import type { CartItem } from "../../types/cart";
 import "./cartItemRow.css";
 
@@ -24,10 +25,33 @@ export default function CartItemRow({
   setVariantModal,
   handleRemoveItem,
 }: Props) {
+  debugger
+  const handleOpenVariant = async (item: CartItem) => {
+    try {
+      const res = await fetch(`/api/products/${item.product.slug}`);
+
+      if (!res.ok) {
+        throw new Error("Load product failed");
+      }
+
+      const data = await res.json();
+
+      setVariantModal({
+        ...item,
+        product: data.data ?? data,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="cart-row">
       {/* Ảnh */}
-      <div className="cart-image" onClick={() => navigate(item.product.metadata.link)}>
+      <div
+        className="cart-image"
+        onClick={() => navigate(item.product.metadata.link)}
+      >
         {imageUrl ? (
           <img src={imageUrl} alt={item.product.name} className="cart-img" />
         ) : (
@@ -37,21 +61,24 @@ export default function CartItemRow({
 
       {/* Info */}
       <div className="cart-info">
-        <p className="cart-name" onClick={() => navigate(item.product.metadata.link)}>
+        <p
+          className="cart-name"
+          onClick={() => navigate(item.product.metadata.link)}
+        >
           {item.product.name}
         </p>
 
-        {(item.product.variants?.length ?? 0) > 0 && (
-          <button
-            className="cart-variant-btn"
-            onClick={() => setVariantModal(item)}
-          >
-            {item.variant
-              ? item.variant.name ?? item.variant.nameKr ?? item.variant.sku
-              : "Chọn phân loại"}
-            <span>▼</span>
-          </button>
-        )}
+        {/* {(item.product.variants?.length ?? 0) > 0 && ( */}
+        <button
+          className="cart-variant-btn"
+          onClick={() => handleOpenVariant(item)}
+        >
+          {item.variant
+            ? (item.variant.name ?? item.variant.nameKr ?? item.variant.sku)
+            : "Chọn phân loại"}
+          <span>▼</span>
+        </button>
+        {/* )} */}
 
         <div className="cart-price">
           <span className="price">

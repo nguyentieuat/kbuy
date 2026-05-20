@@ -384,7 +384,7 @@ async function getProductById(productId) {
   const query = baseProductQuery();
 
   query.modify(productSelect);
-  
+
   query.select(
     "p.extra_data",
 
@@ -613,32 +613,37 @@ async function getRandomProducts({ excludeIds = [], limit = 12 }) {
   return query.orderByRaw("RANDOM()").limit(limit);
 }
 
-async function getDefaultShippingByProducts(productIds = []) {
+async function getProductsSnapshotForOrder(productIds = []) {
   if (!productIds.length) return [];
+
+  const productImage = db("product_variant_images as i")
+    .select("i.url")
+    .whereColumn("i.product_id", "p.id")
+    .andWhere("i.variant_id", null)
+    .andWhere("i.is_primary", true)
+    .limit(1);
 
   return db("products as p")
     .leftJoin("product_variant_shipping as pvs", function () {
-      this.on("p.id", "=", "pvs.product_id").andOnNull("pvs.variant_id");
+      this.on("p.id", "=", "pvs.product_id")
+        .andOnNull("pvs.variant_id");
     })
     .select(
-      // product
       "p.id",
-
+      "p.product_url",
       "p.name_kr",
       "p.name_vi",
-
       "p.sale_price",
       "p.original_price",
-
       "p.currency",
-
       "p.is_active",
       "p.is_deleted",
 
-      // shipping
       "pvs.is_bulky",
       "pvs.weight_grams",
       "pvs.chargeable_weight_grams",
+
+      db.raw(`(${productImage}) as image`)
     )
     .whereIn("p.id", productIds)
     .where({
@@ -646,6 +651,7 @@ async function getDefaultShippingByProducts(productIds = []) {
       "p.is_deleted": false,
     });
 }
+
 module.exports = {
   getFeaturedProducts,
   getNewArrivalProducts,
@@ -658,5 +664,5 @@ module.exports = {
   getProductsFromParentCategory,
   getFeaturedProductsExcluding,
   getRandomProducts,
-  getDefaultShippingByProducts,
+  getProductsSnapshotForOrder,
 };

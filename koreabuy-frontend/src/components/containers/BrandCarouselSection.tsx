@@ -40,9 +40,6 @@ export default function BrandCarouselSection({
     return (
       <div
         className="untree_co-section"
-        style={{
-          paddingTop: 23,
-        }}
       >
         <div className="container">
           <h5

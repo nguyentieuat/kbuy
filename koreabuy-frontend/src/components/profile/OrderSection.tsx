@@ -13,21 +13,13 @@ export default function OrderSection({
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("all");
 
-  const { orders, loading } = useOrders(authHeaders);
+  const { orders, loading, pagination, statusCounts, page, setPage } =
+  useOrders(authHeaders, activeTab);
+
   const tabsRef = useRef<HTMLDivElement>(null);
 
   // Đếm số lượng theo từng status để hiện badge
-  const countByStatus = useMemo(() => {
-    return orders.reduce<Record<string, number>>((acc, o) => {
-      acc[o.status] = (acc[o.status] ?? 0) + 1;
-      return acc;
-    }, {});
-  }, [orders]);
-
-  const filtered = useMemo(() => {
-    if (activeTab === "all") return orders;
-    return orders.filter((o) => o.status === activeTab);
-  }, [orders, activeTab]);
+  const countByStatus = statusCounts;
 
   return (
     <div>
@@ -51,7 +43,7 @@ export default function OrderSection({
 
         {ORDER_TABS.map((tab) => {
           const count =
-            tab.key === "all" ? orders.length : (countByStatus[tab.key] ?? 0);
+            tab.key === "all" ? pagination.total : (countByStatus[tab.key] ?? 0);
           const isActive = activeTab === tab.key;
 
           return (
@@ -105,7 +97,7 @@ export default function OrderSection({
         <div style={{ textAlign: "center", padding: "32px 0" }}>
           <div className="spinner-border text-primary" role="status" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : orders.length === 0? (
         <div
           style={{
             background: "#fff",
@@ -124,7 +116,7 @@ export default function OrderSection({
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {filtered.map((order) => {
+          {orders.map((order) => {
             const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
             const firstItem = order.items[0];
             const moreCount = order.items.length - 1;
@@ -276,6 +268,74 @@ export default function OrderSection({
               </div>
             );
           })}
+        </div>
+      )}
+      {pagination.totalPages > 1 && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 6,
+            marginTop: 16,
+          }}
+        >
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 8,
+              border: "1px solid #dee2e6",
+              background: "#fff",
+              fontSize: 13,
+              cursor: page <= 1 ? "not-allowed" : "pointer",
+              opacity: page <= 1 ? 0.5 : 1,
+            }}
+          >
+            ← Trước
+          </button>
+
+          {Array.from({ length: pagination.totalPages }).map((_, i) => {
+            const p = i + 1;
+            return (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 8,
+                  fontSize: 13,
+                  border: page === p ? "none" : "1px solid #dee2e6",
+                  background: page === p ? "#007bff" : "#fff",
+                  color: page === p ? "#fff" : "#333",
+                  cursor: "pointer",
+                  fontWeight: page === p ? 700 : 400,
+                }}
+              >
+                {p}
+              </button>
+            );
+          })}
+
+          <button
+            onClick={() =>
+              setPage((p) => Math.min(pagination.totalPages, p + 1))
+            }
+            disabled={page >= pagination.totalPages}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 8,
+              border: "1px solid #dee2e6",
+              background: "#fff",
+              fontSize: 13,
+              cursor: page >= pagination.totalPages ? "not-allowed" : "pointer",
+              opacity: page >= pagination.totalPages ? 0.5 : 1,
+            }}
+          >
+            Sau →
+          </button>
         </div>
       )}
     </div>

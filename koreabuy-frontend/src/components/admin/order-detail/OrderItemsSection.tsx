@@ -14,6 +14,7 @@ type Props = {
 export default function OrderItemsSection({
   items = [],
 }: Props) {
+  debugger
   return (
     <Section title={`🛍️ Sản phẩm (${items.length})`}>
       <div

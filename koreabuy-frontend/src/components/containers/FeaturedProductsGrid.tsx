@@ -32,7 +32,7 @@ export default function ProductListGrid() {
   if (!products.length) return null;
 
   return (
-    <div className="untree_co-section">
+    <div className="untree_co-section" style={{paddingTop: "53px"}}>
       <div className="container">
         <ProductsGrid products={products} isHome/>
       </div>

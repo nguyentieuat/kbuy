@@ -22,11 +22,11 @@ export default function OrderItemList({
     >
       {items.map((item) => {
         const imageUrl = normalizeImageUrl(
-          item.variant?.media.image ?? item.product.media.image,
+          item.variant?.media?.image ?? item.product?.media?.image,
         );
 
         const price = Number(
-          item.variant?.pricing.price ?? item.product.pricing.price ?? 0,
+          item.variant?.pricing?.price ?? item.product?.pricing?.price ?? 0,
         );
 
         return (

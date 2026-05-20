@@ -63,6 +63,7 @@ app.use(
   express.static(path.join(rootPath, "uploads"))
 );
 
+require("./jobs/exchangeRate.job");
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

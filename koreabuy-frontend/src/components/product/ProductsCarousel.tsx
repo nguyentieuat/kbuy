@@ -28,7 +28,7 @@ export default function ProductsCarousel({
   products,
   title = "Sản phẩm mới",
   isHome = false,
-  showTitle = true
+  showTitle = true,
 }: Props) {
   const desktopSlides = isHome ? 3 : 4;
   return (
@@ -41,8 +41,6 @@ export default function ProductsCarousel({
           alignItems: "center",
         }}
       >
-
-        
         <h2 className="text-muted" style={{ cursor: "pointer" }}>
           {showTitle ? title : ""}
         </h2>
@@ -89,7 +87,7 @@ export default function ProductsCarousel({
               link={`${product.metadata.link}`}
               isNew={!!product.flags.new}
               isSale={!!product.pricing.discountPercent}
-              discountPercent={product.pricing.discountPercent}
+              discountPercent={product.pricing.discountPercent ?? undefined}
             />
           </SwiperSlide>
         ))}
@@ -98,7 +96,7 @@ export default function ProductsCarousel({
       {/* Pagination dots */}
       <div
         className="custom-pagination"
-        style={{ textAlign: "center", marginTop: "20px" }}
+        style={{ textAlign: "center", marginTop: "0px" }}
       />
     </div>
   );

@@ -171,7 +171,7 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      <div style={{ margin: "60px 0", textAlign: "center" }}>
+      <div style={{ margin: "53px 0 29px 0", textAlign: "center" }}>
         <div
           style={{
             height: 1,

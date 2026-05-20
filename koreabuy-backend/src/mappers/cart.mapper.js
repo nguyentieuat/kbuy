@@ -11,13 +11,16 @@ function toCartItem(row, rate = 19) {
     product: {
       id: row.product_id,
 
-      name: row.product_name_vi ?? row.product_name_kr,
+      name: row.product_name_vi,
+
+      nameKr: row.product_name_kr,
 
       slug: row.slug,
 
       media: {
         image: row.product_image,
       },
+
       pricing: {
         price: convertPrice(
           Number(row.product_price ?? row.variant_price ?? 0),
@@ -41,7 +44,9 @@ function toCartItem(row, rate = 19) {
       ? {
           id: row.variant_id,
 
-          name: row.variant_name_vi ?? row.variant_name_kr,
+          name: row.variant_name_vi,
+
+          nameKr: row.variant_name_kr,
 
           pricing: {
             price: convertPrice(Number(row.variant_price ?? 0), rate),

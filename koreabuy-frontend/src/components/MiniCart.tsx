@@ -70,13 +70,13 @@ export default function MiniCart({ onClose }: { onClose: () => void }) {
         ) : (
           items.map((item) => {
             const imageUrl = normalizeImageUrl(
-              item.variant?.media.image ||
-                item.product.media.image ||
-                item.product.media.images?.[0]?.url,
+              item.variant?.media?.image ||
+                item.product?.media?.image ||
+                item.product?.media?.images?.[0]?.url,
             );
 
             const price = Number(
-              item.variant?.pricing.price ?? item.product.pricing.price ?? 0,
+              item.variant?.pricing?.price ?? item.product?.pricing?.price ?? 0,
             );
             return (
               <div
