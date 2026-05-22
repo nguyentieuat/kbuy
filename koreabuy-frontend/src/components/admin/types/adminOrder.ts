@@ -21,13 +21,18 @@ export type OrderLog = {
 
 export type OrderItem = {
   id: number;
+  product_id: number;
+  variant_id: number;
   product_name: string;
+  product_name_kr: string;
   variant_name: string | null;
+  variant_name_kr: string | null;
   sku: string | null;
   image: string | null;
   price: number;
   quantity: number;
   total_price: number;
+  product_link: string | null;
 };
 
 export type IntShipment = {

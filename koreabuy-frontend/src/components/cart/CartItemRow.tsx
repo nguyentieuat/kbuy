@@ -25,7 +25,7 @@ export default function CartItemRow({
   setVariantModal,
   handleRemoveItem,
 }: Props) {
-  debugger
+  debugger;
   const handleOpenVariant = async (item: CartItem) => {
     try {
       const res = await fetch(`/api/products/${item.product.slug}`);
@@ -68,17 +68,17 @@ export default function CartItemRow({
           {item.product.name}
         </p>
 
-        {/* {(item.product.variants?.length ?? 0) > 0 && ( */}
-        <button
-          className="cart-variant-btn"
-          onClick={() => handleOpenVariant(item)}
-        >
-          {item.variant
-            ? (item.variant.name ?? item.variant.nameKr ?? item.variant.sku)
-            : "Chọn phân loại"}
-          <span>▼</span>
-        </button>
-        {/* )} */}
+        {item.variant && (
+          <button
+            className="cart-variant-btn"
+            onClick={() => handleOpenVariant(item)}
+          >
+            {item.variant
+              ? (item.variant.name ?? item.variant.nameKr ?? item.variant.sku)
+              : "Chọn phân loại"}
+            <span>▼</span>
+          </button>
+        )}
 
         <div className="cart-price">
           <span className="price">

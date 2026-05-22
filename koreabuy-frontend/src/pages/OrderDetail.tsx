@@ -76,7 +76,7 @@ export default function OrderDetail() {
 
   return (
     <div style={{ paddingTop: 80, minHeight: "100vh", background: "#f8f9fa" }}>
-      <div className="container py-5" style={{ maxWidth: 640 }}>
+      <div className="container py-5" style={{ maxWidth: 1020 }}>
         {/* Success banner */}
         {fromCheckout && (
           <div

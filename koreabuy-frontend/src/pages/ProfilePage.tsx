@@ -116,7 +116,7 @@ export default function ProfilePage() {
 
   return (
     <div style={{ paddingTop: 80, minHeight: "100vh", background: "#f8f9fa" }}>
-      <div className="container py-4" style={{ maxWidth: 720 }}>
+      <div className="container py-4" style={{ maxWidth: 1020 }}>
         {/* Header */}
         <div
           style={{

@@ -11,10 +11,7 @@ type Props = {
   items?: OrderItem[];
 };
 
-export default function OrderItemsSection({
-  items = [],
-}: Props) {
-  debugger
+export default function OrderItemsSection({ items = [] }: Props) {
   return (
     <Section title={`🛍️ Sản phẩm (${items.length})`}>
       <div
@@ -84,10 +81,19 @@ export default function OrderItemsSection({
                   whiteSpace: "nowrap",
                 }}
               >
-                {item.product_name}
+                <a
+                  href={`${item.product_link}`}
+                  style={{
+                    color: "inherit",
+                    textDecoration: "none",
+                  }}
+                >
+                  {" "}
+                  {item.product_name}
+                </a>
               </p>
 
-              {item.variant_name && (
+              {(item.variant_name ?? item.variant_name_kr) && (
                 <p
                   style={{
                     fontSize: 11,
@@ -95,13 +101,10 @@ export default function OrderItemsSection({
                     margin: "2px 0 0",
                   }}
                 >
-                  {item.variant_name}
+                  {item.variant_name ?? item.variant_name_kr}
 
                   {item.sku && (
-                    <span style={{ color: "#bbb" }}>
-                      {" "}
-                      · {item.sku}
-                    </span>
+                    <span style={{ color: "#bbb" }}> · {item.sku}</span>
                   )}
                 </p>
               )}
