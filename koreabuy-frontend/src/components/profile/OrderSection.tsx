@@ -1,5 +1,5 @@
 // components/profile/OrderSection.tsx
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOrders } from "../../hooks/useOrders";
 import { STATUS_CONFIG, ORDER_TABS } from "./constants/orders";

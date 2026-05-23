@@ -18,7 +18,6 @@ export default function CartSummary({ items }: CartSummaryProps) {
     totalFinal,
     totalDiscount,
     totalQuantity,
-    totalChargeableWeight,
   } = calculateCartTotals(items);
 
   // Chỉ tính phí quốc tế, không có địa chỉ

@@ -1,15 +1,7 @@
 // hooks/useAdminOrders.ts
 
 import { useCallback, useEffect, useState } from "react";
-import { AdminOrderAPI } from "../../../api/adminOrder.api";
 import type { Order, Pagination } from "../types/adminOrder";
-
-type Filters = {
-  page: number;
-  status: string;
-  search: string;
-  payment: string;
-};
 
 export function useAdminOrders(filters: {
   page: number;

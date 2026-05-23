@@ -27,7 +27,7 @@ export default function BulkIntShipmentModal({
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { toast, show } = useToast();
+  const { show } = useToast();
 
   // Tổng cân ước tính từ các đơn
   const estimatedWeight = selectedOrders.reduce((sum, o) => {

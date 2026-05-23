@@ -1,6 +1,5 @@
 // components/cart/CartItemCard.tsx
 
-import { useProduct } from "../../hooks/useProducts";
 import type { CartItem } from "../../types/cart";
 import "./cartItemRow.css";
 

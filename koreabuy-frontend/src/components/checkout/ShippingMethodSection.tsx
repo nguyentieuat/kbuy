@@ -54,7 +54,7 @@ export default function ShippingMethodSection({
             name={opt.name}
             desc={opt.desc}
             right={
-              !provinceCode
+              (!provinceCode || !wardCode)
                 ? "Chọn địa chỉ để xem phí"
                 : loadingMap[opt.id as ShippingMethod]
                   ? "Đang tính..."

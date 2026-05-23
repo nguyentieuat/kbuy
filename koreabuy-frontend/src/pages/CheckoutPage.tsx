@@ -6,8 +6,7 @@ import { useCart } from "../contexts/CartContext";
 import { useToast } from "../hooks/useToast";
 import Toast from "../components/Toast";
 import AddressModal from "../components/AddressModal";
-import { useRegion } from "../hooks/useAddress";
-import { calculateShippingTotal, type Region } from "../utils/shipping";
+import { type Region } from "../utils/shipping";
 import OtpModal from "../components/OtpModal";
 import PayQrModal from "../components/PayQrModal";
 import { useOtpCheck } from "../hooks/useOtpCheck";
@@ -147,17 +146,15 @@ export default function CheckoutPage() {
 
   // ── Computed ──────────────────────────────────────────────────────────────
   const {
-    totalChargeableWeight,
     totalOriginal,
     totalFinal,
-    totalDiscount,
     totalQuantity,
   } = calculateCartTotals(items);
 
   const provinceCode = selectedAddress?.province?.code ?? null;
   const wardCode = selectedAddress?.ward?.code ?? null;
 
-  const { result: shippingResult, loading: shippingLoading } = useShippingFee({
+  const { result: shippingResult,} = useShippingFee({
     items,
     provinceCode,
     wardCode,

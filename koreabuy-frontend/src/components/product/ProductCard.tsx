@@ -88,7 +88,6 @@ export default function ProductCard({
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
           gap: 8,
           flexWrap: "wrap",
           marginBottom: 16,

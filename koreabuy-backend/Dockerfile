@@ -1,5 +1,6 @@
-# build stage
-FROM node:20-alpine AS builder
+# Dockerfile
+
+FROM node:20-alpine
 
 WORKDIR /app
 
@@ -11,11 +12,6 @@ COPY . .
 
 RUN npm run build
 
-# production stage
-FROM nginx:stable-alpine
+EXPOSE 3000
 
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["node", "dist/index.js"]

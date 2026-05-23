@@ -3,7 +3,7 @@
 
 require("dotenv").config();
 
-const knex = require("knex")(require("../config/knexfile"));
+const knex = require("knex")(require("../../config/knexfile"));
 
 const fs = require("fs");
 const path = require("path");
@@ -15,7 +15,7 @@ const readline = require("readline");
 
 const INPUT_DIR = path.resolve(
   __dirname,
-  "../data/output_products_vi_gemini/success",
+  "../../data/output_products_vi_gemini/success",
 );
 
 const DEBUG = true;
@@ -454,7 +454,7 @@ function normalizeProduct(raw, category) {
         variant_images: (v.variant_detail_images || []).map((img, idx) => ({
           url: normalizeImagePath(img?.url ?? img),
 
-          type: "detail",
+          image_type: "detail",
 
           is_primary: idx === 0,
 
@@ -766,7 +766,7 @@ async function insertProductGraph(trx, data) {
 
           url: img.url,
 
-          type: img.type,
+          image_type: img.type,
 
           is_primary: img.is_primary,
 

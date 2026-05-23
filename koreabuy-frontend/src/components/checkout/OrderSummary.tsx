@@ -38,7 +38,6 @@ export default function OrderSummary({
   shippingDiscount,
   couponDiscount,
   shippingResult,
-  shippingFee,
   localFee,
   localBaseFee,
   internationalFee,

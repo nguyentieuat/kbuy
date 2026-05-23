@@ -1,7 +1,7 @@
 // containers/CategoryProduct.tsx
 
 import { useRef, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import ProductsGrid from "../product/ProductsGrid";
 import ProductsCarousel from "../product/ProductsCarousel";
 import { useProducts, useRecommendedProducts } from "../../hooks/useProducts";

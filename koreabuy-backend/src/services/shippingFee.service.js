@@ -101,14 +101,18 @@ async function calcInternationalFee(weightGrams, method, bulkyCount = 0) {
   if (shouldApplyFastMultiplier) {
     billedFee *= 1.2;
   }
+  // ── BULKY SURCHARGE ──
+  let internationalBulkyFee = 0;
+  let intlBulkyRule = null;
 
-  const intlBulkyRule = await ShippingFeeDiscountModel.getFeeBulky({
-    shippingType: "international",
-  });
-  const internationalBulkyFee =
-    bulkyCount > 0
-      ? (intlBulkyRule ? Number(intlBulkyRule.discount_value) : 0) * bulkyCount
-      : 0;
+  if (bulkyCount > 0) {
+    intlBulkyRule = await ShippingFeeDiscountModel.getFeeBulky({
+      shippingType: "international",
+    });
+
+    internationalBulkyFee =
+      (intlBulkyRule ? Number(intlBulkyRule.discount_value) : 0) * bulkyCount;
+  }
 
   return {
     actualWeight,
@@ -156,16 +160,17 @@ async function calcLocalFee({
   );
 
   // ── BULKY SURCHARGE ──
+  let localBulkyFee = 0;
+  let localBulkyRule = null;
 
-  // local bulky
-  const localBulkyRule = await ShippingFeeDiscountModel.getFeeBulky({
-    shippingType: "local",
-  });
-  const localBulkyFee =
-    bulkyCount > 0
-      ? (localBulkyRule ? Number(localBulkyRule.discount_value) : 0) *
-        bulkyCount
-      : 0;
+  if (bulkyCount > 0) {
+    localBulkyRule = await ShippingFeeDiscountModel.getFeeBulky({
+      shippingType: "local",
+    });
+
+    localBulkyFee =
+      (localBulkyRule ? Number(localBulkyRule.discount_value) : 0) * bulkyCount;
+  }
 
   return {
     baseFee: baseFee + localBulkyFee, // phí gốc (để hiển thị gạch ngang)
@@ -209,21 +214,22 @@ async function calculateShipping({
   }
 
   // ── BULKY SURCHARGE ──
-  const [intlBulkyRule, localBulkyRule] = await Promise.all([
-    ShippingFeeDiscountModel.getFeeBulky({ shippingType: "international" }),
-    ShippingFeeDiscountModel.getFeeBulky({ shippingType: "local" }),
-  ]);
+  let intlBulkyRule = null;
+  let localBulkyRule = null;
 
-  const internationalBulkyFee =
-    bulkyCount > 0
-      ? (intlBulkyRule ? Number(intlBulkyRule.discount_value) : 0) * bulkyCount
-      : 0;
+  let internationalBulkyFee = 0;
+  let localBulkyFee = 0;
 
-  const localBulkyFee =
-    bulkyCount > 0
-      ? (localBulkyRule ? Number(localBulkyRule.discount_value) : 0) *
-        bulkyCount
-      : 0;
+  if (bulkyCount > 0) {
+    [intlBulkyRule, localBulkyRule] = await Promise.all([
+      ShippingFeeDiscountModel.getFeeBulky({ shippingType: "international" }),
+      ShippingFeeDiscountModel.getFeeBulky({ shippingType: "local" }),
+    ]);
+
+    internationalBulkyFee = (intlBulkyRule?.discount_value ?? 0) * bulkyCount;
+
+    localBulkyFee = (localBulkyRule?.discount_value ?? 0) * bulkyCount;
+  }
 
   // ── CALC ONCE ──
   const weightDiff = billedWeight - actualWeight;

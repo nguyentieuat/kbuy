@@ -1,5 +1,7 @@
 exports.seed = async function (knex) {
-  await knex("shipping_fee_discounts").del();
+    const exists = await knex("shipping_fee_discounts").first();
+
+  if (exists) return;
 
   await knex("shipping_fee_discounts").insert([
     // ── LOCAL: Giảm theo ngưỡng đơn hàng ──

@@ -58,7 +58,7 @@ export default function OrderDetailDrawer({
   const [domLoading, setDomLoading] = useState(false);
 
   const [intStatusLoading, setIntStatusLoading] = useState(false);
-  const { toast, show } = useToast();
+  const { show } = useToast();
 
   const refetchDetail = async () => {
     setLoading(true);

@@ -90,7 +90,7 @@ export default function ProductGallery({
 
       {/* THUMBNAILS */}
       {(images.length > 0 ||
-        activeVariants.some((v) => v.image_url)) && (
+        activeVariants.some((v) => v.media?.image)) && (
         <div style={{ marginTop: 12 }}>
           {images.length > 0 && (
             <div

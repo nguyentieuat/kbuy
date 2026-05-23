@@ -28,7 +28,7 @@ async function getShippingFeeDiscount({
 
   const rules = await db("shipping_fee_discounts")
     .where("is_active", true)
-
+    .whereNot("discount_type", "bulky") 
     // shipping type
     .where(function () {
       this.where("shipping_type", shippingType).orWhere("shipping_type", "all");

@@ -86,7 +86,6 @@ export default function ImportRequestPage() {
 
   const [url, setUrl] = useState("");
   const [detectedSource, setDetectedSource] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState("");
   const [email, setEmail] = useState(user?.email ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");

@@ -7,7 +7,10 @@ async function getKrwToVndRate() {
   if (!cachedRate) {
     cachedRate = await getRate("KRW", "VND");
   }
-  return Number(cachedRate?.sell_rate) ?? 19;
+
+  const rate = Number(cachedRate?.sell_rate);
+
+  return Number.isFinite(rate) ? rate : 19;
 }
 
 function convertPrice(amount, rate = 19) {

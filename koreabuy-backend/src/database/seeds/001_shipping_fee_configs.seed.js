@@ -1,5 +1,8 @@
 exports.seed = async function (knex) {
-  await knex("shipping_fee_configs").del();
+  const exists = await knex("shipping_fee_configs").first();
+
+  if (exists) return;
+
 
   await knex("shipping_fee_configs").insert([
     // ── INTERNATIONAL: weight_rate ──
@@ -11,6 +14,7 @@ exports.seed = async function (knex) {
       min_weight_grams: 0,
       max_weight_grams: 3000,
       rate_per_kg: 152000,
+      shipping_mode: "standard",
     },
     {
       name: "KR-VN 3kg-10kg",
@@ -20,6 +24,7 @@ exports.seed = async function (knex) {
       min_weight_grams: 3001,
       max_weight_grams: 10000,
       rate_per_kg: 142500,
+      shipping_mode: "standard",
     },
     {
       name: "KR-VN 10kg-30kg",
@@ -29,6 +34,7 @@ exports.seed = async function (knex) {
       min_weight_grams: 10001,
       max_weight_grams: 30000,
       rate_per_kg: 133000,
+      shipping_mode: "standard",
     },
     {
       name: "KR-VN above 30kg",
@@ -38,6 +44,7 @@ exports.seed = async function (knex) {
       min_weight_grams: 30001,
       max_weight_grams: null,
       rate_per_kg: 114000,
+      shipping_mode: "standard",
     },
 
     // ── LOCAL: base_step ──
@@ -50,7 +57,8 @@ exports.seed = async function (knex) {
       base_fee: 29000,
       step_weight_grams: 500,
       step_fee: 2500,
-      free_shipping_threshold: 500000,
+      free_shipping_threshold: 2000000,
+      shipping_mode: "standard",
     },
     {
       name: "Local Noi Vung Tinh",
@@ -61,7 +69,8 @@ exports.seed = async function (knex) {
       base_fee: 34000,
       step_weight_grams: 500,
       step_fee: 2500,
-      free_shipping_threshold: 500000,
+      free_shipping_threshold: 5000000,
+      shipping_mode: "standard",
     },
     {
       name: "Local Lien Vung",
@@ -72,7 +81,8 @@ exports.seed = async function (knex) {
       base_fee: 39000,
       step_weight_grams: 500,
       step_fee: 5000,
-      free_shipping_threshold: 700000,
+      free_shipping_threshold: 7000000,
+      shipping_mode: "standard",
     },
     {
       name: "Local Lien Tinh",
@@ -83,7 +93,8 @@ exports.seed = async function (knex) {
       base_fee: 36000,
       step_weight_grams: 500,
       step_fee: 5000,
-      free_shipping_threshold: 700000,
+      free_shipping_threshold: 7000000,
+      shipping_mode: "standard",
     },
     {
       name: "Local Lien Vung DB",
@@ -94,7 +105,8 @@ exports.seed = async function (knex) {
       base_fee: 39000,
       step_weight_grams: 500,
       step_fee: 5000,
-      free_shipping_threshold: 1000000,
+      free_shipping_threshold: 10000000,
+      shipping_mode: "standard",
     },
   ]);
 };

@@ -35,6 +35,7 @@ exports.up = async function (knex) {
     table.decimal("base_fee", 12, 2).nullable();
     table.integer("step_weight_grams").nullable();
     table.decimal("step_fee", 12, 2).nullable();
+    table.decimal("free_shipping_threshold", 12, 2).nullable();
 
     // ── CONDITIONS ──
     table.boolean("is_active").defaultTo(true);
