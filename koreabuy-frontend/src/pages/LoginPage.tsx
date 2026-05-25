@@ -5,7 +5,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../hooks/useToast";
 import Toast from "../components/Toast";
-import LoginForm from "../components/LoginForm";
 import RegisterForm from "../components/RegisterForm";
 
 type Mode = "login" | "register";
