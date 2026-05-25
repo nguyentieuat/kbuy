@@ -160,11 +160,11 @@ function calculateVolumetricWeight(lengthMm, widthMm, heightMm) {
  */
 function getShippingSafetyFactor(confidence = 0) {
   if (confidence >= 0.9) {
-    return 1.25;
+    return 1.15;
   }
 
   if (confidence >= 0.8) {
-    return 1.35;
+    return 1.25;
   }
 
   if (confidence >= 0.7) {
@@ -183,11 +183,11 @@ function getShippingSafetyFactor(confidence = 0) {
 function roundShippingWeight(weight) {
   if (!weight) return null;
 
-  if (weight <= 500) {
-    return Math.ceil(weight / 100) * 100;
-  }
+  // if (weight <= 500) {
+  //   return Math.ceil(weight / 100) * 100;
+  // }
 
-  return Math.ceil(weight / 500) * 500;
+  return Math.ceil(weight / 100) * 100;
 }
 
 /**

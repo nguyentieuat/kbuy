@@ -53,7 +53,7 @@ export default function LoginPage() {
       await login(credential.trim(), password);
       navigate(from, { replace: true });
     } catch (err: any) {
-      setErrors({ general: err.message });
+      showToast(err.message || "Đăng nhập thất bại", "error");
     } finally {
       setLoading(false);
     }
@@ -104,7 +104,7 @@ export default function LoginPage() {
         setErrors({});
       }, 1200);
     } catch (err: any) {
-      setErrors({ general: err.message });
+      showToast(err.message || "Đăng ký thất bại", "error");
     } finally {
       setLoading(false);
     }
@@ -175,23 +175,7 @@ export default function LoginPage() {
               </button>
             ))}
           </div>
-
-          {/* General error */}
-          {errors.general && (
-            <LoginForm
-              credential={credential}
-              setCredential={setCredential}
-              password={password}
-              setPassword={setPassword}
-              showPass={showPass}
-              setShowPass={setShowPass}
-              errors={errors}
-              inputStyle={inputStyle}
-              loading={loading}
-              handleLogin={handleLogin}
-            />
-          )}
-
+          
           {/* ── LOGIN FORM ── */}
           {mode === "login" && (
             <>
