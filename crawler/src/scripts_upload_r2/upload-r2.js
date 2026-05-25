@@ -69,7 +69,7 @@ function buildKey(url, productId) {
 
   const hash = crypto.createHash("md5").update(url).digest("hex");
 
-  return `products/${productId}/${hash}${ext}`;
+  return `images/products/${productId}/${hash}${ext}`;
 }
 
 async function uploadToR2(url, productId) {
