@@ -87,6 +87,9 @@ exports.up = async function (knex) {
     table.decimal("source_rating_avg", 12, 2).defaultTo(null);
     table.integer("source_rating_count").defaultTo(0);
 
+    table.string("hash", 64).nullable();
+    table.string("image_hash", 64).nullable();
+
     table.timestamps(true, true);
   });
 

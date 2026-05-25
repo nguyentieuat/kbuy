@@ -558,6 +558,13 @@ async function insertProductGraph(trx, data) {
 
   // update existing
   if (product) {
+    if (
+      product.hash === data.product.hash &&
+      product.image_hash === data.product.image_hash
+    ) {
+      return product;
+    }
+    
     await trx("products")
       .where({
         id: product.id,
@@ -588,6 +595,9 @@ async function insertProductGraph(trx, data) {
         source_rating_avg: data.product.source_rating_avg,
 
         source_rating_count: data.product.source_rating_count,
+
+        hash: data.product.hash,
+        image_hash: data.product.image_hash,
 
         updated_at: knex.fn.now(),
       });
@@ -655,6 +665,9 @@ async function insertProductGraph(trx, data) {
         featured_order: data.product.featured_order,
 
         new_arrival_until: data.product.new_arrival_until,
+
+        hash: data.product.hash,
+        image_hash: data.product.image_hash,
       })
       .returning("*");
   }
@@ -693,6 +706,9 @@ async function insertProductGraph(trx, data) {
       .first();
 
     if (savedVariant) {
+      if (savedVariant.hash === variant.hash) {
+        continue;
+      }
       await trx("product_variants")
         .where({
           id: savedVariant.id,
@@ -713,6 +729,8 @@ async function insertProductGraph(trx, data) {
           image_url: variant.image_url,
 
           attributes: JSON.stringify(variant.attributes),
+
+          hash: variant.hash,
 
           updated_at: knex.fn.now(),
         });
@@ -750,12 +768,16 @@ async function insertProductGraph(trx, data) {
           attributes: JSON.stringify(variant.attributes),
 
           is_active: variant.is_active,
+
+          hash: variant.hash,
         })
         .returning("*");
     }
 
     // variant images
-    await trx("product_variant_images").where("variant_id", savedVariant.id).delete();
+    await trx("product_variant_images")
+      .where("variant_id", savedVariant.id)
+      .delete();
 
     if (variant.variant_images.length) {
       await trx("product_variant_images").insert(

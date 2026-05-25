@@ -102,6 +102,8 @@ exports.up = async function (knex) {
 
     table.index("sku");
     // Fast SKU lookup for sync / upsert / cart / order mapping
+
+    table.string("hash", 64);
   });
 };
 
