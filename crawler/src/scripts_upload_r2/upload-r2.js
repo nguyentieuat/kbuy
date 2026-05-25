@@ -12,7 +12,7 @@ require("dotenv").config();
 // ─────────────────────────────
 // CONFIG
 // ─────────────────────────────
-const INPUT_DIR = path.join(process.cwd(), "data/split/success");
+const INPUT_DIR = path.join(process.cwd(), "data/translate/success");
 const CONCURRENCY = 5;
 const WORKERS = 3;
 

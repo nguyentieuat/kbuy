@@ -13,10 +13,7 @@ const readline = require("readline");
 // CONFIG
 // ─────────────────────────────────────────────
 
-const INPUT_DIR = path.resolve(
-  __dirname,
-  "../../data/output_products_vi_gemini/success",
-);
+const INPUT_DIR = path.resolve(__dirname, "../../data/translate/success");
 
 const DEBUG = true;
 
@@ -63,23 +60,23 @@ function generateSlug(name, productId) {
   return `${base}-${productId.toLowerCase()}`;
 }
 
-function normalizeImagePath(rawPath) {
-  if (!rawPath) return null;
+// function normalizeImagePath(rawPath) {
+//   if (!rawPath) return null;
 
-  let p = rawPath.replace(/\\/g, "/");
+//   let p = rawPath.replace(/\\/g, "/");
 
-  const match = p.match(/(image[^/]*\/.+)$/);
+//   const match = p.match(/(image[^/]*\/.+)$/);
 
-  if (!match) return p;
+//   if (!match) return p;
 
-  let result = match[1];
+//   let result = match[1];
 
-  if (!result.startsWith("data/")) {
-    result = `data/${result}`;
-  }
+//   if (!result.startsWith("data/")) {
+//     result = `data/${result}`;
+//   }
 
-  return result;
-}
+//   return result;
+// }
 
 function normalizeFlags(flags = []) {
   return flags.map((f) => {
@@ -375,6 +372,10 @@ function normalizeProduct(raw, category) {
 
       new_arrival_until: newArrivalUntil,
 
+      hash: raw.hash || null,
+
+      image_hash: raw.image_hash || null,
+
       extra_data: {
         specs: {
           kr: raw.specs || {},
@@ -398,7 +399,8 @@ function normalizeProduct(raw, category) {
     // ─────────────────────────
 
     images: (raw.images || []).map((img, idx) => ({
-      url: normalizeImagePath(img),
+      // url: normalizeImagePath(img),
+      url: img,
 
       is_primary: idx === 0,
 
@@ -437,7 +439,8 @@ function normalizeProduct(raw, category) {
 
         is_soldout: v.is_soldout || false,
 
-        image_url: normalizeImagePath(v.thumbnail),
+        // image_url: normalizeImagePath(v.thumbnail),
+        image_url: v.thumbnail,
 
         image_detail_url: (v.variant_detail_images || [])[0]?.url ?? null,
 
@@ -447,12 +450,15 @@ function normalizeProduct(raw, category) {
 
         is_active: true,
 
+        hash: v.hash || null,
+
         // ─────────────────────
         // VARIANT IMAGES
         // ─────────────────────
 
         variant_images: (v.variant_detail_images || []).map((img, idx) => ({
-          url: normalizeImagePath(img?.url ?? img),
+          // url: normalizeImagePath(img?.url ?? img),
+          url: img?.url ?? img,
 
           image_type: "detail",
 
@@ -564,7 +570,7 @@ async function insertProductGraph(trx, data) {
     ) {
       return product;
     }
-    
+
     await trx("products")
       .where({
         id: product.id,
@@ -788,7 +794,7 @@ async function insertProductGraph(trx, data) {
 
           url: img.url,
 
-          image_type: img.type,
+          image_type: img.image_type || "detail",
 
           is_primary: img.is_primary,
 
@@ -829,16 +835,12 @@ async function insertProductGraph(trx, data) {
   // ─────────────────────────
 
   const shippingExists = await trx("product_variant_shipping")
-    .where({
-      product_id: productId,
-    })
+    .where({ product_id: productId, variant_id: null })
     .first();
 
   if (shippingExists) {
     await trx("product_variant_shipping")
-      .where({
-        product_id: productId,
-      })
+      .where({ product_id: productId, variant_id: null })
       .update({
         ...data.shipping,
 

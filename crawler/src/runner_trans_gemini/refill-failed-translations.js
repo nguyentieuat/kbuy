@@ -36,10 +36,10 @@ const fsExtra = require("fs-extra");
 
 const VI_DIR = path.resolve(
   __dirname,
-  "../../data/split/priority",
+  "../../data/translate/success",
 );
 
-const FAILED_DIR = path.resolve(__dirname, "../../data/split/failed");
+const FAILED_DIR = path.resolve(__dirname, "../../data/translate/failed");
 
 fsExtra.ensureDirSync(FAILED_DIR);
 

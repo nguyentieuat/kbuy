@@ -11,12 +11,14 @@ async function getVariantSnapshotForOrder(variantIds = []) {
       "pv.id",
       "pvs_variant.variant_id",
     )
+
+    .join("products as p", "p.id", "pv.product_id")
+
     .leftJoin("product_variant_shipping as pvs_product", function () {
       this.on("p.id", "=", "pvs_product.product_id").andOnNull(
         "pvs_product.variant_id",
       );
     })
-    .join("products as p", "p.id", "pv.product_id")
     .select(
       "pv.id",
       "pv.product_id",

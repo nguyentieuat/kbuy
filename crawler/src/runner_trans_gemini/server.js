@@ -17,9 +17,10 @@ app.use((req, res, next) => {
 
 /* ========================= */
 /* CONFIG */
-const INPUT_DIR = path.resolve(__dirname, "../../data/split/oliveyoung/priority");
+// const INPUT_DIR = path.resolve(__dirname, "../../data/split/oliveyoung/priority");
+const INPUT_DIR = path.resolve(__dirname, "../../data/translate/failed");
 const SUCCESS_DIR = path.resolve(__dirname, "../../data/translate/success");
-const FAILED_DIR = path.resolve(__dirname, "../../data/translate/failed");
+const FAILED_DIR = path.resolve(__dirname, "../../data/translate/retry_failed");
 const CHECKPOINT_FILE = path.join(__dirname, "checkpoint.json");
 
 fsExtra.ensureDirSync(SUCCESS_DIR);
