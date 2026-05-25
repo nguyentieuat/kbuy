@@ -29212,7 +29212,7 @@
         ],
         "crawledAt": "2026-05-25T00:12:19.840Z"
       },
-      "status": "pending",
+      "status": "done",
       "startedAt": 1779689002050,
       "retries": 0,
       "workerId": "tab1"
@@ -29374,9 +29374,10 @@
         ],
         "crawledAt": "2026-05-25T00:15:23.817Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779694519430,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "nuoc-hoa-tinh-dau_14.jsonl__19",
@@ -29433,9 +29434,10 @@
         ],
         "crawledAt": "2026-05-25T00:13:06.966Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779694569041,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "nuoc-hoa-tinh-dau_14.jsonl__20",
@@ -29677,9 +29679,10 @@
         ],
         "crawledAt": "2026-05-25T00:15:33.171Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779694590045,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "nuoc-hoa-tinh-dau_14.jsonl__21",
@@ -29742,9 +29745,10 @@
         ],
         "crawledAt": "2026-05-25T00:16:54.637Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779694670032,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "nuoc-hoa-tinh-dau_14.jsonl__22",
@@ -29904,9 +29908,10 @@
         ],
         "crawledAt": "2026-05-25T00:11:28.489Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779694817039,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "nuoc-hoa-tinh-dau_14.jsonl__23",
@@ -30070,9 +30075,10 @@
         ],
         "crawledAt": "2026-05-25T00:13:22.425Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779694950041,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "nuoc-hoa-tinh-dau_14.jsonl__24",
@@ -30171,9 +30177,10 @@
         ],
         "crawledAt": "2026-05-25T00:11:39.772Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779695022489,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "nuoc-hoa-tinh-dau_14.jsonl__25",
@@ -30228,9 +30235,10 @@
         ],
         "crawledAt": "2026-05-25T00:10:58.268Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779695057068,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__0",
@@ -30326,9 +30334,10 @@
         ],
         "crawledAt": "2026-05-25T00:21:09.145Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779695262494,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__1",
@@ -30420,9 +30429,10 @@
         ],
         "crawledAt": "2026-05-25T00:23:36.841Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779695300724,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__2",
@@ -30476,9 +30486,10 @@
         ],
         "crawledAt": "2026-05-25T00:22:18.533Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779695318702,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__3",
@@ -30575,9 +30586,10 @@
         ],
         "crawledAt": "2026-05-25T00:21:15.408Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779695334131,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__4",
@@ -30670,9 +30682,10 @@
         ],
         "crawledAt": "2026-05-25T00:21:09.018Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779695348979,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__5",
@@ -30766,9 +30779,10 @@
         ],
         "crawledAt": "2026-05-25T00:24:26.942Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779695366284,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__6",
@@ -30989,9 +31003,10 @@
         ],
         "crawledAt": "2026-05-25T00:25:40.998Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779695390031,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__7",
@@ -31044,9 +31059,10 @@
         ],
         "crawledAt": "2026-05-25T00:20:50.969Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779695415250,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__8",
@@ -31099,9 +31115,10 @@
         ],
         "crawledAt": "2026-05-25T00:24:40.325Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779695463039,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__9",
@@ -31193,9 +31210,10 @@
         ],
         "crawledAt": "2026-05-25T00:22:29.378Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779695534488,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__10",
@@ -31245,9 +31263,10 @@
         ],
         "crawledAt": "2026-05-25T00:19:34.237Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779695746038,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__11",
@@ -31340,9 +31359,10 @@
         ],
         "crawledAt": "2026-05-25T00:19:28.481Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779696294596,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__12",
@@ -31394,9 +31414,10 @@
         ],
         "crawledAt": "2026-05-25T00:24:16.620Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779696450037,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__13",
@@ -31626,9 +31647,10 @@
         ],
         "crawledAt": "2026-05-25T00:21:50.555Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779696595046,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__14",
@@ -31724,9 +31746,10 @@
         ],
         "crawledAt": "2026-05-25T00:22:29.389Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779696749039,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__15",
@@ -31840,9 +31863,10 @@
         ],
         "crawledAt": "2026-05-25T00:22:44.583Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779696901038,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__16",
@@ -31996,9 +32020,10 @@
         ],
         "crawledAt": "2026-05-25T00:21:46.919Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779697171580,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__17",
@@ -32050,9 +32075,10 @@
         ],
         "crawledAt": "2026-05-25T00:25:05.063Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779697347040,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__18",
@@ -32189,9 +32215,10 @@
         ],
         "crawledAt": "2026-05-25T00:18:50.483Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779697555727,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__19",
@@ -32240,9 +32267,10 @@
         ],
         "crawledAt": "2026-05-25T00:24:16.859Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779697860253,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__20",
@@ -32331,9 +32359,10 @@
         ],
         "crawledAt": "2026-05-25T00:22:15.468Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779697886094,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__21",
@@ -32550,9 +32579,10 @@
         ],
         "crawledAt": "2026-05-25T00:22:41.948Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779698001664,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__22",
@@ -32772,9 +32802,10 @@
         ],
         "crawledAt": "2026-05-25T00:23:08.745Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779698059229,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__23",
@@ -32943,9 +32974,10 @@
         ],
         "crawledAt": "2026-05-25T00:24:16.453Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779698078867,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "quan-ao_30.jsonl__24",
@@ -33070,9 +33102,10 @@
         ],
         "crawledAt": "2026-05-25T00:21:36.029Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779698097983,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__0",
@@ -33122,9 +33155,10 @@
         ],
         "crawledAt": "2026-05-25T00:30:45.548Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779698402041,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__1",
@@ -33263,9 +33297,10 @@
         ],
         "crawledAt": "2026-05-25T00:34:08.289Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779698704985,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__2",
@@ -33314,9 +33349,10 @@
         ],
         "crawledAt": "2026-05-25T00:33:32.237Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779699112046,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__3",
@@ -46411,9 +46447,9 @@
   ],
   "stats": {
     "total": 445,
-    "pending": 148,
-    "processing": 0,
-    "done": 291,
+    "pending": 122,
+    "processing": -11,
+    "done": 328,
     "failed": 6
   }
 }
