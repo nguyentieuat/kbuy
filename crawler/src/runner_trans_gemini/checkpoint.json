@@ -33401,9 +33401,10 @@
         ],
         "crawledAt": "2026-05-25T00:33:12.251Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779699294221,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__4",
@@ -33453,9 +33454,10 @@
         ],
         "crawledAt": "2026-05-25T00:31:49.710Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779699354048,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__5",
@@ -33504,9 +33506,10 @@
         ],
         "crawledAt": "2026-05-25T00:27:01.309Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779699372031,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__6",
@@ -33556,9 +33559,10 @@
         ],
         "crawledAt": "2026-05-25T00:31:59.388Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779699416043,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__7",
@@ -33651,9 +33655,10 @@
         ],
         "crawledAt": "2026-05-25T00:42:01.599Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779699445034,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__8",
@@ -33702,9 +33707,10 @@
         ],
         "crawledAt": "2026-05-25T00:38:57.931Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779699522122,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__9",
@@ -33761,9 +33767,10 @@
         ],
         "crawledAt": "2026-05-25T00:42:13.618Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779699585041,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__10",
@@ -33821,9 +33828,10 @@
         ],
         "crawledAt": "2026-05-25T00:36:05.558Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779699603760,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__11",
@@ -33916,9 +33924,10 @@
         ],
         "crawledAt": "2026-05-25T00:29:33.578Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779699620476,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__12",
@@ -34053,9 +34062,10 @@
         ],
         "crawledAt": "2026-05-25T00:31:59.404Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779699640126,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__13",
@@ -34110,9 +34120,10 @@
         ],
         "crawledAt": "2026-05-25T00:31:45.438Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779699721170,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__14",
@@ -34162,9 +34173,10 @@
         ],
         "crawledAt": "2026-05-25T00:28:15.905Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779699824124,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__15",
@@ -34219,9 +34231,10 @@
         ],
         "crawledAt": "2026-05-25T00:31:45.438Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779700103028,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__16",
@@ -34270,9 +34283,10 @@
         ],
         "crawledAt": "2026-05-25T00:36:22.089Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779700280056,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__17",
@@ -34330,9 +34344,10 @@
         ],
         "crawledAt": "2026-05-25T00:40:45.407Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779700347047,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__18",
@@ -34392,9 +34407,10 @@
         ],
         "crawledAt": "2026-05-25T00:35:12.894Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779700410492,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__19",
@@ -34504,9 +34520,10 @@
         ],
         "crawledAt": "2026-05-25T00:26:19.541Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779700427039,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__20",
@@ -34557,9 +34574,10 @@
         ],
         "crawledAt": "2026-05-25T00:28:28.061Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779700458037,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__21",
@@ -34609,9 +34627,10 @@
         ],
         "crawledAt": "2026-05-25T00:32:49.074Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779700622691,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__22",
@@ -34726,9 +34745,10 @@
         ],
         "crawledAt": "2026-05-25T00:29:01.696Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779700745039,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__23",
@@ -34781,9 +34801,10 @@
         ],
         "crawledAt": "2026-05-25T00:33:23.079Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779700886201,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__24",
@@ -34841,9 +34862,10 @@
         ],
         "crawledAt": "2026-05-25T00:34:44.757Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779700906039,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__25",
@@ -34903,9 +34925,10 @@
         ],
         "crawledAt": "2026-05-25T00:29:56.607Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779700960135,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__26",
@@ -35005,9 +35028,10 @@
         ],
         "crawledAt": "2026-05-25T00:31:56.699Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779701138897,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__27",
@@ -35205,9 +35229,10 @@
         ],
         "crawledAt": "2026-05-25T00:37:50.424Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779701181041,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__28",
@@ -35262,9 +35287,10 @@
         ],
         "crawledAt": "2026-05-25T00:27:15.342Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779701304967,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__29",
@@ -35317,9 +35343,10 @@
         ],
         "crawledAt": "2026-05-25T00:35:37.437Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779701379044,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__30",
@@ -35434,9 +35461,10 @@
         ],
         "crawledAt": "2026-05-25T00:27:08.061Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779701469399,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__31",
@@ -35495,9 +35523,10 @@
         ],
         "crawledAt": "2026-05-25T00:40:58.499Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779701504552,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__32",
@@ -35588,9 +35617,10 @@
         ],
         "crawledAt": "2026-05-25T00:31:14.433Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779701547035,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__33",
@@ -35685,9 +35715,10 @@
         ],
         "crawledAt": "2026-05-25T00:29:41.491Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779701671508,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__34",
@@ -35738,9 +35769,10 @@
         ],
         "crawledAt": "2026-05-25T00:31:38.111Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779701721633,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__35",
@@ -35854,9 +35886,10 @@
         ],
         "crawledAt": "2026-05-25T00:38:51.807Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779701840046,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__36",
@@ -35952,9 +35985,10 @@
         ],
         "crawledAt": "2026-05-25T00:30:07.464Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779701904242,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__37",
@@ -36010,9 +36044,10 @@
         ],
         "crawledAt": "2026-05-25T00:36:18.505Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779702067040,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__38",
@@ -36127,9 +36162,10 @@
         ],
         "crawledAt": "2026-05-25T00:34:48.816Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779702109124,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "rang-mieng-suc-khoe_21.jsonl__39",
@@ -36218,9 +36254,10 @@
         ],
         "crawledAt": "2026-05-25T00:33:59.203Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779702166987,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "tpcn_20.jsonl__0",
@@ -36282,9 +36319,10 @@
         ],
         "crawledAt": "2026-05-25T00:44:17.776Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779702185828,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "tpcn_20.jsonl__1",
@@ -36345,9 +36383,10 @@
         ],
         "crawledAt": "2026-05-25T00:44:50.488Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779702253158,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "tpcn_20.jsonl__2",
@@ -36409,9 +36448,10 @@
         ],
         "crawledAt": "2026-05-25T00:49:41.021Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779702287029,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "tpcn_20.jsonl__3",
@@ -36470,9 +36510,10 @@
         ],
         "crawledAt": "2026-05-25T00:55:38.594Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779702377047,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "tpcn_20.jsonl__4",
@@ -36641,9 +36682,10 @@
         ],
         "crawledAt": "2026-05-25T00:53:57.087Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779702425055,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "tpcn_20.jsonl__5",
@@ -36703,9 +36745,10 @@
         ],
         "crawledAt": "2026-05-25T00:55:36.932Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779702457176,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "tpcn_20.jsonl__6",
@@ -36768,9 +36811,10 @@
         ],
         "crawledAt": "2026-05-25T00:46:05.839Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779702478031,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "tpcn_20.jsonl__7",
@@ -36891,9 +36935,10 @@
         ],
         "crawledAt": "2026-05-25T00:52:23.268Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779702637899,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "tpcn_20.jsonl__8",
@@ -36992,9 +37037,10 @@
         ],
         "crawledAt": "2026-05-25T00:56:08.163Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779702681035,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "tpcn_20.jsonl__9",
@@ -37194,8 +37240,9 @@
         "crawledAt": "2026-05-25T00:52:14.067Z"
       },
       "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "startedAt": 1779702801602,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "tpcn_20.jsonl__10",
@@ -46447,9 +46494,9 @@
   ],
   "stats": {
     "total": 445,
-    "pending": 122,
-    "processing": -11,
-    "done": 328,
+    "pending": 79,
+    "processing": -14,
+    "done": 374,
     "failed": 6
   }
 }

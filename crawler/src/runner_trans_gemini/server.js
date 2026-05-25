@@ -271,12 +271,12 @@ app.post("/done", (req, res) => {
     };
 
     try {
-      // ✅ Ghi vào FAILED_DIR
+      // Ghi vào FAILED_DIR
       const failPath = path.join(FAILED_DIR, job.file);
       upsertJsonl(failPath, failedData.productId, failedData);
       console.log("📁 SAVED TO FAILED:", failPath);
 
-      // ✅ Xóa khỏi INPUT
+      // Xóa khỏi INPUT
       removeFromInput(job.filePath, job.data.productId);
     } catch (err) {
       console.log("❌ WRITE ERROR:", err.message);
@@ -291,7 +291,7 @@ app.post("/done", (req, res) => {
   }
 
   /* ========================= */
-  /* ✅ PARSE OK + KẾT QUẢ HỢP LỆ */
+  /* PARSE OK + KẾT QUẢ HỢP LỆ */
   const finalData = {
     ...job.data,
     name_vi: cleaned.name_vi,
@@ -306,12 +306,12 @@ app.post("/done", (req, res) => {
   };
 
   try {
-    // ✅ Ghi vào SUCCESS_DIR
+    // Ghi vào SUCCESS_DIR
     const successPath = path.join(SUCCESS_DIR, job.file);
     upsertJsonl(successPath, finalData.productId, finalData);
     console.log("💾 SAVED TO SUCCESS:", successPath);
 
-    // ✅ Xóa khỏi INPUT
+    // Xóa khỏi INPUT
     removeFromInput(job.filePath, job.data.productId);
 
     job.status = "done";
@@ -324,7 +324,7 @@ app.post("/done", (req, res) => {
     return res.json({ ok: false, error: "write_failed" });
   }
 
-  console.log("✅ DONE:", id);
+  console.log("DONE:", id);
   res.json({ ok: true });
 });
 

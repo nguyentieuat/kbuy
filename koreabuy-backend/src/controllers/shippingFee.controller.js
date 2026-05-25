@@ -5,10 +5,15 @@ const { detectShippingRegion } = require("../utils/detectShippingRegion");
 const ProductVariantModel = require("../models/productVariants.model");
 const ProductModel = require("../models/products.model");
 
-
 async function calculateShipping(req, res) {
   try {
-    const { items, provinceCode, wardCode, method = "standard", orderTotal = 0 } = req.body;
+    const {
+      items,
+      provinceCode,
+      wardCode,
+      method = "standard",
+      orderTotal = 0,
+    } = req.body;
 
     if (!items?.length) {
       return res.status(400).json({ error: "items là bắt buộc" });
@@ -34,16 +39,16 @@ async function calculateShipping(req, res) {
       let chargeableWeight = 0;
       let isBulky = false;
 
-      if (item.variantId) {
-        const variant = variantMap.get(item.variantId);
-        if (variant) {
-          chargeableWeight = variant.chargeable_weight_grams ?? variant.weight_grams ?? 0;
-          isBulky = variant.is_bulky ?? false;
-        }
+      const variant = variantMap.get(item.variantId);
+
+      if (variant) {
+        chargeableWeight = variant.resolved_weight;
+        isBulky = variant.is_bulky ?? false;
       } else {
         const product = productMap.get(item.productId);
+
         if (product) {
-          chargeableWeight = product.chargeable_weight_grams ?? product.weight_grams ?? 0;
+          chargeableWeight = product.resolved_weight ?? 500;
           isBulky = product.is_bulky ?? false;
         }
       }
@@ -51,7 +56,6 @@ async function calculateShipping(req, res) {
       weightGrams += chargeableWeight * item.quantity;
       if (isBulky) bulkyCount += item.quantity;
     }
-
     if (weightGrams <= 0) {
       return res.status(400).json({ error: "Không tính được khối lượng" });
     }
