@@ -5,17 +5,17 @@ const path = require("path");
 /* CONFIG */
 const INPUT_DIR = path.resolve(
   __dirname,
-  "../../data/output_products_newest"
+  "../../data/output_products/oliveyoung"
 );
 
 const PRIORITY_DIR = path.resolve(
   __dirname,
-  "../../data/split/priority"
+  "../../data/split/oliveyoung/priority"
 );
 
 const REST_DIR = path.resolve(
   __dirname,
-  "../../data/split/rest"
+  "../../data/split/oliveyoung/rest"
 );
 
 /* ========================= */

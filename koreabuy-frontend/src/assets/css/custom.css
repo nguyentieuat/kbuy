@@ -73,3 +73,9 @@ iframe[src*="recaptcha/enterprise/anchor"] {
   visibility: hidden !important;
   opacity: 0 !important;
 }
+
+@media (max-width: 450px) {
+  .logo.menu-absolute {
+    display: none !important;
+  }
+}

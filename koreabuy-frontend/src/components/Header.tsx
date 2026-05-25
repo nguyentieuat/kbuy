@@ -79,11 +79,17 @@ export default function Header() {
               position: "absolute",
               left: "10%",
               transform: "translateX(-50%)",
-              top: "30%",
-              marginTop: "-10px", // căn dọc giữa
+              top: "25%",
+              // fix uppercase
+              textTransform: "none",
+
+              // mobile hide
+              whiteSpace: "nowrap",
+              textDecoration: "none",
+              fontSize: "21px",
             }}
           >
-            KBuy<span className="text-primary">.</span>
+            Kbuy<span className="text-primary">.vn</span>
           </a>
           <div className="container position-relative">
             <div className="site-navigation dark">

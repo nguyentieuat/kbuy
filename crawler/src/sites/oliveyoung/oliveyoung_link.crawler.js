@@ -13,7 +13,7 @@ const URL =
   "https://www.oliveyoung.co.kr/store/main/getBestList.do?t_page=%EC%83%81%ED%92%88%EC%83%81%EC%84%B8&t_click=GNB&t_swiping_type=N&t_gnb_type=%EB%9E%AD%ED%82%B9";
 
 // Output folder for category link files
-const OUTPUT_DIR = path.join(__dirname, "../../../data/links_newest");
+const OUTPUT_DIR = path.join(__dirname, "../../../data/links");
 /* ====================== */
 // CATEGORY MAP
 /* ====================== */
@@ -86,6 +86,21 @@ function sleep(ms) {
 // Random delay to simulate human behavior
 function randomDelay(min = 1000, max = 3000) {
   return Math.floor(Math.random() * (max - min) + min);
+}
+
+function normalizeProductUrl(url) {
+  try {
+    const u = new URL(url);
+
+    // chỉ giữ goodsNo
+    const goodsNo = u.searchParams.get("goodsNo");
+
+    if (!goodsNo) return url;
+
+    return `https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=${goodsNo}`;
+  } catch {
+    return url;
+  }
 }
 
 /* ====================== */
@@ -172,9 +187,15 @@ async function crawlOliveBestList() {
     }, prevFirstLink);
 
     // Extract product links
-    const links = await page.$$eval(".cate_prd_list li .prd_thumb", (as) => [
-      ...new Set(as.map((a) => a.href)),
-    ]);
+    const links = [
+      ...new Set(
+        (
+          await page.$$eval(".cate_prd_list li .prd_thumb", (as) =>
+            as.map((a) => a.href),
+          )
+        ).map((url) => normalizeProductUrl(url)),
+      ),
+    ];
 
     console.log(`${categoryName}: ${links.length} links`);
 
@@ -190,7 +211,11 @@ async function crawlOliveBestList() {
     // Load existing links (for deduplication)
     if (fs.existsSync(filePath)) {
       existing = new Set(
-        fs.readFileSync(filePath, "utf-8").split("\n").filter(Boolean),
+        fs
+          .readFileSync(filePath, "utf-8")
+          .split("\n")
+          .filter(Boolean)
+          .map(normalizeProductUrl),
       );
     }
 

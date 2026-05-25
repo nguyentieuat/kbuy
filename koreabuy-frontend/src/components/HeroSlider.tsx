@@ -1,12 +1,12 @@
-// components/HeroSlider.tsc
+// components/HeroSlider.tsx
 
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, EffectFade, Autoplay } from "swiper/modules";
+
 import "swiper/css";
 import "swiper/css/effect-fade";
-import DOMPurify from "dompurify";
 
 export default function HeroSlider() {
   const [slides, setSlides] = useState<any[]>([]);
@@ -19,51 +19,89 @@ export default function HeroSlider() {
   }, []);
 
   return (
-    <Swiper
-      modules={[Pagination, EffectFade, Autoplay]}
-      effect="fade"
-      fadeEffect={{ crossFade: true }}
-      slidesPerView={1}
-      loop={slides.length > 1}
-      autoplay={{
-        delay: 4000,
-        disableOnInteraction: false,
-      }}
-      speed={1000}
-      pagination={{
-        clickable: true,
-      }}
-    >
-      {slides.map((slide) => (
-        <SwiperSlide key={slide.id}>
-          <div
-            className="untree_co-hero"
-            style={{
-              backgroundImage: `url(${slide.image_url})`,
-              width: "100%",
-            }}
-          >
-            <div className="container">
-              <div className="row align-items-center">
-                <div className="col-lg-6">
-                  <h1
-                    className="mb-4 heading"
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(slide.title),
-                    }}
-                  ></h1>
+    <>
+      <style>{`
+        .hero-slide-wrap {
+          position: relative;
+          width: 100%;
+          overflow: hidden;
 
-                  <p className="mb-0">
-                    <a href={slide.link} className="btn btn-outline-black">
-                      Explore now
-                    </a>
-                  </p>
-                </div>
-              </div>
+          /* Desktop */
+          aspect-ratio: 19 / 10;
+          max-height: 90vh;
+        }
+
+        .hero-slide-image {
+          position: absolute;
+          inset: 0;
+
+          width: 100%;
+          height: 100%;
+
+          object-fit: cover;
+          object-position: center center;
+
+          display: block;
+        }
+
+        /* Tablet */
+        @media (max-width: 992px) {
+          .hero-slide-wrap {
+            aspect-ratio: 16 / 9;
+          }
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+          .hero-slide-wrap {
+            aspect-ratio: 4 / 3;
+          }
+
+          .hero-slide-image {
+            object-position: left center;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .hero-slide-wrap {
+            aspect-ratio: 1 / 1;
+          }
+
+          .hero-slide-image {
+            object-position: left center;
+          }
+        }
+      `}</style>
+
+      <Swiper
+        modules={[Pagination, EffectFade, Autoplay]}
+        effect="fade"
+        fadeEffect={{ crossFade: true }}
+        slidesPerView={1}
+        loop={slides.length > 1}
+        autoplay={{
+          delay: 4000,
+          disableOnInteraction: false,
+        }}
+        speed={1000}
+        pagination={{
+          clickable: true,
+        }}
+      >
+        {slides.map((slide) => (
+          <SwiperSlide key={slide.id}>
+            <div className="hero-slide-wrap">
+              <img
+                src={slide.image_url}
+                alt={slide.alt || slide.title || "Kbuy banner"}
+                className="hero-slide-image"
+                loading="eager"
+                fetchPriority="high"
+              />
             </div>
-          </div>
-        </SwiperSlide>
-      ))}
-    </Swiper>
+          </SwiperSlide>
+        ))}
+      </Swiper>
+    </>
   );
 }

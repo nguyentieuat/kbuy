@@ -146,12 +146,6 @@ export default function MenuHeader({ isMobile, categories }: Props) {
   const mergedCategories = [...categories, SOURCE_NODE];
   return (
     <ul className={isMobile ? "site-nav-wrap" : "site-menu"}>
-      <li>
-        <NavLink to="/" end>
-          Trang chủ
-        </NavLink>
-      </li>
-
       {renderMenu(mergedCategories)}
     </ul>
   );

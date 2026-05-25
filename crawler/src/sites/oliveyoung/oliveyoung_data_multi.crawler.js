@@ -9,9 +9,8 @@ const CrawlerSessionManager = require("../../../core/sessionManager");
 // CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 
-const LINKS_DIR = path.join(process.cwd(), "data/links_newest");
-const OUTPUT_DIR = path.join(process.cwd(), "data/output_products_newest");
-const IMAGE_DIR = path.join(process.cwd(), "data/image_newest");
+const LINKS_DIR = path.join(process.cwd(), "data/links/oliveyoung");
+const OUTPUT_DIR = path.join(process.cwd(), "data/output_products/oliveyoung");
 
 // PARALLEL WORKERS
 const CONCURRENCY = 3;
@@ -78,81 +77,70 @@ async function safeEval(page, selector) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// IMAGE DOWNLOAD
-// ─────────────────────────────────────────────────────────────────────────────
+function writeJsonl(filePath, rows) {
+  const content =
+    rows
+      .filter(Boolean)
+      .map((r) => JSON.stringify(r))
+      .join("\n") + "\n";
 
-async function downloadImage(url, filepath) {
-  const res = await fetch(url);
-
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status} when downloading ${url}`);
-  }
-
-  const buffer = await res.arrayBuffer();
-
-  await fs.writeFile(filepath, Buffer.from(buffer));
+  fs.outputFileSync(filePath, content, "utf-8");
 }
 
-async function saveImages(imageUrls, productId) {
-  const folder = path.join(IMAGE_DIR, productId);
+// ─────────────────────────────────────────────────────────────────────────────
+// HASH
+// ─────────────────────────────────────────────────────────────────────────────
 
-  await fs.ensureDir(folder);
+const crypto = require("crypto");
 
-  const saved = [];
-
-  await Promise.all(
-    imageUrls.map(async (url, i) => {
-      try {
-        const fileName = getSafeFileName(url, i);
-
-        const filePath = path.join(folder, fileName);
-
-        if (fs.existsSync(filePath)) {
-          saved.push(filePath);
-          return;
-        }
-
-        await downloadImage(url, filePath);
-
-        saved.push(filePath);
-
-        log.img(`saved: ${fileName}`);
-      } catch (err) {
-        log.warn(`image download failed [${i}]: ${err.message}`);
-      }
-    }),
-  );
-
-  log.img(`gallery: ${saved.length}/${imageUrls.length} saved`);
-
-  return saved;
+function md5(str) {
+  return crypto.createHash("md5").update(str).digest("hex");
 }
 
-async function saveThumbnail(url, productId, index = 0) {
-  if (!url) return null;
+function hashProduct(product) {
+  const normalized = {
+    name: product.name,
+    specs: product.specs,
+    price: {
+      originalPrice: product.price?.originalPrice,
+      salePrice: product.price?.salePrice,
+      discount: product.price?.discount,
+    },
+    flags: product.source_flags,
+    rating: {
+      avg: product.source_rating_avg,
+      count: product.source_rating_count,
+    },
+  };
+  return md5(JSON.stringify(normalized));
+}
 
+function hashVariant(v) {
+  const normalized = {
+    name: v.name_kr,
+    price: {
+      sale: v.price?.sale,
+      discount: v.price?.discount,
+    },
+    soldout: v.is_soldout,
+    flags: v.flags,
+    thumbnail: v.thumbnail,
+    detail_images: v.variant_detail_images,
+  };
+  return md5(JSON.stringify(normalized));
+}
+
+function hashImageUrls(imageUrls = []) {
+  return md5(JSON.stringify([...imageUrls].sort()));
+}
+
+function normalizeUrl(url) {
   try {
-    const folder = path.join(IMAGE_DIR, productId, "variants");
+    const u = new URL(url);
 
-    await fs.ensureDir(folder);
-
-    const fileName = getSafeFileName(url, index);
-
-    const filePath = path.join(folder, fileName);
-
-    if (fs.existsSync(filePath)) {
-      return filePath;
-    }
-
-    await downloadImage(url, filePath);
-
-    log.img(`thumbnail saved: ${fileName}`);
-
-    return filePath;
-  } catch (err) {
-    log.warn(`thumbnail download failed [${index}]: ${err.message}`);
-    return null;
+    return `${u.origin}${u.pathname}?goodsNo=${u.searchParams.get("goodsNo")}`;
+  } catch {
+    return url;
   }
 }
 
@@ -362,33 +350,37 @@ async function getGlobalFlags(page) {
 // ─────────────────────────────────────────────────────────────────────────────
 // MERGE
 // ─────────────────────────────────────────────────────────────────────────────
+function mergeVariants(oldVariants = [], freshVariants = []) {
+  const map = new Map();
 
-function mergeVariants(oldVariants, freshVariants) {
-  if (!freshVariants?.length) return oldVariants ?? [];
+  for (const old of oldVariants) {
+    map.set(old.variantId, old);
+  }
 
-  if (!oldVariants?.length) return freshVariants;
+  for (const fresh of freshVariants) {
+    const old = map.get(fresh.variantId);
 
-  return freshVariants.map((fresh) => {
-    const old = oldVariants.find((o) => o.variantId === fresh.variantId);
+    if (!old) {
+      map.set(fresh.variantId, fresh);
+      continue;
+    }
 
-    if (!old) return fresh;
-
-    return {
+    map.set(fresh.variantId, {
       ...old,
 
-      is_soldout: fresh.is_soldout,
+      ...fresh,
 
-      flags: fresh.flags,
-
-      thumbnail: fresh.thumbnail ?? old.thumbnail,
+      thumbnail: fresh.thumbnail || old.thumbnail,
 
       variant_detail_images: fresh.variant_detail_images?.length
         ? fresh.variant_detail_images
         : old.variant_detail_images,
 
-      price: fresh.price,
-    };
-  });
+      hash: fresh.hash ?? old.hash,
+    });
+  }
+
+  return [...map.values()];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -448,8 +440,6 @@ async function crawlProduct(page, url) {
 
     const imageUrls = await getImages(page);
 
-    const savedImages = await saveImages(imageUrls, productId);
-
     const originalPrice = await safeEval(
       page,
       '[data-qa-name="text-product-original-price"]',
@@ -479,67 +469,6 @@ async function crawlProduct(page, url) {
       }
     }
 
-    if (variants.length) {
-      await Promise.all(
-        variants.map(async (variant, i) => {
-          // ─────────────────────
-          // THUMBNAIL
-          // ─────────────────────
-          if (variant.thumbnail) {
-            variant.thumbnail = await saveThumbnail(
-              variant.thumbnail,
-              productId,
-              i,
-            );
-          }
-
-          // ─────────────────────
-          // DETAIL IMAGES
-          // ─────────────────────
-          if (Array.isArray(variant.variant_detail_images)) {
-            const downloadedDetails = [];
-
-            for (let j = 0; j < variant.variant_detail_images.length; j++) {
-              try {
-                const raw = variant.variant_detail_images[j];
-
-                const imageUrl = typeof raw === "string" ? raw : raw?.url;
-
-                if (!imageUrl) continue;
-
-                const folder = path.join(
-                  IMAGE_DIR,
-                  productId,
-                  "variants",
-                  variant.variantId,
-                );
-
-                await fs.ensureDir(folder);
-
-                const fileName = getSafeFileName(imageUrl, j);
-
-                const filePath = path.join(folder, fileName);
-
-                if (!fs.existsSync(filePath)) {
-                  await downloadImage(imageUrl, filePath);
-
-                  log.img(`variant detail saved: ${fileName}`);
-                }
-
-                downloadedDetails.push({
-                  url: filePath,
-                });
-              } catch (err) {
-                log.warn(`variant detail download failed: ${err.message}`);
-              }
-            }
-
-            variant.variant_detail_images = downloadedDetails;
-          }
-        }),
-      );
-    }
-
     const product = {
       productId,
 
@@ -565,7 +494,7 @@ async function crawlProduct(page, url) {
         discountText: discount,
       },
 
-      images: savedImages,
+      images: imageUrls,
 
       source_flags: globalFlags,
 
@@ -575,6 +504,14 @@ async function crawlProduct(page, url) {
 
       variants,
     };
+
+    product.hash = hashProduct(product);
+    product.image_hash = hashImageUrls(imageUrls);
+
+    product.variants = product.variants.map((v) => ({
+      ...v,
+      hash: hashVariant(v),
+    }));
 
     log.ok(`crawlProduct done: ${productId}`);
 
@@ -605,86 +542,145 @@ async function simulateHuman(page) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PROCESS PRODUCT
 // ─────────────────────────────────────────────────────────────────────────────
-
 async function processProduct({
   page,
   url,
   existingMap,
-  tempPath,
+  resultMap,
+  processingSet,
   stats,
   index,
   total,
 }) {
-  const productId = url.match(/goodsNo=([^&]+)/)?.[1];
+  const productId = new URL(url).searchParams.get("goodsNo") || null;
+
+  if (!productId) {
+    log.warn("missing productId");
+    return;
+  }
+
+  // đang xử lý ở worker khác
+  if (processingSet.has(productId)) {
+    log.warn(`already processing: ${productId}`);
+    return;
+  }
+
+  processingSet.add(productId);
 
   console.log(`\n${"─".repeat(60)}`);
-
   log.info(`[${index + 1}/${total}] ${productId}`);
 
   try {
     const fresh = await crawlProduct(page, url);
-
-    if (!fresh) {
-      throw new Error("crawlProduct returned null");
-    }
+    if (!fresh) throw new Error("crawlProduct returned null");
 
     await simulateHuman(page);
 
     const old = existingMap.get(productId);
 
+    // So sánh hash để biết có thay đổi không
+    const productChanged = !old || old.hash !== fresh.hash;
+    const imageChanged = !old || old.image_hash !== fresh.image_hash;
+
+    const variantChanges = fresh.variants.map((v) => {
+      const oldV = old?.variants?.find((ov) => ov.variantId === v.variantId);
+      return {
+        variantId: v.variantId,
+        changed: !oldV || oldV.hash !== v.hash,
+      };
+    });
+
+    const anyVariantChanged = variantChanges.some((v) => v.changed);
+
+    if (productChanged) log.warn(`product changed: ${productId}`);
+    if (imageChanged) log.img(`images changed: ${productId}`);
+    if (anyVariantChanged) {
+      const changedIds = variantChanges
+        .filter((v) => v.changed)
+        .map((v) => v.variantId);
+      log.warn(`variants changed: ${changedIds.join(", ")}`);
+    }
+
     const merged = old
       ? {
           ...old,
-
           name: fresh.name ?? old.name,
-
           specs: fresh.specs ?? old.specs,
-
           images: fresh.images?.length ? fresh.images : old.images,
-
           variants: mergeVariants(old.variants, fresh.variants),
-
           source_flags: fresh.source_flags ?? old.source_flags,
-
           source_rating_avg: fresh.source_rating_avg ?? old.source_rating_avg,
-
           source_rating_count:
             fresh.source_rating_count ?? old.source_rating_count,
+
+          price: productChanged ? fresh.price : old.price,
+          price_raw: productChanged ? fresh.price_raw : old.price_raw,
+
+          // Cập nhật hash mới
+          hash: fresh.hash,
+          image_hash: fresh.image_hash,
+
+          // Lưu lịch sử thay đổi
+          change_log: [
+            ...(old.change_log ?? []).slice(-9), // giữ 10 bản gần nhất
+            {
+              crawledAt: new Date().toISOString(),
+              productChanged,
+              imageChanged,
+              variantsChanged: variantChanges
+                .filter((v) => v.changed)
+                .map((v) => v.variantId),
+            },
+          ],
 
           crawledAt: new Date().toISOString(),
         }
       : {
           ...fresh,
-
+          change_log: [
+            {
+              crawledAt: new Date().toISOString(),
+              productChanged: true,
+              imageChanged: true,
+              variantsChanged: fresh.variants.map((v) => v.variantId),
+            },
+          ],
           crawledAt: new Date().toISOString(),
         };
 
-    fs.appendFileSync(tempPath, JSON.stringify(merged) + "\n");
+    existingMap.set(productId, merged);
+
+    const current = resultMap.get(productId);
+
+    if (
+      !current ||
+      new Date(merged.crawledAt || 0) > new Date(current.crawledAt || 0)
+    ) {
+      resultMap.set(productId, merged);
+    }
 
     stats.success++;
 
-    log.ok(`saved: ${productId}`);
+    log.ok(
+      `saved: ${productId} | changed: product=${productChanged} img=${imageChanged} variants=${anyVariantChanged}`,
+    );
   } catch (err) {
     log.error(`${productId}: ${err.message}`);
-
     stats.failed++;
 
     if (existingMap.has(productId)) {
-      fs.appendFileSync(
-        tempPath,
-        JSON.stringify(existingMap.get(productId)) + "\n",
-      );
+      const fallbackData = existingMap.get(productId);
 
+      resultMap.set(productId, fallbackData);
       stats.fallback++;
-
       log.warn(`fallback old data: ${productId}`);
     }
+  } finally {
+    processingSet.delete(productId);
   }
 
   const delay = humanDelay();
-
   log.info(`waiting ${(delay / 1000).toFixed(1)}s`);
-
   await sleep(delay);
 }
 
@@ -702,6 +698,8 @@ async function processFile(sessionManager, fileName) {
   await fs.ensureDir(OUTPUT_DIR);
 
   const existingMap = new Map();
+  const processingSet = new Set();
+  const resultMap = new Map();
 
   if (fs.existsSync(outputPath)) {
     const lines = fs.readFileSync(outputPath, "utf-8").split("\n");
@@ -711,7 +709,15 @@ async function processFile(sessionManager, fileName) {
         const p = JSON.parse(line);
 
         if (p.productId) {
-          existingMap.set(p.productId, p);
+          const existing = existingMap.get(p.productId);
+
+          if (
+            !existing ||
+            new Date(p.crawledAt || 0) > new Date(existing.crawledAt || 0)
+          ) {
+            existingMap.set(p.productId, p);
+            resultMap.set(p.productId, p);
+          }
         }
       } catch {}
     });
@@ -719,12 +725,15 @@ async function processFile(sessionManager, fileName) {
     log.info(`loaded existing: ${existingMap.size}`);
   }
 
-  const urls = fs
-    .readFileSync(inputPath, "utf-8")
-    .split("\n")
-    .map((x) => x.trim())
-    .filter(Boolean);
-
+  const urls = [
+    ...new Set(
+      fs
+        .readFileSync(inputPath, "utf-8")
+        .split("\n")
+        .map((x) => normalizeUrl(x.trim()))
+        .filter(Boolean),
+    ),
+  ];
   log.info(`📚 total urls: ${urls.length}`);
 
   if (fs.existsSync(tempPath)) {
@@ -767,7 +776,8 @@ async function processFile(sessionManager, fileName) {
         page,
         url,
         existingMap,
-        tempPath,
+        resultMap,
+        processingSet,
         stats,
         index,
         total: urls.length,
@@ -787,13 +797,19 @@ async function processFile(sessionManager, fileName) {
 
   await Promise.all(workers);
 
-  if (fs.existsSync(tempPath)) {
-    await fs.move(tempPath, outputPath, {
-      overwrite: true,
-    });
+  const finalRows = [...resultMap.values()].sort((a, b) =>
+    a.productId.localeCompare(b.productId),
+  );
 
-    log.ok(`output written: ${path.basename(outputPath)}`);
-  }
+  writeJsonl(tempPath, finalRows);
+
+  await fs.move(tempPath, outputPath, {
+    overwrite: true,
+  });
+
+  log.ok(
+    `output written: ${path.basename(outputPath)} | rows=${finalRows.length}`,
+  );
 
   return stats;
 }
