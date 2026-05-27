@@ -2,7 +2,7 @@
 
 const { convertPrice } = require("../services/currency.service");
 
-function buildDescription({ specsVi, detailImages = [] }) {
+function buildDescription(specsVi, detailImages = []) {
   const specsHtml = specsVi
     ? `
       <div style="display:flex; flex-direction:column;">
@@ -83,8 +83,10 @@ function buildDescription({ specsVi, detailImages = [] }) {
 }
 
 function mapProduct(row, rate = 19) {
-  const specsVi = row.extra_data?.specs?.vi ?? row.extra_data?.specs_vi ?? null;
-  const detailImages = row.extra_data?.detail_images ?? [];
+    const extra = row?.extra_data ?? {};
+
+  const specsVi = extra?.specs?.vi ?? extra?.specs_vi ?? null;
+  const detailImages = extra?.detail_images ?? [];
 
   return {
     id: row.id,
