@@ -8184,8 +8184,8 @@
         "crawledAt": "2026-05-27T05:40:56.272Z",
         "source": "t1"
       },
-      "status": "pending",
-      "startedAt": 1779885571839,
+      "status": "done",
+      "startedAt": 1779890489269,
       "retries": 0,
       "workerId": "tab1"
     },
@@ -8274,9 +8274,10 @@
         "crawledAt": "2026-05-27T05:40:49.898Z",
         "source": "t1"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "done",
+      "startedAt": 1779892791260,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "esports-jersey_431.jsonl__18",
@@ -8867,9 +8868,10 @@
         "crawledAt": "2026-05-27T05:42:00.615Z",
         "source": "t1"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "processing",
+      "startedAt": 1779892827265,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "esports-jersey_431.jsonl__19",
@@ -16920,9 +16922,9 @@
   ],
   "stats": {
     "total": 187,
-    "pending": 119,
-    "processing": -2,
-    "done": 26,
+    "pending": 116,
+    "processing": -3,
+    "done": 30,
     "failed": 44
   }
 }

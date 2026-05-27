@@ -2,7 +2,7 @@
 
 export const SOURCES = [
   { label: "Olive Young", value: "oliveyoung" },
-  { label: "Coupang", value: "coupang" },
-  { label: "Gmarket", value: "gmarket" },
-  { label: "11st", value: "11st" },
+  { label: "T1 shop", value: "t1" },
+  { label: "GenG shop", value: "geng" },
+  { label: "Musinsa", value: "musinsa" },
 ];
