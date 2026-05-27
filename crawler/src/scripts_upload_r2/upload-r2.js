@@ -12,7 +12,7 @@ require("dotenv").config();
 // ─────────────────────────────
 // CONFIG
 // ─────────────────────────────
-const INPUT_DIR = path.join(process.cwd(), "data/translate/success");
+const INPUT_DIR = path.join(process.cwd(), "data/translate/t1/success");
 const CONCURRENCY = 5;
 const WORKERS = 3;
 
@@ -62,18 +62,34 @@ async function fetchBuffer(url) {
 // UPLOAD SAFE (FALLBACK GUARANTEE)
 // ─────────────────────────────
 
-function buildKey(url, productId) {
+function buildKey(
+  url,
+  productId,
+  { type = "product", variantId = null, index = 0, source = "unknown" } = {},
+) {
   const u = new URL(url);
-
   const ext = path.extname(u.pathname) || ".jpg";
 
-  const hash = crypto.createHash("md5").update(url).digest("hex");
+  const base = `images/products/${source}/${productId}`;
 
-  return `images/products/${productId}/${hash}${ext}`;
+  if (type === "product") {
+    return `${base}/main_${index}${ext}`;
+  }
+
+  if (type === "variant") {
+    return `${base}/variants/${variantId}/img_${index}${ext}`;
+  }
+
+  return `${base}/misc/${index}${ext}`;
 }
 
-async function uploadToR2(url, productId) {
+async function uploadToR2(url, productId, options = {}) {
   if (!url) return url;
+
+  // SKIP nếu đã là R2
+  if (url.startsWith(PUBLIC_BASE_URL)) {
+    return url;
+  }
 
   const cacheKey = `${productId}:${url}`;
 
@@ -83,7 +99,7 @@ async function uploadToR2(url, productId) {
     const buffer = await fetchBuffer(url);
     if (!buffer) return url;
 
-    const key = buildKey(url, productId);
+    const key = buildKey(url, productId, options);
 
     await R2.send(
       new PutObjectCommand({
@@ -100,9 +116,10 @@ async function uploadToR2(url, productId) {
 
     return publicUrl;
   } catch (err) {
-    return url; // fallback gốc
+    return url;
   }
 }
+
 // ─────────────────────────────
 // TRANSFORM (NO HASH TOUCH)
 // ─────────────────────────────
@@ -111,13 +128,20 @@ async function transformProduct(product) {
   const limit = pLimit(CONCURRENCY);
 
   const result = JSON.parse(JSON.stringify(product)); // 🔥 isolate object
+  const source = result.source;
 
   // images
-  if (Array.isArray(result.images)) {
-    result.images = await Promise.all(
-      result.images.map((url) =>  limit(() => uploadToR2(url, result.productId))),
-    );
-  }
+  result.images = await Promise.all(
+    result.images.map((url, idx) =>
+      limit(() =>
+        uploadToR2(url, result.productId, {
+          type: "product",
+          index: idx,
+          source,
+        }),
+      ),
+    ),
+  );
 
   // variants
   if (Array.isArray(result.variants)) {
@@ -125,21 +149,25 @@ async function transformProduct(product) {
       result.variants.map(async (v) => {
         const variant = { ...v };
 
-        if (variant.thumbnail) {
-          variant.thumbnail = await uploadToR2(variant.thumbnail, result.productId);
-        }
+        variant.thumbnail = await uploadToR2(
+          variant.thumbnail,
+          result.productId,
+          {
+            type: "variant",
+            variantId: variant.variantId,
+            index: 0,
+          },
+        );
 
-        if (Array.isArray(variant.variant_detail_images)) {
-          variant.variant_detail_images = await Promise.all(
-            variant.variant_detail_images.map(async (img) => {
-              const url = typeof img === "string" ? img : img?.url;
-
-              const uploaded = await uploadToR2(url,  result.productId);
-
-              return { url: uploaded || url }; // fallback gốc
+        variant.variant_detail_images = await Promise.all(
+          variant.variant_detail_images.map((img, idx) =>
+            uploadToR2(url, result.productId, {
+              type: "variant",
+              variantId: variant.variantId,
+              index: idx,
             }),
-          );
-        }
+          ),
+        );
 
         return variant;
       }),

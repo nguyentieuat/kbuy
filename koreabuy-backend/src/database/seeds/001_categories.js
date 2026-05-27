@@ -237,6 +237,38 @@ exports.seed = async function (knex) {
       parent_id: 4,
     },
 
+    // Level 3 - Esports / Gaming
+    {
+      id: 431,
+      name: "Jersey / Uniform",
+      slug: "esports-jersey",
+      parent_id: 43,
+    },
+    {
+      id: 432,
+      name: "Hoodie / Apparel",
+      slug: "esports-apparel",
+      parent_id: 43,
+    },
+    {
+      id: 433,
+      name: "Gaming Accessories",
+      slug: "gaming-accessories",
+      parent_id: 43,
+    },
+    {
+      id: 434,
+      name: "Collectibles",
+      slug: "gaming-collectibles",
+      parent_id: 43,
+    },
+    {
+      id: 435,
+      name: "Photocard / Slogan",
+      slug: "photocard-slogan",
+      parent_id: 43,
+    },
+
     // Lifestyle
     {
       id: 5,

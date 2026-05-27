@@ -13,9 +13,27 @@ const readline = require("readline");
 // CONFIG
 // ─────────────────────────────────────────────
 
-const INPUT_DIR = path.resolve(__dirname, "../../data/translate/success");
+const INPUT_DIR = path.resolve(
+  __dirname,
+  "../../data/translate/t1/success",
+);
 
 const DEBUG = true;
+
+const SOURCE_MAP = {
+  oliveyoung: {
+    shop_name: "Olive Young",
+    shop_url: "https://www.oliveyoung.co.kr",
+  },
+  geng: {
+    shop_name: "Gen.G Shop",
+    shop_url: "https://shop.geng.gg",
+  },
+  t1: {
+    shop_name: "T1 Shop",
+    shop_url: "https://shop.t1.gg",
+  },
+};
 
 // ─────────────────────────────────────────────
 // HELPERS
@@ -127,6 +145,11 @@ function determineIfFeatured(raw) {
   }
 
   return false;
+}
+
+function toInt(value) {
+  if (value == null) return null;
+  return Math.round(Number(value));
 }
 
 // ─────────────────────────────────────────────
@@ -316,11 +339,17 @@ function normalizeProduct(raw, category) {
     chargeableWeight,
   });
 
+  const source = raw.source || "unknown";
+  const shop = SOURCE_MAP[source] || {
+    shop_name: source,
+    shop_url: null,
+  };
+
   const normalized = {
     product: {
       external_id: raw.productId,
 
-      source: "oliveyoung",
+      source: source,
 
       slug: generateSlug(raw.name_vi || raw.name, raw.productId),
 
@@ -346,9 +375,9 @@ function normalizeProduct(raw, category) {
 
       product_url: raw.url || null,
 
-      shop_name: "Olive Young",
+      shop_name: shop.shop_name,
 
-      shop_url: "https://www.oliveyoung.co.kr",
+      shop_url: shop.shop_url,
 
       category_id: category.category_id,
 
@@ -382,6 +411,10 @@ function normalizeProduct(raw, category) {
           vi: raw.specs_vi || {},
         },
 
+        detail_images: raw.detail_images || [],
+
+        detail_html: raw.detail_html || null,
+
         crawl: {
           flags: normalizeFlags(raw.source_flags || []),
 
@@ -398,14 +431,13 @@ function normalizeProduct(raw, category) {
     // IMAGES
     // ─────────────────────────
 
-    images: (raw.images || []).map((img, idx) => ({
-      // url: normalizeImagePath(img),
-      url: img,
-
-      is_primary: idx === 0,
-
-      sort_order: idx,
-    })),
+    images: Array.isArray(raw.images)
+      ? raw.images.map((img, idx) => ({
+          url: img,
+          is_primary: idx === 0,
+          sort_order: idx,
+        }))
+      : [],
 
     // ─────────────────────────
     // VARIANTS
@@ -472,25 +504,25 @@ function normalizeProduct(raw, category) {
         // ─────────────────────
 
         shipping: {
-          raw_weight_grams: variantShipping.raw_weight_grams || null,
+          raw_weight_grams: toInt(variantShipping.raw_weight_grams) || null,
 
-          raw_length_mm: variantShipping.raw_length_mm || null,
+          raw_length_mm: toInt(variantShipping.raw_length_mm) || null,
 
-          raw_width_mm: variantShipping.raw_width_mm || null,
+          raw_width_mm: toInt(variantShipping.raw_width_mm) || null,
 
-          raw_height_mm: variantShipping.raw_height_mm || null,
+          raw_height_mm: toInt(variantShipping.raw_height_mm) || null,
 
-          weight_grams: variantShipping.weight_grams || null,
+          weight_grams: toInt(variantShipping.weight_grams) || null,
 
-          length_mm: variantShipping.length_mm || null,
+          length_mm: toInt(variantShipping.length_mm) || null,
 
-          width_mm: variantShipping.width_mm || null,
+          width_mm: toInt(variantShipping.width_mm) || null,
 
-          height_mm: variantShipping.height_mm || null,
+          height_mm: toInt(variantShipping.height_mm) || null,
 
-          volumetric_weight_grams: volumetricWeight,
+          volumetric_weight_grams: toInt(volumetricWeight),
 
-          chargeable_weight_grams: chargeableWeight,
+          chargeable_weight_grams: toInt(chargeableWeight),
 
           is_bulky: variantShipping.is_bulky || false,
 
@@ -518,20 +550,20 @@ function normalizeProduct(raw, category) {
 
       raw_specs_text: JSON.stringify(raw.product_shipping || {}),
 
-      weight_grams: shippingSource.weight_grams || null,
+      weight_grams: toInt(shippingSource.weight_grams) || null,
 
-      length_mm: shippingSource.length_mm || null,
+      length_mm: toInt(shippingSource.length_mm) || null,
 
-      width_mm: shippingSource.width_mm || null,
+      width_mm: toInt(shippingSource.width_mm) || null,
 
-      height_mm: shippingSource.height_mm || null,
+      height_mm: toInt(shippingSource.height_mm) || null,
 
       is_bulky: shippingSource.is_bulky || false,
 
       // calculated
-      volumetric_weight_grams: volumetricWeight,
+      volumetric_weight_grams: toInt(volumetricWeight),
 
-      chargeable_weight_grams: chargeableWeight,
+      chargeable_weight_grams: toInt(chargeableWeight),
 
       weight_source: shippingSource.weight_source || null,
 
@@ -684,20 +716,25 @@ async function insertProductGraph(trx, data) {
   // PRODUCT IMAGES
   // ─────────────────────────
 
-  await trx("product_variant_images").where("product_id", productId).delete();
+  const shouldUpdateImages =
+    !product.image_hash ||
+    product.image_hash !== data.product.image_hash ||
+    data.images?.length > 0;
+  if (shouldUpdateImages) {
+    await trx("product_variant_images")
+      .where({ product_id: productId, variant_id: null })
+      .delete();
 
-  if (data.images.length) {
-    await trx("product_variant_images").insert(
-      data.images.map((img) => ({
-        product_id: productId,
-
-        url: img.url,
-
-        is_primary: img.is_primary,
-
-        sort_order: img.sort_order,
-      })),
-    );
+    if (Array.isArray(data.images) && data.images.length > 0) {
+      await trx("product_variant_images").insert(
+        data.images.map((img, idx) => ({
+          product_id: productId,
+          url: img.url,
+          is_primary: idx === 0,
+          sort_order: idx,
+        })),
+      );
+    }
   }
 
   // ─────────────────────────
@@ -715,6 +752,12 @@ async function insertProductGraph(trx, data) {
       if (savedVariant.hash === variant.hash) {
         continue;
       }
+
+      // variant images
+      await trx("product_variant_images")
+        .where("variant_id", savedVariant.id)
+        .delete();
+
       await trx("product_variants")
         .where({
           id: savedVariant.id,
@@ -780,12 +823,10 @@ async function insertProductGraph(trx, data) {
         .returning("*");
     }
 
-    // variant images
-    await trx("product_variant_images")
-      .where("variant_id", savedVariant.id)
-      .delete();
-
-    if (variant.variant_images.length) {
+    if (
+      Array.isArray(variant.variant_images) &&
+      variant.variant_images.length
+    ) {
       await trx("product_variant_images").insert(
         variant.variant_images.map((img) => ({
           product_id: productId,

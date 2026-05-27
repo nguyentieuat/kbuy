@@ -3,9 +3,14 @@ function buildPrompt(item) {
 Dịch JSON sau sang tiếng Việt.
                 RULE:
                 - Output phải parse được bằng JSON.parse()
-                - Giữ nguyên id
+                - GIỮ NGUYÊN productId, productId output PHẢI GIỐNG CHÍNH XÁC input
+                - Tuyệt đối không sử dụng dữ liệu từ sản phẩm khác
 				        - Dịch luôn specs và name, kết quả field tương ứng trả về là specs_vn, name_vn
-                - Trong variants dịch name_kr trả về name_vi kết hợp cùng variantId
+                - Trong variants dịch name_kr trả về name_vi
+                - Giữ nguyên kích thước (S, M, L, XL, 2XL...) chính xác như ban đầu
+                - KHÔNG xóa các mã kích thước hoặc màu sắc ở cuối chuỗi
+                - Coi kích thước là thuộc tính sản phẩm, không phải văn bản cần dịch
+                - Không đưa variantId vào kết quả dịch
                 - Không thêm giải thích
                 - Trả về JSON ARRAY đúng format
                 - Hãy giữ nguyên tên các hợp chất hóa học bằng tiếng Anh (ví dụ: Glycerin, Niacinamide) và chỉ dịch tên các chiết xuất tự nhiên sang tiếng Việt."
@@ -37,6 +42,7 @@ QUAN TRỌNG:
 
 trả về json format:
 {
+  "productId": "string",
   "name_vi": "string",
   "specs_vi": {},
   "product_shipping": {

@@ -17,10 +17,10 @@ app.use((req, res, next) => {
 
 /* ========================= */
 /* CONFIG */
-// const INPUT_DIR = path.resolve(__dirname, "../../data/split/oliveyoung/priority");
-const INPUT_DIR = path.resolve(__dirname, "../../data/translate/failed");
-const SUCCESS_DIR = path.resolve(__dirname, "../../data/translate/success");
-const FAILED_DIR = path.resolve(__dirname, "../../data/translate/retry_failed");
+const INPUT_DIR = path.resolve(__dirname, "../../data/output_products/t1");
+// const INPUT_DIR = path.resolve(__dirname, "../../data/translate/oliveyoung/retry_failed");
+const SUCCESS_DIR = path.resolve(__dirname, "../../data/translate/t1/success");
+const FAILED_DIR = path.resolve(__dirname, "../../data/translate/t1/failed");
 const CHECKPOINT_FILE = path.join(__dirname, "checkpoint.json");
 
 fsExtra.ensureDirSync(SUCCESS_DIR);
@@ -41,7 +41,11 @@ function readJsonlFile(filePath) {
     .split("\n")
     .filter(Boolean)
     .map((line) => {
-      try { return JSON.parse(line); } catch { return null; }
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
     })
     .filter(Boolean);
 }
@@ -62,6 +66,89 @@ function upsertJsonl(filePath, productId, newData) {
     rows.push(newData);
   }
   writeJsonlFile(filePath, rows);
+}
+
+function compressDetailHtml(html) {
+  if (!html) return null;
+
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 2000);
+}
+
+function normalizeText(str) {
+  return (str || "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function extractDiff(productName, variantName) {
+  if (!productName || !variantName) return variantName || "";
+
+  const product = normalizeText(productName);
+  const variant = normalizeText(variantName);
+
+  // case 1: product nằm trong variant (chuẩn nhất)
+  if (variant.includes(product)) {
+    const regex = new RegExp(escapeRegex(product), "i");
+
+    return variant
+      .replace(regex, "")
+      .replace(/[-–—:/|]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  // case 2: fallback (product không match full)
+  const productWords = product.split(" ");
+
+  let diff = variant;
+
+  for (const w of productWords) {
+    if (!w) continue;
+    diff = diff.replace(new RegExp(`\\b${escapeRegex(w)}\\b`, "gi"), "");
+  }
+
+  return diff
+    .replace(/[-–—:/|]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildAiInput(product) {
+  return {
+    productId: product.productId,
+
+    name: product.name,
+
+    name_vi: product.name_vi,
+
+    specs: product.specs || {},
+
+    variants: product.variants.map((v) => {
+      return {
+        id: v.variantId,
+
+        name: isDiffMode(product.source)
+          ? extractDiff(product.name, v.name_kr) // DIFF MODE
+          : v.name_kr, // NORMAL MODE
+
+        price: v.price,
+      };
+    }),
+
+    shipping: product.product_shipping || {},
+
+    detail: compressDetailHtml(product.detail_html),
+
+    images: product.images || [],
+  };
 }
 
 /**
@@ -92,32 +179,132 @@ function needsTranslation(product) {
 
 /* ========================= */
 /* SAFE PARSE GEMINI */
-function safeJsonParse(str) {
-  if (typeof str !== "string") return str;
+function deepClean(str) {
+  return (
+    (str || "")
+      // remove invisible unicode
+      .replace(/[\u200B-\u200D\uFEFF]/g, "")
+      // remove control chars
+      .replace(/[\u0000-\u001F\u007F]/g, "")
+      // normalize quotes
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2018\u2019]/g, "'")
+      .trim()
+  );
+}
 
-  let cleaned = str
+function extractJsonCandidates(str) {
+  const results = [];
+
+  for (let i = 0; i < str.length; i++) {
+    if (str[i] !== "[" && str[i] !== "{") continue;
+
+    const stack = [];
+    const start = i;
+
+    const open = str[i];
+    const close = open === "[" ? "]" : "}";
+
+    for (let j = i; j < str.length; j++) {
+      if (str[j] === open) stack.push(open);
+      if (str[j] === close) stack.pop();
+
+      if (stack.length === 0) {
+        results.push(str.slice(start, j + 1));
+        i = j;
+        break;
+      }
+    }
+  }
+
+  return results;
+}
+
+function scoreJson(str) {
+  let score = 0;
+
+  if (str.startsWith("[")) score += 2;
+  if (str.startsWith("{")) score += 2;
+
+  if (str.includes('"productId"')) score += 5;
+  if (str.includes('"variants"')) score += 5;
+  if (str.includes('"name_vi"')) score += 3;
+
+  if (str.includes("```")) score -= 5;
+  if (str.includes("Here")) score -= 3;
+
+  return score;
+}
+
+function pickBestJson(candidates) {
+  if (!candidates.length) return null;
+
+  candidates.sort((a, b) => scoreJson(b) - scoreJson(a));
+
+  return candidates[0];
+}
+
+function safeJsonParse(input) {
+  if (typeof input !== "string") return input;
+
+  let raw = input;
+
+  console.log("📥 RAW LENGTH:", raw.length);
+
+  // 1. remove code block markers
+  let cleaned = raw
     .replace(/```json/g, "")
     .replace(/```/g, "")
-    .replace(/^JSON\s*:?/i, "")
-    .replace(/^Result\s*:?/i, "")
+    .replace(/\uFEFF/g, "") // BOM
     .trim();
 
-  const match = cleaned.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
-  if (match) cleaned = match[0];
+  // 2. extract JSON region (stronger than your current regex)
+  const firstBracket = cleaned.indexOf("{");
+  const firstArray = cleaned.indexOf("[");
+
+  let start = -1;
+
+  if (firstBracket === -1) start = firstArray;
+  else if (firstArray === -1) start = firstBracket;
+  else start = Math.min(firstBracket, firstArray);
+
+  if (start !== -1) {
+    cleaned = cleaned.slice(start);
+  }
+
+  // 3. try parse direct
+  try {
+    return JSON.parse(cleaned);
+  } catch (err1) {
+    console.log("⚠️ JSON.parse failed:", err1.message);
+  }
+
+  // 4. sanitize invisible chars
+  cleaned = cleaned
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, "") // control chars
+    .replace(/\u200B/g, "") // zero width space
+    .replace(/\u00A0/g, " ") // non-breaking space
+    .trim();
 
   try {
     return JSON.parse(cleaned);
-  } catch (err) {
-    console.log("⚠️ NORMAL JSON PARSE FAILED:", err.message);
+  } catch (err2) {
+    console.log("⚠️ CLEAN PARSE FAILED:", err2.message);
   }
 
+  // 5. jsonrepair fallback
   try {
     const repaired = jsonrepair(cleaned);
     return JSON.parse(repaired);
-  } catch (err) {
-    console.log("\n❌ FINAL JSON PARSE FAILED");
-    console.log("MESSAGE:", err.message);
-    console.log("\nRAW START:\n", cleaned.slice(0, 2000));
+  } catch (err3) {
+    console.log("❌ JSONREPAIR FAILED:", err3.message);
+
+    console.log("==== RAW SAMPLE ====");
+    console.log(raw.slice(0, 1500));
+
+    console.log("==== CLEAN SAMPLE ====");
+    console.log(cleaned.slice(0, 1500));
+
     return null;
   }
 }
@@ -126,9 +313,12 @@ function safeJsonParse(str) {
 /* NORMALIZE GEMINI */
 function normalizeGeminiOutput(data) {
   if (!data) return null;
+
   const item = Array.isArray(data) ? data[0] : data;
   if (!item) return null;
+
   return {
+    productId: item.productId || null,
     name_vi: item.name_vi || item.name_vn || null,
     specs_vi: item.specs_vi || item.specs_vn || {},
     product_shipping: item.product_shipping || {},
@@ -136,17 +326,41 @@ function normalizeGeminiOutput(data) {
   };
 }
 
+function validateProductIdentity(original, cleaned) {
+  if (!cleaned?.productId) return false;
+
+  return String(cleaned.productId).trim() === String(original.productId).trim();
+}
+
 /* ========================= */
 /* MERGE VARIANTS */
-function mergeVariants(base, enriched = []) {
+function isDiffMode(source) {
+  return source === "t1" || source === "geng";
+}
+function mergeVariants(base, enriched = [], productNameVi, product) {
   if (!Array.isArray(base)) return [];
-  return base.map((variant) => {
-    const match = enriched.find((x) => x.variantId === variant.variantId);
-    if (!match) return { ...variant, name_vi: variant.name_vi || null };
+
+  return base.map((v) => {
+    const match = enriched.find((x) => x.variantId === v.variantId);
+
+    // fallback
+    const translated = match?.name_vi;
+
+    let finalName;
+
+    if (isDiffMode(product.source)) {
+      finalName = translated
+        ? `${productNameVi} - ${translated}`
+        : `${productNameVi} - ${extractDiff(product.name, v.name_kr)}`;
+    } else {
+      // NORMAL MODE (oliveyoung, etc)
+      finalName = translated || v.name_vi || v.name;
+    }
+
     return {
-      ...variant,
-      name_vi: match.name_vi || variant.name_vi || null,
-      shipping: match.shipping || variant.shipping || null,
+      ...v,
+      name_vi: finalName,
+      shipping: match?.shipping || v.shipping || null,
     };
   });
 }
@@ -155,9 +369,20 @@ function mergeVariants(base, enriched = []) {
 /* VALIDATE KẾT QUẢ DỊCH */
 function isValidTranslation(cleaned) {
   if (!cleaned) return false;
-  const emptyName = !cleaned.name_vi || !String(cleaned.name_vi).trim();
-  const emptySpecs = !cleaned.specs_vi || Object.keys(cleaned.specs_vi).length === 0;
-  return !emptyName && !emptySpecs;
+
+  const name = cleaned.name_vi;
+
+  if (!name || typeof name !== "string") return false;
+
+  const hasName = name.trim().length > 0;
+
+  // specs KHÔNG bắt buộc phải có
+  const hasSpecs = cleaned.specs_vi && typeof cleaned.specs_vi === "object";
+
+  // variants optional
+  const hasVariants = Array.isArray(cleaned.variants);
+
+  return hasName && hasSpecs && hasVariants;
 }
 
 /* ========================= */
@@ -238,7 +463,7 @@ app.get("/job/:workerId", (req, res) => {
 
   return res.json({
     id: job.id,
-    prompt: buildPrompt(job.data),
+    prompt: buildPrompt(buildAiInput(job.data)),
   });
 });
 
@@ -260,7 +485,11 @@ app.post("/done", (req, res) => {
 
   /* ========================= */
   /* ❌ PARSE FAIL hoặc kết quả rỗng */
-  if (!parsed || !isValidTranslation(cleaned)) {
+  if (
+    !parsed ||
+    !isValidTranslation(cleaned) ||
+    !validateProductIdentity(job.data, cleaned)
+  ) {
     const reason = !parsed ? "parse_failed" : "empty_translation";
     console.log(`⚠️ FAILED [${reason}] → move to failed/`);
 
@@ -298,7 +527,12 @@ app.post("/done", (req, res) => {
     name_vi: cleaned.name_vi,
     specs_vi: cleaned.specs_vi,
     product_shipping: cleaned.product_shipping,
-    variants: mergeVariants(job.data.variants, cleaned.variants),
+    variants: mergeVariants(
+      job.data.variants,
+      cleaned.variants,
+      cleaned.name_vi,
+      job.data,
+    ),
 
     translationStatus: "done",
     translationError: null,

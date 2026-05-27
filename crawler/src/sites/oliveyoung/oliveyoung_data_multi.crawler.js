@@ -401,6 +401,7 @@ async function crawlProduct(page, url) {
     });
 
     const productId = url.match(/goodsNo=([^&]+)/)?.[1];
+    const source = "oliveyoung";
 
     log.info(`productId: ${productId}`);
 
@@ -471,48 +472,33 @@ async function crawlProduct(page, url) {
 
     const product = {
       productId,
-
+      source,
       url,
-
       name,
-
       specs,
-
       price: {
         originalPrice: parsePrice(originalPrice),
-
         salePrice: parsePrice(salePrice),
-
         discount: parseInt(discount) || null,
       },
-
       price_raw: {
         originalPriceText: originalPrice,
-
         salePriceText: salePrice,
-
         discountText: discount,
       },
-
       images: imageUrls,
-
       source_flags: globalFlags,
-
       source_rating_avg: rating.avg,
-
       source_rating_count: rating.count,
-
       variants,
     };
-
     product.hash = hashProduct(product);
     product.image_hash = hashImageUrls(imageUrls);
-
     product.variants = product.variants.map((v) => ({
       ...v,
       hash: hashVariant(v),
     }));
-
+    
     log.ok(`crawlProduct done: ${productId}`);
 
     return product;

@@ -323,7 +323,7 @@ const OrderService = {
       serverShippingDiscount;
 
     // ── TRANSACTION ───────────────────────────────────
-    return db.transaction(async (trx) => {
+    const result = await db.transaction(async (trx) => {
       const orderCode = generateOrderCode();
 
       const order = await OrderModel.create(
@@ -399,7 +399,6 @@ const OrderService = {
         },
         trx,
       );
-
       // ── ORDER ITEMS ───────────────────────────────
       const orderItems = formatOrderItems(resolvedItems, order.id);
       await OrderModel.createItems(orderItems, trx);
@@ -418,13 +417,21 @@ const OrderService = {
           trx,
         );
       }
-
       return {
+        order,
         orderId: order.id,
         orderCode: order.order_code,
         finalPrice,
       };
     });
+
+    await EmailQueueService.sendAdminOrderAlert(result.order);
+
+    return {
+      orderId: result.orderId,
+      orderCode: result.orderCode,
+      finalPrice: result.finalPrice,
+    };
   },
 
   async getOrderDetail(orderCode) {
@@ -437,7 +444,7 @@ const OrderService = {
     return mapOrderDetail(order);
   },
 
-  async getOrdersByUser(userId, { page = 1, limit = 10 , status = null} = {}) {
+  async getOrdersByUser(userId, { page = 1, limit = 10, status = null } = {}) {
     const offset = (page - 1) * limit;
 
     const [orders, totalRow, statusRows] = await Promise.all([
@@ -458,7 +465,7 @@ const OrderService = {
       return {
         data: [],
         pagination: { page, limit, total: 0, totalPages: 0 },
-        statusCounts:statusCounts,
+        statusCounts: statusCounts,
       };
     }
 
@@ -492,7 +499,7 @@ const OrderService = {
     return {
       data,
       pagination: { page, limit, total, totalPages },
-      statusCounts:statusCounts,
+      statusCounts: statusCounts,
     };
   },
 

@@ -228,11 +228,62 @@ function buildOtpTemplate(otp, purpose = "xác thực") {
   `;
 }
 
+function buildAdminOrderTemplate(data) {
+  const { orderCode, receiverName, totalFinal } = data;
+
+  return `
+  <!DOCTYPE html>
+  <html>
+  <body style="margin:0;background:#f5f6f8;font-family:Arial,sans-serif;">
+
+    <div style="max-width:520px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;">
+
+      <!-- HEADER -->
+      <div style="background:#111827;color:#fff;padding:18px;text-align:center;">
+        <h2 style="margin:0;font-size:16px;">🛒 NEW ORDER</h2>
+        <p style="margin:4px 0 0;font-size:12px;opacity:0.7;">Admin Notification</p>
+      </div>
+
+      <!-- BODY -->
+      <div style="padding:20px;">
+
+        <div style="font-size:13px;color:#333;line-height:1.6;">
+          <p><b>Order Code:</b> #${orderCode}</p>
+          <p><b>Customer:</b> ${receiverName}</p>
+          <p><b>Total:</b> <span style="color:#ef4444;font-weight:700;">
+            ${Number(totalFinal || 0).toLocaleString("vi-VN")}₫
+          </span></p>
+        </div>
+
+        <!-- CTA -->
+        <div style="margin-top:18px;text-align:center;">
+          <a href="${process.env.ADMIN_URL}"
+             style="background:#2563eb;color:#fff;padding:10px 14px;
+             border-radius:6px;text-decoration:none;font-size:13px;display:inline-block;">
+            View in Admin
+          </a>
+        </div>
+
+      </div>
+
+      <!-- FOOTER -->
+      <div style="background:#f3f4f6;padding:10px;text-align:center;font-size:11px;color:#999;">
+        Auto email from system
+      </div>
+
+    </div>
+
+  </body>
+  </html>
+  `;
+}
+
 
 module.exports = {
   buildOrderConfirmedTemplate,
   buildTrackingTemplate,
   buildArrivedVnTemplate,
   buildDeliveredTemplate,
-  buildOtpTemplate
+  buildOtpTemplate,
+  buildAdminOrderTemplate
 };

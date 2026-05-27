@@ -30,8 +30,7 @@ const EMAIL_TEMPLATES = {
   },
 
   order_arrived_vn: {
-    subject: (data) =>
-      `[KoreaBuy] Đơn hàng #${data.orderCode} đã về Việt Nam`,
+    subject: (data) => `[KoreaBuy] Đơn hàng #${data.orderCode} đã về Việt Nam`,
     html: (data) => buildArrivedVnTemplate(data),
   },
 
@@ -39,6 +38,11 @@ const EMAIL_TEMPLATES = {
     subject: (data) =>
       `[KoreaBuy] Đơn hàng #${data.orderCode} đã giao thành công`,
     html: (data) => buildDeliveredTemplate(data),
+  },
+
+  admin_order_alert: {
+    subject: (data) => `[ADMIN] New Order #${data.orderCode}`,
+    html: (data) => buildAdminOrderTemplate(data),
   },
 };
 
@@ -49,13 +53,11 @@ const emailWorker = new Worker(
     const { type, to, data } = job.data;
 
     console.log(
-      `[Email Worker] Processing job ${job.id} — type: ${type} → ${to}`
+      `[Email Worker] Processing job ${job.id} — type: ${type} → ${to}`,
     );
 
     if (!to) {
-      console.warn(
-        `[Email Worker] Skipping job ${job.id}: no email address`
-      );
+      console.warn(`[Email Worker] Skipping job ${job.id}: no email address`);
       return;
     }
 
@@ -73,15 +75,12 @@ const emailWorker = new Worker(
       html: template.html(data),
     });
 
-    console.log(
-      `[Email Worker] ✅ Sent ${type} to ${to}`,
-      result
-    );
+    console.log(`[Email Worker] ✅ Sent ${type} to ${to}`, result);
   },
   {
     connection,
     concurrency: 5,
-  }
+  },
 );
 
 // ── Events ───────────────────────────────────
@@ -92,7 +91,7 @@ emailWorker.on("completed", (job) => {
 emailWorker.on("failed", (job, err) => {
   console.error(
     `[Email Worker] ❌ Job ${job.id} failed (attempt ${job.attemptsMade}):`,
-    err
+    err,
   );
 });
 

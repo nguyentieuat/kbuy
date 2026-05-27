@@ -18,60 +18,122 @@ const OUTPUT_DIR = path.join(__dirname, "../../../data/links");
 // CATEGORY MAP
 /* ====================== */
 
-// Map slug → categoryId (used in file naming)
+// New category slug -> id
 const categoryIdMap = {
-  "cham-soc-da": 10,
-  "mat-na": 100,
-  "lam-sach": 101,
-  "chong-nang": 102,
-  "trang-diem-lam-mong": 11,
-  "phu-kien-lam-dep": 12,
-  "my-pham-da-lieu": 13,
-  "nuoc-hoa-tinh-dau": 14,
-  "cham-soc-toc": 15,
-  "cham-soc-co-the": 16,
-  "cham-soc-nam": 17,
-  tpcn: 20,
-  "rang-mieng-suc-khoe": 21,
-  "quan-ao": 30,
-  "do-luu-niem": 4,
-  "kpop-idol": 40,
-  esports: 41,
+  // ROOT
+  "my-pham": 1,
+  "suc-khoe": 2,
+  "thoi-trang": 3,
+  "kpop-anime-gaming": 4,
+  lifestyle: 5,
+
+  // Mỹ phẩm
+  "cham-soc-da": 11,
+  "trang-diem": 12,
+  "cham-soc-toc": 13,
+  "cham-soc-co-the": 14,
+  "nuoc-hoa": 15,
+  "my-pham-da-lieu": 16,
+  "thiet-bi-lam-dep": 17,
+  "phu-kien-lam-dep": 18,
+
+  // Chăm sóc da
+  "lam-sach": 111,
+  "mat-na": 112,
+  "chong-nang": 113,
+  toner: 114,
+  "serum-treatment": 115,
+  "kem-duong": 116,
+
+  // Trang điểm
+  "trang-diem-nen": 121,
+  "trang-diem-mau": 122,
+  "lam-mong": 123,
+
+  // Sức khỏe
+  "thuc-pham-chuc-nang": 21,
+  vitamin: 22,
+  "protein-eat-clean": 23,
+  "cham-soc-rang-mieng": 24,
+  "cham-soc-suc-khoe": 25,
+
+  // Thời trang
+  "quan-ao": 31,
+  "giay-dep": 32,
+  "tui-xach": 33,
+  "trang-suc": 34,
+  "phu-kien-thoi-trang": 35,
+
+  // Kpop / Anime / Gaming
+  "kpop-idol": 41,
   anime: 42,
+  "esports-gaming": 43,
+  "album-photobook": 44,
+  "figure-goods": 45,
+
+  // Lifestyle
+  "do-gia-dung": 51,
+  "van-phong-pham": 52,
+  "do-bep": 53,
+  "phu-kien-doi-song": 54,
 };
 
-// Map Korean category name → slug
+// Korean category -> NEW slug
 const categoryMap = {
+  // skincare
   스킨케어: "cham-soc-da",
-  마스크팩: "mat-na",
   클렌징: "lam-sach",
+  "클렌징/필링": "lam-sach",
+  마스크팩: "mat-na",
   선케어: "chong-nang",
 
-  메이크업: "trang-diem-lam-mong",
-  네일: "trang-diem-lam-mong",
-  "메이크업 툴": "phu-kien-lam-dep",
+  // makeup
+  메이크업: "trang-diem",
+  베이스메이크업: "trang-diem-nen",
+  립메이크업: "trang-diem-mau",
+  아이메이크업: "trang-diem-mau",
+  네일: "lam-mong",
 
-  "더모 코스메틱": "my-pham-da-lieu",
-
-  맨즈에딧: "cham-soc-nam",
-
-  "향수/디퓨저": "nuoc-hoa-tinh-dau",
-
+  // hair/body
   헤어케어: "cham-soc-toc",
   바디케어: "cham-soc-co-the",
 
-  건강식품: "tpcn",
-  푸드: "tpcn",
+  // fragrance
+  프레그런스: "nuoc-hoa",
+  "향수/디퓨저": "nuoc-hoa",
 
-  구강용품: "rang-mieng-suc-khoe",
-  "헬스/건강용품": "rang-mieng-suc-khoe",
+  // dermo
+  "더모 코스메틱": "my-pham-da-lieu",
 
+  // beauty devices/accessories
+  미용소품: "phu-kien-lam-dep",
+  "뷰티 디바이스/소품": "thiet-bi-lam-dep",
+  "메이크업 툴": "phu-kien-lam-dep",
+
+  // men
+  맨즈에딧: "cham-soc-co-the",
+
+  // health
+  건강식품: "thuc-pham-chuc-nang",
+  푸드: "thuc-pham-chuc-nang",
+  "헬스/푸드": "thuc-pham-chuc-nang",
+
+  구강용품: "cham-soc-rang-mieng",
+  "헬스/건강용품": "cham-soc-suc-khoe",
+
+  // fashion
   패션: "quan-ao",
 
-  "취미/팬시": "do-luu-niem",
+  // fandom / hobby
+  "취미/팬시": "figure-goods",
+
+  // kpop/anime
+  아이돌: "kpop-idol",
+  애니메이션: "anime",
+  esports: "esports-gaming",
 };
 
-// Categories to skip
+// Skip categories
 const skipCategories = ["전체", "위생용품", "홈리빙/가전"];
 
 /* ====================== */
@@ -135,7 +197,9 @@ async function crawlOliveBestList() {
   // Extract category names from menu
   const categories = await page.$$eval(
     ".common-menu button[data-ref-dispcatno]",
-    (btns) => btns.map((b) => b.innerText.trim()),
+    (items) => [
+      ...new Set(items.map((el) => el.innerText.trim()).filter(Boolean)),
+    ],
   );
 
   console.log("Categories:", categories);

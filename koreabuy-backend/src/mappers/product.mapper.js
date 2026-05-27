@@ -2,52 +2,89 @@
 
 const { convertPrice } = require("../services/currency.service");
 
-function buildDescription(specsVi) {
-  if (!specsVi) return null;
-
-  return `
-    <div style="display:flex; flex-direction:column;">
-      ${Object.entries(specsVi)
-        .map(
-          ([key, val]) => `
-          <div
-            style="
-              display:grid;
-              grid-template-columns:160px 1fr;
-              gap:16px;
-              padding:12px 0;
-              border-bottom:1px solid #f0f0f0;
-            "
-          >
+function buildDescription({ specsVi, detailImages = [] }) {
+  const specsHtml = specsVi
+    ? `
+      <div style="display:flex; flex-direction:column;">
+        ${Object.entries(specsVi)
+          .map(
+            ([key, val]) => `
             <div
               style="
-                color:#888;
-                font-size:13px;
-                line-height:1.6;
+                display:grid;
+                grid-template-columns:160px 1fr;
+                gap:16px;
+                padding:12px 0;
+                border-bottom:1px solid #f0f0f0;
               "
             >
-              ${key}
-            </div>
+              <div
+                style="
+                  color:#888;
+                  font-size:13px;
+                  line-height:1.6;
+                "
+              >
+                ${key}
+              </div>
 
-            <div
-              style="
-                font-size:13px;
-                line-height:1.7;
-                color:#333;
-              "
-            >
-              ${String(val).replace(/\n/g, "<br/>")}
+              <div
+                style="
+                  font-size:13px;
+                  line-height:1.7;
+                  color:#333;
+                "
+              >
+                ${String(val).replace(/\n/g, "<br/>")}
+              </div>
             </div>
-          </div>
-        `,
-        )
-        .join("")}
-    </div>
-  `;
+          `,
+          )
+          .join("")}
+      </div>
+    `
+    : "";
+
+  const detailHtml =
+    Array.isArray(detailImages) && detailImages.length
+      ? `
+      <div style="
+        margin-top:32px;
+        display:flex;
+        flex-direction:column;
+        gap:0;
+      ">
+        ${detailImages
+          .map(
+            (url) => `
+              <div style="
+                width:100%;
+                line-height:0;
+                font-size:0;
+              ">
+                <img
+                  src="${url}"
+                  style="
+                    width:100%;
+                    display:block;
+                    border-radius:12px;
+                  "
+                  loading="lazy"
+                />
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+    `
+      : "";
+
+  return `${specsHtml}${detailHtml}` || null;
 }
 
 function mapProduct(row, rate = 19) {
   const specsVi = row.extra_data?.specs?.vi ?? row.extra_data?.specs_vi ?? null;
+  const detailImages = row.extra_data?.detail_images ?? [];
 
   return {
     id: row.id,
@@ -95,7 +132,7 @@ function mapProduct(row, rate = 19) {
           },
 
           media: {
-            image: v.image_url,
+            image: v.image_url ?? row.image,
 
             images: (v.images ?? []).map((img) => ({
               url: img.url,
@@ -139,7 +176,7 @@ function mapProduct(row, rate = 19) {
         }))
       : [],
 
-    description: buildDescription(specsVi),
+    description: buildDescription(specsVi, detailImages),
 
     shipping: {
       weightGrams: row.weightGrams,
