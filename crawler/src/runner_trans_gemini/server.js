@@ -17,7 +17,7 @@ app.use((req, res, next) => {
 
 /* ========================= */
 /* CONFIG */
-const INPUT_DIR = path.resolve(__dirname, "../../data/output_products/t1");
+const INPUT_DIR = path.resolve(__dirname, "../../data/translate/t1/success");
 // const INPUT_DIR = path.resolve(__dirname, "../../data/translate/oliveyoung/retry_failed");
 const SUCCESS_DIR = path.resolve(__dirname, "../../data/translate/t1/success");
 const FAILED_DIR = path.resolve(__dirname, "../../data/translate/t1/failed");
@@ -151,30 +151,18 @@ function buildAiInput(product) {
   };
 }
 
-/**
- * Xóa product khỏi file INPUT sau khi xử lý xong
- * (move sang success hoặc failed)
- */
-function removeFromInput(filePath, productId) {
-  const rows = readJsonlFile(filePath);
-  const remaining = rows.filter((r) => r.productId !== productId);
-  if (remaining.length === 0) {
-    // File rỗng → xóa luôn
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    console.log(`🗑 Deleted empty input file: ${path.basename(filePath)}`);
-  } else {
-    writeJsonlFile(filePath, remaining);
-  }
-}
-
 /* ========================= */
 /* CHECK CẦN DỊCH KHÔNG */
 function needsTranslation(product) {
   const status = product.translationStatus;
-  if (!status || status === "pending") return true;
-  if (status === "failed") return true;
-  if (status === "done" && product.translatedHash !== product.hash) return true;
-  return false;
+
+  if (!status) return true;
+
+  return (
+    status === "pending" ||
+    status === "failed" ||
+    status === "needs_retranslate"
+  );
 }
 
 /* ========================= */
@@ -343,7 +331,6 @@ function mergeVariants(base, enriched = [], productNameVi, product) {
   return base.map((v) => {
     const match = enriched.find((x) => x.variantId === v.variantId);
 
-    // fallback
     const translated = match?.name_vi;
 
     let finalName;
@@ -353,9 +340,13 @@ function mergeVariants(base, enriched = [], productNameVi, product) {
         ? `${productNameVi} - ${translated}`
         : `${productNameVi} - ${extractDiff(product.name, v.name_kr)}`;
     } else {
-      // NORMAL MODE (oliveyoung, etc)
       finalName = translated || v.name_vi || v.name;
     }
+
+    console.log(`🔧 VARIANT MERGE: ${v.variantId}`, {
+      old: v.name_vi,
+      new: finalName,
+    });
 
     return {
       ...v,
@@ -409,35 +400,40 @@ function loadQueue() {
 
   queue = [];
   let skipped = 0;
+  let synced = 0;
 
   for (const file of files) {
     const filePath = path.join(INPUT_DIR, file);
     const lines = readJsonlFile(filePath);
 
-    lines.forEach((product, index) => {
+    for (const product of lines) {
+      // CASE 1: KHÔNG CẦN DỊCH
       if (!needsTranslation(product)) {
         skipped++;
-        return;
+        continue;
       }
 
+      // CASE 2: NEED TRANSLATION
       queue.push({
-        id: `${file}__${index}`,
+        id: `${file}__${product.productId}`,
         file,
         filePath,
-        index,
         data: product,
         status: "pending",
         startedAt: null,
         retries: 0,
       });
-    });
+    }
   }
 
   stats.total = queue.length;
   stats.pending = queue.length;
 
   saveCheckpoint();
-  console.log(`📦 NEED TRANSLATION: ${queue.length} | SKIPPED: ${skipped}`);
+
+  console.log(
+    `📦 NEED TRANSLATION: ${queue.length} | 🔄 SYNCED: ${synced} | SKIPPED: ${skipped}`,
+  );
 }
 
 /* ========================= */
@@ -480,6 +476,12 @@ app.post("/done", (req, res) => {
     return res.json({ ok: false, error: "job_not_found" });
   }
 
+  console.log("🧾 BEFORE UPDATE:", {
+    productId: job.data.productId,
+    oldHash: job.data.hash,
+    oldName: job.data.name_vi,
+  });
+
   const parsed = safeJsonParse(result);
   const cleaned = parsed ? normalizeGeminiOutput(parsed) : null;
 
@@ -492,7 +494,6 @@ app.post("/done", (req, res) => {
   ) {
     const reason = !parsed ? "parse_failed" : "empty_translation";
     console.log(`⚠️ FAILED [${reason}] → move to failed/`);
-
     const failedData = {
       ...job.data,
       translationStatus: "failed",
@@ -501,13 +502,17 @@ app.post("/done", (req, res) => {
     };
 
     try {
-      // Ghi vào FAILED_DIR
       const failPath = path.join(FAILED_DIR, job.file);
-      upsertJsonl(failPath, failedData.productId, failedData);
-      console.log("📁 SAVED TO FAILED:", failPath);
 
-      // Xóa khỏi INPUT
-      removeFromInput(job.filePath, job.data.productId);
+      upsertJsonl(failPath, failedData.productId, failedData);
+
+      // IMPORTANT:
+      // update source of truth luôn
+      const successPath = path.join(SUCCESS_DIR, job.file);
+
+      upsertJsonl(successPath, failedData.productId, failedData);
+
+      console.log("📁 SAVED TO FAILED:", failPath);
     } catch (err) {
       console.log("❌ WRITE ERROR:", err.message);
     }
@@ -545,9 +550,6 @@ app.post("/done", (req, res) => {
     const successPath = path.join(SUCCESS_DIR, job.file);
     upsertJsonl(successPath, finalData.productId, finalData);
     console.log("💾 SAVED TO SUCCESS:", successPath);
-
-    // Xóa khỏi INPUT
-    removeFromInput(job.filePath, job.data.productId);
 
     job.status = "done";
     stats.processing--;

@@ -281,6 +281,15 @@ async function readJsonl(filePath) {
 // ─────────────────────────────────────────────
 
 function normalizeProduct(raw, category) {
+  if (
+    raw.translationStatus !== "done" ||
+    !raw.name_vi
+  ) {
+    throw new Error(
+      `Invalid translation state: ${raw.translationStatus}`,
+    );
+  }
+
   const variants = raw.variants || [];
 
   const variantPrices = variants.map((v) => v.price?.sale).filter(Boolean);
@@ -433,10 +442,10 @@ function normalizeProduct(raw, category) {
 
     images: Array.isArray(raw.images)
       ? raw.images.map((img, idx) => ({
-          url: img,
-          is_primary: idx === 0,
-          sort_order: idx,
-        }))
+        url: img,
+        is_primary: idx === 0,
+        sort_order: idx,
+      }))
       : [],
 
     // ─────────────────────────
@@ -596,55 +605,54 @@ async function insertProductGraph(trx, data) {
 
   // update existing
   if (product) {
-    if (
+    const productUnchanged =
       product.hash === data.product.hash &&
-      product.image_hash === data.product.image_hash
-    ) {
-      return product;
+      product.image_hash === data.product.image_hash;
+
+    if (!productUnchanged) {
+      await trx("products")
+        .where({
+          id: product.id,
+        })
+        .update({
+          slug: data.product.slug,
+
+          name_kr: data.product.name_kr,
+
+          name_vi: data.product.name_vi,
+
+          price_min: data.product.price_min,
+
+          price_max: data.product.price_max,
+
+          original_price: data.product.original_price,
+
+          sale_price: data.product.sale_price,
+
+          discount_percent: data.product.discount_percent,
+
+          category_id: data.product.category_id,
+
+          category_slug: data.product.category_slug,
+
+          extra_data: JSON.stringify(data.product.extra_data),
+
+          source_rating_avg: data.product.source_rating_avg,
+
+          source_rating_count: data.product.source_rating_count,
+
+          hash: data.product.hash,
+          image_hash: data.product.image_hash,
+
+          updated_at: knex.fn.now(),
+        });
+
+      product = await trx("products")
+        .where({
+          id: product.id,
+        })
+        .first();
     }
-
-    await trx("products")
-      .where({
-        id: product.id,
-      })
-      .update({
-        slug: data.product.slug,
-
-        name_kr: data.product.name_kr,
-
-        name_vi: data.product.name_vi,
-
-        price_min: data.product.price_min,
-
-        price_max: data.product.price_max,
-
-        original_price: data.product.original_price,
-
-        sale_price: data.product.sale_price,
-
-        discount_percent: data.product.discount_percent,
-
-        category_id: data.product.category_id,
-
-        category_slug: data.product.category_slug,
-
-        extra_data: JSON.stringify(data.product.extra_data),
-
-        source_rating_avg: data.product.source_rating_avg,
-
-        source_rating_count: data.product.source_rating_count,
-
-        hash: data.product.hash,
-        image_hash: data.product.image_hash,
-
-        updated_at: knex.fn.now(),
-      });
-
-    product = await trx("products")
-      .where({
-        id: product.id,
-      })
-      .first();
   } else {
     [product] = await trx("products")
       .insert({
@@ -716,10 +724,18 @@ async function insertProductGraph(trx, data) {
   // PRODUCT IMAGES
   // ─────────────────────────
 
+  const existingImage = await trx("product_variant_images")
+  .where({
+    product_id: productId,
+    variant_id: null,
+  })
+  .first();
+
   const shouldUpdateImages =
-    !product.image_hash ||
-    product.image_hash !== data.product.image_hash ||
-    data.images?.length > 0;
+  !existingImage ||
+  !product.image_hash ||
+  product.image_hash !== data.product.image_hash;
+  
   if (shouldUpdateImages) {
     await trx("product_variant_images")
       .where({ product_id: productId, variant_id: null })
@@ -913,6 +929,14 @@ async function importFile(filePath) {
   let failed = 0;
 
   for (const raw of rows) {
+    // chỉ import bản dịch hoàn chỉnh
+    if (raw.translationStatus !== "done") {
+      console.log(
+        `⏭ SKIP ${raw.productId} [${raw.translationStatus}]`,
+      );
+      continue;
+    }
+
     try {
       console.log(`\n🚀 IMPORT ${raw.productId}`);
 
