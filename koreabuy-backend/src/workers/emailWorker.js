@@ -10,8 +10,8 @@ const {
   buildTrackingTemplate,
   buildArrivedVnTemplate,
   buildDeliveredTemplate,
+  buildAdminOrderTemplate
 } = require("../services/email/templates");
-const buildAdminOrderTemplate = require("../services/email/templates");
 
 // ── Resend ───────────────────────────────────
 const resend = new Resend(process.env.RESEND_API_KEY);

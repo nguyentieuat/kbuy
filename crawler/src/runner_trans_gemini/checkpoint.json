@@ -3073,7 +3073,7 @@
         "translatedHash": "b1991f126f9b5e794fac9613e7ac61c7",
         "translatedAt": "2026-05-27T15:32:09.327Z"
       },
-      "status": "processing",
+      "status": "failed_parse",
       "startedAt": 1779935465260,
       "retries": 0,
       "workerId": "tab1"
@@ -3140,9 +3140,10 @@
         "translatedHash": "e10a510a269a8fe362b1d6ada20931cc",
         "translatedAt": "2026-05-27T15:32:29.219Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "failed_parse",
+      "startedAt": 1779935533261,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "gaming-collectibles_434.jsonl__603",
@@ -3207,9 +3208,10 @@
         "translatedHash": "7aad6fa6cc1edcd535b237bf52ebe38a",
         "translatedAt": "2026-05-27T15:32:47.171Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "failed_parse",
+      "startedAt": 1779935587249,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "gaming-collectibles_434.jsonl__604",
@@ -3295,9 +3297,10 @@
         "translatedHash": "5d4f260410d703c1171d94ef54fc934b",
         "translatedAt": "2026-05-27T15:33:06.947Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "failed_parse",
+      "startedAt": 1779935637252,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "gaming-collectibles_434.jsonl__646",
@@ -3359,9 +3362,10 @@
         "translatedHash": "23d417d553c7b4106ab8b3bea09786fe",
         "translatedAt": "2026-05-27T15:34:41.382Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "failed_parse",
+      "startedAt": 1779935685249,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "gaming-collectibles_434.jsonl__676",
@@ -3424,9 +3428,10 @@
         "translatedHash": "1a149849458aed1464f00c05f7545820",
         "translatedAt": "2026-05-27T15:38:52.153Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "failed_parse",
+      "startedAt": 1779935735252,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "gaming-collectibles_434.jsonl__731",
@@ -3712,9 +3717,10 @@
         "translatedHash": "54a50aa8a29376e6325a0d55c98f5c6a",
         "translatedAt": "2026-05-27T15:40:11.890Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "failed_parse",
+      "startedAt": 1779935791261,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "gaming-collectibles_434.jsonl__741",
@@ -3820,9 +3826,10 @@
         "translatedHash": "6e313c64ecffec167f9800f833c316ab",
         "translatedAt": "2026-05-27T15:41:09.104Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "failed_parse",
+      "startedAt": 1779935846256,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "gaming-collectibles_434.jsonl__770",
@@ -3987,9 +3994,10 @@
         "translatedHash": "3c3c47c70b1555901efce777fb087266",
         "translatedAt": "2026-05-27T15:44:23.384Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "failed_parse",
+      "startedAt": 1779935895258,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "gaming-collectibles_434.jsonl__786",
@@ -4053,9 +4061,10 @@
         "translatedHash": "8bd7480e212b18b362360eedbc10f36f",
         "translatedAt": "2026-05-27T15:46:02.844Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "failed_parse",
+      "startedAt": 1779935948256,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "gaming-collectibles_434.jsonl__875",
@@ -4222,9 +4231,10 @@
         "translatedHash": "b5409dd7052093c2d4075e044093f9ca",
         "translatedAt": "2026-05-27T15:48:23.106Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "failed_parse",
+      "startedAt": 1779936002257,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "gaming-collectibles_434.jsonl__880",
@@ -4287,9 +4297,10 @@
         "translatedHash": "60be3630a9dd83b3f347fd85cd068dc5",
         "translatedAt": "2026-05-27T15:49:47.182Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "failed_parse",
+      "startedAt": 1779936052250,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "gaming-collectibles_434.jsonl__894",
@@ -4415,9 +4426,10 @@
         "translatedHash": "6f1e620b9734906d3a525b0a1287749d",
         "translatedAt": "2026-05-27T15:50:47.310Z"
       },
-      "status": "pending",
-      "startedAt": null,
-      "retries": 0
+      "status": "processing",
+      "startedAt": 1779936108249,
+      "retries": 0,
+      "workerId": "tab1"
     },
     {
       "id": "photocard-slogan_435.jsonl__522",
@@ -4529,9 +4541,9 @@
   ],
   "stats": {
     "total": 50,
-    "pending": 13,
+    "pending": 1,
     "processing": 1,
     "done": 4,
-    "failed": 32
+    "failed": 44
   }
 }
