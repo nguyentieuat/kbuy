@@ -127,8 +127,8 @@ function mapProduct(row, rate = 19) {
 
         pricing: {
           price: convertPrice(
-            Number(v.price || v.original_price),
-            rate,
+            Number(v.price ?? v.original_price ?? 0),
+            rate
           ),
 
           originalPrice: convertPrice(Number(v.original_price), rate),
