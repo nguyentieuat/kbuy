@@ -109,15 +109,28 @@ const EmailQueueService = {
 
   async sendAdminOrderAlert(order) {
     const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-    await emailQueue.add("admin_order_alert", {
-      to: ADMIN_EMAIL,
-      data: {
-        orderCode: order.order_code,
-        receiverName: order.receiver_name,
-        totalFinal: order.final_price,
+
+    await emailQueue.add(
+      "admin_order_alert",
+      {
+        type: "admin_order_alert",
+        to: ADMIN_EMAIL,
+        data: {
+          orderCode: order.order_code,
+          receiverName: order.receiver_name,
+          totalFinal: order.final_price,
+        },
       },
-    });
+      {
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 5000,
+        },
+      },
+    );
   },
+
 };
 
 module.exports = EmailQueueService;
