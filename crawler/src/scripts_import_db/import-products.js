@@ -15,7 +15,7 @@ const readline = require("readline");
 
 const INPUT_DIR = path.resolve(
   __dirname,
-  "../../data/translate/t1/success",
+  "../../data/translate/geng/success",
 );
 
 const DEBUG = true;
@@ -735,7 +735,7 @@ async function insertProductGraph(trx, data) {
   !existingImage ||
   !product.image_hash ||
   product.image_hash !== data.product.image_hash;
-  
+
   if (shouldUpdateImages) {
     await trx("product_variant_images")
       .where({ product_id: productId, variant_id: null })

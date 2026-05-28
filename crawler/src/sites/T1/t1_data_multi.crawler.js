@@ -314,7 +314,7 @@ async function getT1Variants(page, productId) {
               .length > 0
           );
         })
-        .catch(() => {});
+        .catch(() => { });
     }
 
     // ─────────────────────────────
@@ -328,33 +328,62 @@ async function getT1Variants(page, productId) {
             return parseInt((t || "").replace(/[^\d]/g, ""), 10) || null;
           }
 
+          function normalizeText(t) {
+            return (t || "")
+              .replace(/\[품절\]/g, "")
+              .replace(/\s+/g, " ")
+              .trim();
+          }
+
           return rows.map((row, idx) => {
             const input = row.querySelector(".option_box_id");
-            const optionCode = input?.value || `${productId}_${idx}`;
 
-            const text = row.querySelector("p.product")?.innerText || "";
+            const rawVariantId =
+              input?.value || `${productId}_${idx}`;
+
+            const text =
+              row.querySelector("p.product")?.innerText || "";
+
+            const normalizedText = normalizeText(text);
+
+            // 🔥 INTERNAL UNIQUE KEY
+            const variantKey =
+              `${rawVariantId}_${normalizedText}`;
 
             const soldout =
-              text.includes("[품절]") || text.includes("Sold Out");
+              text.includes("[품절]") ||
+              text.includes("Sold Out");
 
             const priceText =
-              row.querySelector('[id*="_price"]')?.innerText?.trim() ||
+              row.querySelector('[id*="_price"]')
+                ?.innerText?.trim() ||
               row
                 .querySelector(".ec-front-product-item-price")
                 ?.innerText?.trim() ||
               "";
 
             return {
-              variantId: optionCode,
-              name_kr: text.trim(),
+              // RAW FROM SITE
+              variantId: variantKey,
+
+              // INTERNAL UNIQUE
+              rawVariantId: rawVariantId,
+
+              name_kr: normalizedText,
+
               thumbnail: null,
+
               variant_detail_images: [],
+
               flags: [],
+
               is_soldout: soldout,
+
               price: {
                 sale: parsePrice(priceText),
                 discount: null,
               },
+
               price_raw: {
                 priceText,
                 discountText: "",
@@ -523,7 +552,7 @@ async function simulateHuman(page) {
     await page.mouse.move(Math.random() * 400, Math.random() * 400);
     await page.waitForTimeout(500 + Math.random() * 1000);
     await page.mouse.wheel(0, 300 + Math.random() * 700);
-  } catch {}
+  } catch { }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -601,47 +630,47 @@ async function processProduct({
 
     const merged = old
       ? {
-          ...old,
-          name: fresh.name ?? old.name,
-          specs: fresh.specs ?? old.specs,
-          detail_html: fresh.detail_html ?? old.detail_html,
-          detail_images: fresh.detail_images?.length
-            ? fresh.detail_images
-            : old.detail_images,
-          images: fresh.images?.length ? fresh.images : old.images,
-          variants: mergeVariants(old.variants, fresh.variants),
-          source_rating_avg: fresh.source_rating_avg ?? old.source_rating_avg,
-          source_rating_count:
-            fresh.source_rating_count ?? old.source_rating_count,
-          price: productChanged ? fresh.price : old.price,
-          price_raw: productChanged ? fresh.price_raw : old.price_raw,
-          hash: fresh.hash,
-          image_hash: fresh.image_hash,
-          change_log: [
-            ...(old.change_log ?? []).slice(-9),
-            {
-              crawledAt: new Date().toISOString(),
-              productChanged,
-              imageChanged,
-              variantsChanged: variantChanges
-                .filter((v) => v.changed)
-                .map((v) => v.variantId),
-            },
-          ],
-          crawledAt: new Date().toISOString(),
-        }
+        ...old,
+        name: fresh.name ?? old.name,
+        specs: fresh.specs ?? old.specs,
+        detail_html: fresh.detail_html ?? old.detail_html,
+        detail_images: fresh.detail_images?.length
+          ? fresh.detail_images
+          : old.detail_images,
+        images: fresh.images?.length ? fresh.images : old.images,
+        variants: mergeVariants(old.variants, fresh.variants),
+        source_rating_avg: fresh.source_rating_avg ?? old.source_rating_avg,
+        source_rating_count:
+          fresh.source_rating_count ?? old.source_rating_count,
+        price: productChanged ? fresh.price : old.price,
+        price_raw: productChanged ? fresh.price_raw : old.price_raw,
+        hash: fresh.hash,
+        image_hash: fresh.image_hash,
+        change_log: [
+          ...(old.change_log ?? []).slice(-9),
+          {
+            crawledAt: new Date().toISOString(),
+            productChanged,
+            imageChanged,
+            variantsChanged: variantChanges
+              .filter((v) => v.changed)
+              .map((v) => v.variantId),
+          },
+        ],
+        crawledAt: new Date().toISOString(),
+      }
       : {
-          ...fresh,
-          change_log: [
-            {
-              crawledAt: new Date().toISOString(),
-              productChanged: true,
-              imageChanged: true,
-              variantsChanged: fresh.variants.map((v) => v.variantId),
-            },
-          ],
-          crawledAt: new Date().toISOString(),
-        };
+        ...fresh,
+        change_log: [
+          {
+            crawledAt: new Date().toISOString(),
+            productChanged: true,
+            imageChanged: true,
+            variantsChanged: fresh.variants.map((v) => v.variantId),
+          },
+        ],
+        crawledAt: new Date().toISOString(),
+      };
 
     existingMap.set(productId, merged);
     resultMap.set(productId, merged);
@@ -693,7 +722,7 @@ async function processFile(sessionManager, fileName) {
               resultMap.set(p.productId, p);
             }
           }
-        } catch {}
+        } catch { }
       });
     log.info(`loaded existing: ${existingMap.size}`);
   }

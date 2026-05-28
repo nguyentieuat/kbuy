@@ -56,15 +56,18 @@ async function readJsonl(filePath) {
     if (!trimmed) continue;
     try {
       rows.push(JSON.parse(trimmed));
-    } catch {}
+    } catch { }
   }
 
   return rows;
 }
 
 function writeJsonl(filePath, rows) {
+  if (!rows?.length) return;
+
   const content = rows.map((r) => JSON.stringify(r)).join("\n");
-  fs.writeFileSync(filePath, content ? content + "\n" : "");
+
+  fs.writeFileSync(filePath, content + "\n");
 }
 
 function isEmptyObject(obj) {
@@ -165,7 +168,7 @@ async function main() {
       const updatedRow = {
         ...existing,
 
-        // ✅ Cập nhật data KR mới
+        // Cập nhật data KR mới
         name: crawled.name,
         specs: crawled.specs,
         price: crawled.price,
@@ -179,7 +182,7 @@ async function main() {
         crawledAt: crawled.crawledAt,
         change_log: crawled.change_log,
 
-        // ✅ Merge variants — giữ name_vi cũ, cập nhật KR mới
+        // Merge variants — giữ name_vi cũ, cập nhật KR mới
         variants: variants.map((nv) => {
           const ov = (existing.variants || []).find(
             (v) => v.variantId === nv.variantId,
@@ -229,6 +232,11 @@ async function main() {
     }
 
     // Ghi lại success file đã update
+    if (newToTranslate.length) {
+      updatedSuccessRows.push(...newToTranslate);
+    }
+
+    // Ghi lại success file đã update
     writeJsonl(successPath, updatedSuccessRows);
 
     // Ghi sản phẩm mới vào crawl file với translationStatus = pending
@@ -275,7 +283,7 @@ async function main() {
 
   console.log("\n" + "═".repeat(50));
   console.log("🎉 SYNC DONE");
-  console.log(`  ✅ Unchanged:    ${stats.unchanged}`);
+  console.log(`  Unchanged:    ${stats.unchanged}`);
   console.log(`  ✏️  Updated KR:   ${stats.updatedKr}`);
   console.log(`  ↩️  Reset pending: ${stats.resetPending}`);
   console.log(`  🆕 New products: ${stats.newProduct}`);

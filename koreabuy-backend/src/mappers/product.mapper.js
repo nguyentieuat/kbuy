@@ -7,8 +7,8 @@ function buildDescription(specsVi, detailImages = []) {
     ? `
       <div style="display:flex; flex-direction:column;">
         ${Object.entries(specsVi)
-          .map(
-            ([key, val]) => `
+      .map(
+        ([key, val]) => `
             <div
               style="
                 display:grid;
@@ -39,8 +39,8 @@ function buildDescription(specsVi, detailImages = []) {
               </div>
             </div>
           `,
-          )
-          .join("")}
+      )
+      .join("")}
       </div>
     `
     : "";
@@ -55,8 +55,8 @@ function buildDescription(specsVi, detailImages = []) {
         gap:0;
       ">
         ${detailImages
-          .map(
-            (url) => `
+        .map(
+          (url) => `
               <div style="
                 width:100%;
                 line-height:0;
@@ -73,8 +73,8 @@ function buildDescription(specsVi, detailImages = []) {
                 />
               </div>
             `,
-          )
-          .join("")}
+        )
+        .join("")}
       </div>
     `
       : "";
@@ -83,7 +83,7 @@ function buildDescription(specsVi, detailImages = []) {
 }
 
 function mapProduct(row, rate = 19) {
-    const extra = row?.extra_data ?? {};
+  const extra = row?.extra_data ?? {};
 
   const specsVi = extra?.specs?.vi ?? extra?.specs_vi ?? null;
   const detailImages = extra?.detail_images ?? [];
@@ -118,64 +118,67 @@ function mapProduct(row, rate = 19) {
 
     variants: Array.isArray(row.variants)
       ? row.variants.map((v) => ({
-          ...v,
+        ...v,
 
-          name: v.name_vi,
-          nameKr: v.name_kr,
+        name: v.name_vi,
+        nameKr: v.name_kr,
 
-          productId: v.product_id,
+        productId: v.product_id,
 
-          pricing: {
-            price: convertPrice(Number(v.price), rate),
+        pricing: {
+          price: convertPrice(
+            Number(v.price || v.original_price),
+            rate,
+          ),
 
-            originalPrice: convertPrice(Number(v.original_price), rate),
+          originalPrice: convertPrice(Number(v.original_price), rate),
 
-            discountPercent: v.discount_percent ?? v.discountPercent ?? null,
+          discountPercent: v.discount_percent ?? v.discountPercent ?? null,
+        },
+
+        media: {
+          image: v.image_url ?? row.image,
+
+          images: (v.images ?? []).map((img) => ({
+            url: img.url,
+            type: img.type,
+            isPrimary: img.is_primary,
+          })),
+        },
+
+        // =========================
+        // SHIPPING
+        // =========================
+
+        shipping: {
+          weightGrams: v.shipping?.weight_grams ?? null,
+
+          dimensions: {
+            lengthMm: v.shipping?.length_mm ?? null,
+
+            widthMm: v.shipping?.width_mm ?? null,
+
+            heightMm: v.shipping?.height_mm ?? null,
           },
 
-          media: {
-            image: v.image_url ?? row.image,
+          volumetricWeightGrams: v.shipping?.volumetric_weight_grams ?? null,
 
-            images: (v.images ?? []).map((img) => ({
-              url: img.url,
-              type: img.type,
-              isPrimary: img.is_primary,
-            })),
-          },
+          chargeableWeightGrams: v.shipping?.chargeable_weight_grams ?? null,
 
-          // =========================
-          // SHIPPING
-          // =========================
+          isBulky: v.shipping?.is_bulky ?? false,
 
-          shipping: {
-            weightGrams: v.shipping?.weight_grams ?? null,
+          weightSource: v.shipping?.weight_source ?? null,
 
-            dimensions: {
-              lengthMm: v.shipping?.length_mm ?? null,
+          weightConfidence: v.shipping?.weight_confidence ?? null,
 
-              widthMm: v.shipping?.width_mm ?? null,
+          isWeightEstimated: v.shipping?.is_weight_estimated ?? true,
+        },
 
-              heightMm: v.shipping?.height_mm ?? null,
-            },
-
-            volumetricWeightGrams: v.shipping?.volumetric_weight_grams ?? null,
-
-            chargeableWeightGrams: v.shipping?.chargeable_weight_grams ?? null,
-
-            isBulky: v.shipping?.is_bulky ?? false,
-
-            weightSource: v.shipping?.weight_source ?? null,
-
-            weightConfidence: v.shipping?.weight_confidence ?? null,
-
-            isWeightEstimated: v.shipping?.is_weight_estimated ?? true,
-          },
-
-          flags: {
-            isActive: v.is_active,
-            isSoldout: v.is_soldout,
-          },
-        }))
+        flags: {
+          isActive: v.is_active,
+          isSoldout: v.is_soldout,
+        },
+      }))
       : [],
 
     description: buildDescription(specsVi, detailImages),

@@ -9,8 +9,8 @@ const CrawlerSessionManager = require("../../../core/sessionManager");
 // CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 
-const LINKS_DIR = path.join(process.cwd(), "data/links/GenG");
-const OUTPUT_DIR = path.join(process.cwd(), "data/output_products/GenG");
+const LINKS_DIR = path.join(process.cwd(), "data/links/geng");
+const OUTPUT_DIR = path.join(process.cwd(), "data/output_products/geng");
 const CONCURRENCY = 3;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -206,14 +206,14 @@ async function getGenGSpecs(page) {
     const tab = page.locator('li:has(a:has-text("상세정보")) a').first();
 
     if (await tab.count()) {
-      await tab.click().catch(() => {});
+      await tab.click().catch(() => { });
     }
 
     // đợi tab active (class selected)
     await page
       .locator('li.selected:has(a:has-text("상세정보"))')
       .waitFor({ timeout: 5000 })
-      .catch(() => {});
+      .catch(() => { });
 
     // đợi DOM render thật sự
     await page.waitForTimeout(1200);
@@ -223,7 +223,7 @@ async function getGenGSpecs(page) {
     // ─────────────────────────────
     const root = page.locator(".edibot-product-detail").first();
 
-    await root.waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
+    await root.waitFor({ state: "attached", timeout: 5000 }).catch(() => { });
 
     const detailHtml = await root.innerHTML().catch(() => null);
 
@@ -300,163 +300,231 @@ async function getGenGVariants(page, productId) {
       parseInt((t || "").replace(/[^\d]/g, ""), 10) || 0;
 
     // ─────────────────────────────
-    // 0. PRODUCT NAME (STABLE)
+    // 0. PRODUCT NAME
     // ─────────────────────────────
     const productName = cleanText(
       await page.$eval(".headingArea h2", (el) => el.innerText),
     );
 
     // ─────────────────────────────
-    // 1. SIZE OPTIONS (LABEL SOURCE OF TRUTH)
+    // HELPERS
     // ─────────────────────────────
-    const sizes = await page.$$eval("#product_option_id1 option", (opts) =>
-      opts
-        .map((o) => {
-          const text = (o.label || o.textContent || "")
-            .replace(/\[품절\]/g, "")
-            .replace(/\s+/g, " ")
-            .trim();
-
-          const type = o.parentElement?.label || "OPTION"; // SIZE / COLOR / etc
-
-          return {
-            value: o.value,
-            text,
-            type,
-            disabled: o.disabled || o.textContent.includes("품절"),
-          };
-        })
-        .filter((o) => o.value && o.value !== "*" && o.value !== "**"),
-    );
-
-    // ─────────────────────────────
-    // 2. LOOP OPTIONS
-    // ─────────────────────────────
-    for (const size of sizes) {
-      if (size.disabled) continue;
-
-      await page.selectOption("#product_option_id1", size.value);
-
-      await page.waitForFunction(
-        () =>
-          document.querySelectorAll(".option_products tr.option_product")
-            .length > 0,
-        null,
-        { timeout: 5000 },
-      );
-
+    async function waitVariants() {
       await page
-        .waitForSelector(".option_products tr.option_product", {
-          timeout: 3000,
-        })
-        .catch(() => {});
+        .waitForFunction(() =>
+          document.querySelectorAll(".option_products tr.option_product").length > 0
+        )
+        .catch(() => { });
+    }
 
-      // ─────────────────────────────
-      // 3. BASE VARIANTS (NO STRING PARSE)
-      // ─────────────────────────────
-      const baseVariants = await page.$$eval(
+    async function select(selector, value) {
+      await page.selectOption(selector, value);
+      await page.waitForTimeout(800);
+    }
+
+    async function extractRendered() {
+      return await page.$$eval(
         ".option_products tr.option_product",
-        (rows, sizeType) => {
+        (rows) => {
           const parsePrice = (t) =>
             parseInt((t || "").replace(/[^\d]/g, ""), 10) || 0;
 
-          return rows.map((row) => {
+          return rows.map((row, idx) => {
             const nameEl = row.querySelector("p.product");
 
-            const product = nameEl.childNodes[0]?.textContent?.trim() || "";
+            // text node đầu tiên = tên sản phẩm
+            const product = nameEl?.childNodes[0]?.textContent?.trim() || "";
 
-            const option =
-              nameEl.querySelector("span")?.textContent?.trim() || "";
+            // span bên trong = option text (size, color...)
+            const option = nameEl?.querySelector("span")?.textContent?.trim() || "";
 
-            const price = parsePrice(
-              row.querySelector(".ec-front-product-item-price")?.innerText,
-            );
+            const priceText =
+              row.querySelector(".ec-front-product-item-price")?.innerText?.trim() || "";
 
             const input = row.querySelector(".option_box_id");
+            const rawId = input?.value || `unknown_${idx}`;
+
+            const soldout =
+              (nameEl?.textContent || "").includes("[품절]") ||
+              (nameEl?.textContent || "").includes("Sold Out");
 
             return {
-              variantId: input?.value || null,
+              variantId: rawId,
               product,
               option,
-              optionType: sizeType, // 👈 IMPORTANT
-              price,
+              price: parsePrice(priceText),
+              soldout,
             };
           });
         },
-        size.type, // 👈 inject từ NodeJS
       );
+    }
 
-      // ─────────────────────────────
-      // 4. PUSH BASE VARIANTS (CLEAN)
-      // ─────────────────────────────
-      for (const v of baseVariants) {
-        results.push({
-          variantId: v.variantId,
-          type: "variant",
-          name: cleanText(`${v.product} - ${v.optionType} ${v.option}`),
-          price: v.price,
-        });
-      }
-
-      // ─────────────────────────────
-      // 5. ADDONS
-      // ─────────────────────────────
-      const addons = await page.$$eval(
-        ".productSet.additional li.xans-record-",
+    async function getAddons() {
+      return await page.$$eval(
+        ".productSet.additional ul.product > li.xans-record-",
         (items) =>
           items.map((item) => {
             const name =
-              item.querySelector(".name strong")?.textContent?.trim() || "";
+              item.querySelector(".information .name strong")?.textContent?.trim() || "";
 
-            const price =
-              parseInt(
-                (
-                  item.querySelector(".price strong")?.textContent || ""
-                ).replace(/[^\d]/g, ""),
-                10,
-              ) || 0;
+            const priceText =
+              item.querySelector(".information p.price strong")?.textContent?.trim() || "";
+            const price = parseInt(priceText.replace(/[^\d]/g, ""), 10) || 0;
 
-            const addonId = item
-              .querySelector("select")
-              ?.getAttribute("option_product_no");
+            const selectEl = item.querySelector("select");
 
-            const options = Array.from(item.querySelectorAll("select option"))
-              .map((o) => ({
-                value: o.value,
-                text: (o.label || o.textContent || "")
-                  .replace(/\[품절\]/g, "")
-                  .replace(/\s+/g, " ")
-                  .trim(),
-                disabled: o.disabled || o.textContent.includes("품절"),
-              }))
-              .filter((o) => o.value && o.value !== "*" && o.value !== "**");
+            // ✅ addonId: ưu tiên option_product_no, fallback parse từ id
+            const addonId =
+              selectEl?.getAttribute("option_product_no") ||
+              selectEl?.id?.match(/addproduct_option_id_(\d+)/)?.[1] ||
+              null;
+
+            const options = selectEl
+              ? Array.from(selectEl.querySelectorAll("option"))
+                .map((o) => ({
+                  value: o.value,
+                  text: (o.label || o.textContent || "")
+                    .replace(/\[품절\]/g, "")
+                    .replace(/\s+/g, " ")
+                    .trim(),
+                  disabled:
+                    o.disabled ||
+                    o.value === "*" ||
+                    o.value === "**" ||
+                    (o.textContent || "").includes("품절"),
+                }))
+                .filter((o) => o.value && o.value !== "*" && o.value !== "**")
+              : [];
 
             return { addonId, name, price, options };
           }),
       );
+    }
 
-      // ─────────────────────────────
-      // 6. FLATTEN ADDONS (NO SIZE DUPLICATION)
-      // ─────────────────────────────
-      for (const base of baseVariants) {
-        for (const addon of addons) {
-          for (const opt of addon.options) {
-            if (opt.disabled) continue;
+    // ─────────────────────────────
+    // 1. SIZE OPTIONS
+    // ─────────────────────────────
+    const sizes = await page.$$eval("#product_option_id1 option", (opts) =>
+      opts
+        .map((o) => ({
+          value: o.value,
+          text: (o.label || o.textContent || "")
+            .replace(/\[품절\]/g, "")
+            .replace(/\s+/g, " ")
+            .trim(),
+          type: o.parentElement?.label || "OPTION",
+          disabled: o.disabled || (o.textContent || "").includes("품절"),
+        }))
+        .filter((o) => o.value && o.value !== "*" && o.value !== "**"),
+    );
 
-            results.push({
-              variantId: `${size.value}|${base.variantId}|addon_${addon.addonId}_${opt.value}`,
-              type: "variant",
-              name: cleanText(
-                [base.name, addon.name, opt.text].join(" - "),
-              ),
-              price: base.price + addon.price,
-            });
-          }
+    // ─────────────────────────────
+    // 2. LOOP SIZES
+    // ─────────────────────────────
+    for (const size of sizes) {
+      if (size.disabled) continue;
+
+      await select("#product_option_id1", size.value);
+      await waitVariants();
+
+      const baseVariants = await extractRendered();
+
+      // ✅ Chỉ lấy variant đúng với size đang select
+      const matchedVariant = baseVariants.find(
+        (v) => v.variantId === size.value
+      );
+
+      // Nếu không tìm thấy exact match thì lấy cái đầu tiên
+      const v = matchedVariant || baseVariants[0];
+      if (!v) continue;
+
+      const fullName = cleanText(
+        `${productName} - ${size.type} ${size.text}`
+      );
+
+      const variantId = `${size.value}__${size.value}`;
+
+      // ── Base variant ──
+      results.push({
+        variantId,
+        name_kr: fullName,
+        type: "variant",
+        price: { sale: v.price || null, discount: null },
+        price_raw: { priceText: String(v.price || ""), discountText: "" },
+        thumbnail: null,
+        variant_detail_images: [],
+        flags: [],
+        is_soldout: false,
+      });
+
+      await page.waitForSelector(
+        ".productSet.additional ul.product > li.xans-record-",
+        { timeout: 3000 }
+      ).catch(() => { });
+
+      // ── Addons ──
+      const addons = await getAddons();
+
+      for (const addon of addons) {
+        // ✅ Addon không có options → treat như 1 option duy nhất
+        if (addon.options.length === 0) {
+          const addonName = cleanText(`${fullName} - ${addon.name}`);
+          const addonVariantId = `${size.value}|addon_${addon.addonId || addon.name.replace(/\s+/g, "_")}_single`;
+
+          results.push({
+            variantId: addonVariantId,
+            name_kr: addonName,
+            type: "variant",
+            price: {
+              sale: (v.price || 0) + (addon.price || 0) || null,
+              discount: null,
+            },
+            price_raw: {
+              priceText: String((v.price || 0) + (addon.price || 0)),
+              discountText: "",
+            },
+            thumbnail: null,
+            variant_detail_images: [],
+            flags: [],
+            is_soldout: false,
+          });
+          continue;
+        }
+
+        // Addon có options → loop như cũ
+        for (const opt of addon.options) {
+          if (opt.disabled) continue;
+
+          const addonName = cleanText(
+            `${fullName} - ${addon.name}${opt.text ? " " + opt.text : ""}`
+          );
+          const addonVariantId = `${size.value}|addon_${addon.addonId}_${opt.value}`;
+
+          results.push({
+            variantId: addonVariantId,
+            name_kr: addonName,
+            type: "variant",
+            price: {
+              sale: (v.price || 0) + (addon.price || 0) || null,
+              discount: null,
+            },
+            price_raw: {
+              priceText: String((v.price || 0) + (addon.price || 0)),
+              discountText: "",
+            },
+            thumbnail: null,
+            variant_detail_images: [],
+            flags: [],
+            is_soldout: false,
+          });
         }
       }
     }
-
-    return results;
+    // ─────────────────────────────
+    // DEDUPE theo variantId
+    // ─────────────────────────────
+    return [...new Map(results.map((v) => [v.variantId, v])).values()];
   } catch (err) {
     console.log("getGenGVariants error:", err.message);
     return [];
@@ -564,7 +632,7 @@ async function simulateHuman(page) {
     await page.mouse.move(Math.random() * 400, Math.random() * 400);
     await page.waitForTimeout(500 + Math.random() * 1000);
     await page.mouse.wheel(0, 300 + Math.random() * 700);
-  } catch {}
+  } catch { }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -642,47 +710,47 @@ async function processProduct({
 
     const merged = old
       ? {
-          ...old,
-          name: fresh.name ?? old.name,
-          specs: fresh.specs ?? old.specs,
-          detail_html: fresh.detail_html ?? old.detail_html,
-          detail_images: fresh.detail_images?.length
-            ? fresh.detail_images
-            : old.detail_images,
-          images: fresh.images?.length ? fresh.images : old.images,
-          variants: mergeVariants(old.variants, fresh.variants),
-          source_rating_avg: fresh.source_rating_avg ?? old.source_rating_avg,
-          source_rating_count:
-            fresh.source_rating_count ?? old.source_rating_count,
-          price: productChanged ? fresh.price : old.price,
-          price_raw: productChanged ? fresh.price_raw : old.price_raw,
-          hash: fresh.hash,
-          image_hash: fresh.image_hash,
-          change_log: [
-            ...(old.change_log ?? []).slice(-9),
-            {
-              crawledAt: new Date().toISOString(),
-              productChanged,
-              imageChanged,
-              variantsChanged: variantChanges
-                .filter((v) => v.changed)
-                .map((v) => v.variantId),
-            },
-          ],
-          crawledAt: new Date().toISOString(),
-        }
+        ...old,
+        name: fresh.name ?? old.name,
+        specs: fresh.specs ?? old.specs,
+        detail_html: fresh.detail_html ?? old.detail_html,
+        detail_images: fresh.detail_images?.length
+          ? fresh.detail_images
+          : old.detail_images,
+        images: fresh.images?.length ? fresh.images : old.images,
+        variants: mergeVariants(old.variants, fresh.variants),
+        source_rating_avg: fresh.source_rating_avg ?? old.source_rating_avg,
+        source_rating_count:
+          fresh.source_rating_count ?? old.source_rating_count,
+        price: productChanged ? fresh.price : old.price,
+        price_raw: productChanged ? fresh.price_raw : old.price_raw,
+        hash: fresh.hash,
+        image_hash: fresh.image_hash,
+        change_log: [
+          ...(old.change_log ?? []).slice(-9),
+          {
+            crawledAt: new Date().toISOString(),
+            productChanged,
+            imageChanged,
+            variantsChanged: variantChanges
+              .filter((v) => v.changed)
+              .map((v) => v.variantId),
+          },
+        ],
+        crawledAt: new Date().toISOString(),
+      }
       : {
-          ...fresh,
-          change_log: [
-            {
-              crawledAt: new Date().toISOString(),
-              productChanged: true,
-              imageChanged: true,
-              variantsChanged: fresh.variants.map((v) => v.variantId),
-            },
-          ],
-          crawledAt: new Date().toISOString(),
-        };
+        ...fresh,
+        change_log: [
+          {
+            crawledAt: new Date().toISOString(),
+            productChanged: true,
+            imageChanged: true,
+            variantsChanged: fresh.variants.map((v) => v.variantId),
+          },
+        ],
+        crawledAt: new Date().toISOString(),
+      };
 
     existingMap.set(productId, merged);
     resultMap.set(productId, merged);
@@ -734,7 +802,7 @@ async function processFile(sessionManager, fileName) {
               resultMap.set(p.productId, p);
             }
           }
-        } catch {}
+        } catch { }
       });
     log.info(`loaded existing: ${existingMap.size}`);
   }

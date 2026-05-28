@@ -17,10 +17,10 @@ app.use((req, res, next) => {
 
 /* ========================= */
 /* CONFIG */
-const INPUT_DIR = path.resolve(__dirname, "../../data/translate/t1/success");
+const INPUT_DIR = path.resolve(__dirname, "../../data/translate/geng/success");
 // const INPUT_DIR = path.resolve(__dirname, "../../data/translate/oliveyoung/retry_failed");
-const SUCCESS_DIR = path.resolve(__dirname, "../../data/translate/t1/success");
-const FAILED_DIR = path.resolve(__dirname, "../../data/translate/t1/failed");
+const SUCCESS_DIR = path.resolve(__dirname, "../../data/translate/geng/success");
+const FAILED_DIR = path.resolve(__dirname, "../../data/translate/geng/failed");
 const CHECKPOINT_FILE = path.join(__dirname, "checkpoint.json");
 
 fsExtra.ensureDirSync(SUCCESS_DIR);
@@ -333,18 +333,29 @@ function mergeVariants(base, enriched = [], productNameVi, product) {
 
     const translated = match?.name_vi;
 
-    let finalName;
+    // fallback đúng field
+    const variantName =
+      v.name_kr ||
+      v.name ||
+      "";
 
+    let finalName;
+    let diff;
     if (isDiffMode(product.source)) {
+      diff = extractDiff(product.name, variantName);
+
       finalName = translated
         ? `${productNameVi} - ${translated}`
-        : `${productNameVi} - ${extractDiff(product.name, v.name_kr)}`;
+        : diff
+          ? `${productNameVi} - ${diff}`
+          : productNameVi;
     } else {
       finalName = translated || v.name_vi || v.name;
     }
 
     console.log(`🔧 VARIANT MERGE: ${v.variantId}`, {
       old: v.name_vi,
+      diff,
       new: finalName,
     });
 
