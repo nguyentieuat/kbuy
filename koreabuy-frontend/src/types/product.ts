@@ -7,6 +7,14 @@ export interface ProductImage {
   sort_order?: number;
 }
 
+export interface ProductOption {
+  id: number;
+  name: string;
+  position: number;
+  type: string;
+  values: string[];
+}
+
 export interface ProductVariant {
   id: number;
   productId: number;
@@ -70,6 +78,10 @@ export interface Product {
     image: string | null;
     images?: ProductImage[];
   };
+
+  options?: ProductOption[];
+
+  addons?: any[];
 
   // ── Variants ──
   variants?: ProductVariant[];

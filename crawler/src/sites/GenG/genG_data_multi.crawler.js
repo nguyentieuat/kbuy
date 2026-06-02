@@ -65,13 +65,21 @@ function hashProduct(product) {
   return md5(
     JSON.stringify({
       name: product.name,
+
       specs: product.specs,
+
+      options: product.options,
+
+      addons: product.addons,
+
       price: {
         originalPrice: product.price?.originalPrice,
         salePrice: product.price?.salePrice,
         discount: product.price?.discount,
       },
+
       flags: product.source_flags,
+
       rating: {
         avg: product.source_rating_avg,
         count: product.source_rating_count,
@@ -79,14 +87,24 @@ function hashProduct(product) {
     }),
   );
 }
-
 function hashVariant(v) {
   return md5(
     JSON.stringify({
       name: v.name_kr,
-      price: { sale: v.price?.sale, discount: v.price?.discount },
+
+      attributes: v.attributes,
+
+      price: {
+        sale: v.price?.sale,
+        discount: v.price?.discount,
+      },
+
       soldout: v.is_soldout,
-      thumbnail: v.thumbnail,
+
+      images: {
+        thumbnail: v.thumbnail,
+        detail: [...(v.variant_detail_images || [])].sort(),
+      },
     }),
   );
 }
@@ -107,11 +125,23 @@ function normalizeGenGUrl(url) {
   }
 }
 
+function absoluteUrl(url, baseUrl) {
+  if (!url) return null;
+
+  try {
+    return new URL(url, baseUrl).href;
+  } catch {
+    return url;
+  }
+}
+
 function extractGenGProductId(url) {
   try {
-    const match = url.match(/\/product\/.*?\/(\d+)\//);
+    const pretty = url.match(/\/product\/.*?\/(\d+)\//);
+    if (pretty) return pretty[1];
 
-    return match ? match[1] : null;
+    const u = new URL(url);
+    return u.searchParams.get("product_no");
   } catch {
     return null;
   }
@@ -200,30 +230,58 @@ async function getGenGRating(page) {
 
 async function getGenGSpecs(page) {
   try {
+    // đợi DOM render thật sự
+    await page.waitForTimeout(5000);
+
     // ─────────────────────────────
     // 0. CLICK TAB "상세정보" (quan trọng)
     // ─────────────────────────────
-    const tab = page.locator('li:has(a:has-text("상세정보")) a').first();
+    const li = page.locator(
+      'li:has(a:has-text("상세정보"))'
+    ).first();
 
-    if (await tab.count()) {
-      await tab.click().catch(() => { });
-    }
+    await page.evaluate(() => {
+      document
+        .querySelectorAll(
+          '#app-saladlab-alphareview-onsite-box-164658'
+        )
+        .forEach(el => el.remove());
+    });
 
-    // đợi tab active (class selected)
-    await page
-      .locator('li.selected:has(a:has-text("상세정보"))')
-      .waitFor({ timeout: 5000 })
-      .catch(() => { });
-
-    // đợi DOM render thật sự
-    await page.waitForTimeout(1200);
+    await li.click({
+      force: true
+    });
 
     // ─────────────────────────────
     // 1. ROOT
     // ─────────────────────────────
-    const root = page.locator(".edibot-product-detail").first();
+    const selectors = [
+      ".edibot-product-detail",
+      ".xans-product-detail",
+      ".prd-detail",
+      ".cont"
+    ];
 
-    await root.waitFor({ state: "attached", timeout: 5000 }).catch(() => { });
+    let root = null;
+
+    for (const sel of selectors) {
+      const locator = page.locator(sel).first();
+      const exists = await locator.count().catch(() => 0);
+
+      if (exists > 0) {
+        root = locator;
+        break;
+      }
+    }
+
+    if (!root) {
+      root = page.locator("body");
+    }
+
+    // optional wait (không fail crawler)
+    try {
+      await root.waitFor({ state: "attached", timeout: 3000 });
+    } catch (_) { }
 
     const detailHtml = await root.innerHTML().catch(() => null);
 
@@ -269,10 +327,20 @@ async function getGenGSpecs(page) {
 
     return {
       specs: {},
-      detail_html: detailHtml,
-      detail_images: detailImages,
+      detail_html: detailHtml.replace(
+        /(ec-data-src|src)="([^"]+)"/g,
+        (_, attr, url) => {
+          return `${attr}="${absoluteUrl(
+            url,
+            "https://shop-GenG.gg"
+          )}"`;
+        }
+      ),
+
+      detail_images: [...new Set(detailImages)],
     };
   } catch (err) {
+    console.error("getGenGSpecs error:", err);
     return {
       specs: {},
       detail_html: null,
@@ -292,16 +360,11 @@ function cleanOptionText(t) {
     .trim();
 }
 
-async function getGenGVariants(page, productId) {
+async function getGenGVariants(page, productId, salePrice = null, discount = null) {
   try {
     const results = [];
+    const optionsMeta = [];
 
-    const parsePrice = (t) =>
-      parseInt((t || "").replace(/[^\d]/g, ""), 10) || 0;
-
-    // ─────────────────────────────
-    // 0. PRODUCT NAME
-    // ─────────────────────────────
     const productName = cleanText(
       await page.$eval(".headingArea h2", (el) => el.innerText),
     );
@@ -309,6 +372,22 @@ async function getGenGVariants(page, productId) {
     // ─────────────────────────────
     // HELPERS
     // ─────────────────────────────
+
+    // ─────────────────────────────
+    // Parse price delta từ option text
+    // ─────────────────────────────
+    function parsePriceDelta(text) {
+      // (+45,000원) hoặc (-3,600원)
+      const match = text.match(/\(([+-][0-9,]+)원\)/);
+      if (!match) return 0;
+      return parseInt(match[1].replace(/,/g, ""), 10) || 0;
+    }
+
+    async function select(selector, value) {
+      await page.selectOption(selector, value);
+      await page.waitForTimeout(500);
+    }
+
     async function waitVariants() {
       await page
         .waitForFunction(() =>
@@ -317,48 +396,6 @@ async function getGenGVariants(page, productId) {
         .catch(() => { });
     }
 
-    async function select(selector, value) {
-      await page.selectOption(selector, value);
-      await page.waitForTimeout(800);
-    }
-
-    async function extractRendered() {
-      return await page.$$eval(
-        ".option_products tr.option_product",
-        (rows) => {
-          const parsePrice = (t) =>
-            parseInt((t || "").replace(/[^\d]/g, ""), 10) || 0;
-
-          return rows.map((row, idx) => {
-            const nameEl = row.querySelector("p.product");
-
-            // text node đầu tiên = tên sản phẩm
-            const product = nameEl?.childNodes[0]?.textContent?.trim() || "";
-
-            // span bên trong = option text (size, color...)
-            const option = nameEl?.querySelector("span")?.textContent?.trim() || "";
-
-            const priceText =
-              row.querySelector(".ec-front-product-item-price")?.innerText?.trim() || "";
-
-            const input = row.querySelector(".option_box_id");
-            const rawId = input?.value || `unknown_${idx}`;
-
-            const soldout =
-              (nameEl?.textContent || "").includes("[품절]") ||
-              (nameEl?.textContent || "").includes("Sold Out");
-
-            return {
-              variantId: rawId,
-              product,
-              option,
-              price: parsePrice(priceText),
-              soldout,
-            };
-          });
-        },
-      );
-    }
 
     async function getAddons() {
       return await page.$$eval(
@@ -367,19 +404,14 @@ async function getGenGVariants(page, productId) {
           items.map((item) => {
             const name =
               item.querySelector(".information .name strong")?.textContent?.trim() || "";
-
             const priceText =
               item.querySelector(".information p.price strong")?.textContent?.trim() || "";
             const price = parseInt(priceText.replace(/[^\d]/g, ""), 10) || 0;
-
             const selectEl = item.querySelector("select");
-
-            // ✅ addonId: ưu tiên option_product_no, fallback parse từ id
             const addonId =
               selectEl?.getAttribute("option_product_no") ||
               selectEl?.id?.match(/addproduct_option_id_(\d+)/)?.[1] ||
               null;
-
             const options = selectEl
               ? Array.from(selectEl.querySelectorAll("option"))
                 .map((o) => ({
@@ -396,15 +428,19 @@ async function getGenGVariants(page, productId) {
                 }))
                 .filter((o) => o.value && o.value !== "*" && o.value !== "**")
               : [];
-
             return { addonId, name, price, options };
           }),
       );
     }
 
     // ─────────────────────────────
-    // 1. SIZE OPTIONS
+    // 1. OPTIONS META
     // ─────────────────────────────
+    const sizeTitle = await page.$eval(
+      "tr:has(#product_option_id1) th",
+      (el) => el?.innerText?.trim() || "SIZE"
+    ).catch(() => "SIZE");
+
     const sizes = await page.$$eval("#product_option_id1 option", (opts) =>
       opts
         .map((o) => ({
@@ -419,70 +455,92 @@ async function getGenGVariants(page, productId) {
         .filter((o) => o.value && o.value !== "*" && o.value !== "**"),
     );
 
+    optionsMeta.push({
+      name: sizeTitle,
+      position: 0,
+      type: "variant",
+      values: sizes.map(s => ({
+        label: s.text,
+        value: s.value,
+      })),
+    });
+
     // ─────────────────────────────
     // 2. LOOP SIZES
     // ─────────────────────────────
+    const addons = await getAddons();
+    const addonsMeta = addons.map(addon => ({
+      addonId: addon.addonId,
+      name: addon.name,
+      price: addon.price,
+      options: addon.options.map(opt => ({
+        label: opt.text,
+        value: opt.value,
+      })),
+    }));
+
     for (const size of sizes) {
       if (size.disabled) continue;
 
-      await select("#product_option_id1", size.value);
-      await waitVariants();
+      // Lấy giá từ rendered table (có thể khác nhau theo size)
+      const sizeText = cleanOptionText(size.text);
+      const sizeDelta = parsePriceDelta(size.text);
 
-      const baseVariants = await extractRendered();
+      // Tính giá
+      const baseSizePrice = (salePrice ?? 0) + sizeDelta;
+      const baseSizePriceAfterDiscount = Math.round(baseSizePrice * (1 - (discount ?? 0) / 100));
 
-      // ✅ Chỉ lấy variant đúng với size đang select
-      const matchedVariant = baseVariants.find(
-        (v) => v.variantId === size.value
-      );
+      const variantId = `${productId}_${size.value}`.toLowerCase();
 
-      // Nếu không tìm thấy exact match thì lấy cái đầu tiên
-      const v = matchedVariant || baseVariants[0];
-      if (!v) continue;
-
-      const fullName = cleanText(
-        `${productName} - ${size.type} ${size.text}`
-      );
-
-      const variantId = `${size.value}__${size.value}`;
+      const fullName = cleanText(`${productName} - ${size.type} ${size.text}`);
 
       // ── Base variant ──
       results.push({
         variantId,
-        name_kr: fullName,
+        name_kr: size.text,
+        attributes: { [sizeTitle]: size.text },
+        source_option_values: {
+          option1: size.value,
+        },
         type: "variant",
-        price: { sale: v.price || null, discount: null },
-        price_raw: { priceText: String(v.price || ""), discountText: "" },
+        price: { sale: baseSizePriceAfterDiscount, original: baseSizePrice, discount: discount },
+        price_raw: {
+          priceText: String(baseSizePriceAfterDiscount || ""),
+          discountText: `${discount || 0}%`,
+        },
         thumbnail: null,
         variant_detail_images: [],
         flags: [],
         is_soldout: false,
       });
 
+      // ── Addons ──
       await page.waitForSelector(
         ".productSet.additional ul.product > li.xans-record-",
-        { timeout: 3000 }
+        { timeout: 2000 }
       ).catch(() => { });
 
-      // ── Addons ──
-      const addons = await getAddons();
-
       for (const addon of addons) {
-        // ✅ Addon không có options → treat như 1 option duy nhất
+        // Addon không có options → 1 option duy nhất
         if (addon.options.length === 0) {
-          const addonName = cleanText(`${fullName} - ${addon.name}`);
-          const addonVariantId = `${size.value}|addon_${addon.addonId || addon.name.replace(/\s+/g, "_")}_single`;
+          const addonVariantId = `${productId}_${size.value}|addon_${addon.addonId || addon.name.replace(/\s+/g, "_")}_single`.toLowerCase();
 
           results.push({
             variantId: addonVariantId,
-            name_kr: addonName,
-            type: "variant",
-            price: {
-              sale: (v.price || 0) + (addon.price || 0) || null,
-              discount: null,
+            name_kr: `${size.text} - ${addon.name}`,
+            attributes: { [sizeTitle]: size.text, addon: addon.name },
+            source_option_values: {
+              option1: size.value,
+
+              addon: {
+                addonId: addon.addonId,
+              }
             },
+            type: "variant",
+            price: { sale: baseSizePriceAfterDiscount, original: baseSizePrice, discount: discount },
             price_raw: {
-              priceText: String((v.price || 0) + (addon.price || 0)),
-              discountText: "",
+              priceText: String(baseSizePriceAfterDiscount || ""),
+              discountText: `${discount || 0}%`,
             },
             thumbnail: null,
             variant_detail_images: [],
@@ -492,26 +550,41 @@ async function getGenGVariants(page, productId) {
           continue;
         }
 
-        // Addon có options → loop như cũ
+        // Addon có options → loop
         for (const opt of addon.options) {
           if (opt.disabled) continue;
 
-          const addonName = cleanText(
-            `${fullName} - ${addon.name}${opt.text ? " " + opt.text : ""}`
+          const addonVariantId = `${productId}_${size.value}|addon_${addon.addonId}_${opt.value}`.toLowerCase();
+
+          // Tính giá
+          const adjustedPrice = baseSizePrice + addon.price;
+
+          const finalPrice = Math.round(
+            adjustedPrice * (1 - ((discount ?? 0) || 0) / 100)
           );
-          const addonVariantId = `${size.value}|addon_${addon.addonId}_${opt.value}`;
+          const originalPrice = adjustedPrice;
+
 
           results.push({
             variantId: addonVariantId,
-            name_kr: addonName,
-            type: "variant",
-            price: {
-              sale: (v.price || 0) + (addon.price || 0) || null,
-              discount: null,
+            name_kr: `${size.text} - ${addon.name} ${opt.text}`.trim(),
+            attributes: {
+              [sizeTitle]: size.text,
+              [addon.name]: opt.text,
             },
+            source_option_values: {
+              option1: size.value,
+
+              addon: {
+                addonId: addon.addonId,
+                optionValue: opt.value,
+              }
+            },
+            type: "variant",
+            price: { sale: finalPrice, original: originalPrice, discount: discount },
             price_raw: {
-              priceText: String((v.price || 0) + (addon.price || 0)),
-              discountText: "",
+              priceText: String(finalPrice || ""),
+              discountText: `${discount || 0}%`,
             },
             thumbnail: null,
             variant_detail_images: [],
@@ -521,13 +594,24 @@ async function getGenGVariants(page, productId) {
         }
       }
     }
-    // ─────────────────────────────
-    // DEDUPE theo variantId
-    // ─────────────────────────────
-    return [...new Map(results.map((v) => [v.variantId, v])).values()];
+
+    const dedupedVariants =
+      [...new Map(results.map(v => [v.variantId, v])).values()];
+
+    const variantsWithHash =
+      dedupedVariants.map(v => ({
+        ...v,
+        hash: hashVariant(v),
+      }));
+
+    return {
+      options: optionsMeta,
+      addons: addonsMeta,
+      variants: variantsWithHash,
+    };
   } catch (err) {
     console.log("getGenGVariants error:", err.message);
-    return [];
+    return { options: [], variants: [] };
   }
 }
 // ─────────────────────────────────────────────────────────────────────────────
@@ -554,15 +638,22 @@ async function crawlProduct(page, url) {
 
     log.info(`productId: ${productId}`);
 
-    const [name, price, specsData, images, variants, rating] =
+    const [name, price, specsData, images, rating] =
       await Promise.all([
         getGenGName(page),
         getGenGPrice(page),
         getGenGSpecs(page),
         getGenGImages(page),
-        getGenGVariants(page, productId),
         getGenGRating(page),
       ]);
+
+    const variantData =
+      await getGenGVariants(
+        page,
+        productId,
+        price.originalPrice,
+        price.discount
+      );
 
     const product = {
       productId,
@@ -600,17 +691,14 @@ async function crawlProduct(page, url) {
 
       source_rating_count: rating.count,
 
-      variants,
+      options: variantData.options,
+      addons: variantData.addons,
+      variants: variantData.variants,
     };
 
     product.hash = hashProduct(product);
 
     product.image_hash = hashImageUrls(images);
-
-    product.variants = product.variants.map((v) => ({
-      ...v,
-      hash: hashVariant(v),
-    }));
 
     log.ok(`crawlProduct done: ${productId}`);
 
@@ -718,6 +806,8 @@ async function processProduct({
           ? fresh.detail_images
           : old.detail_images,
         images: fresh.images?.length ? fresh.images : old.images,
+        options: fresh.options,
+        addons: fresh.addons,
         variants: mergeVariants(old.variants, fresh.variants),
         source_rating_avg: fresh.source_rating_avg ?? old.source_rating_avg,
         source_rating_count:

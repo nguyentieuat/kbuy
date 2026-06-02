@@ -27,7 +27,7 @@ const fsExtra = require("fs-extra");
 // CONFIG — điều chỉnh theo từng source
 // ─────────────────────────────────────────────
 
-const SOURCE = process.argv[2] || "geng"; // oliveyoung | musinsa | t1
+const SOURCE = process.argv[2] || "t1"; // oliveyoung | musinsa | t1
 
 const CRAWL_DIR = path.resolve(__dirname, `../../data/output_products/${SOURCE}`);
 const SUCCESS_DIR = path.resolve(
@@ -94,6 +94,57 @@ function getChangedVariants(oldVariants = [], newVariants = []) {
   return changed;
 }
 
+function mergeCrawlerData(
+  existing,
+  crawled,
+  translationChanged = false
+) {
+  const {
+    translationStatus,
+    translationError,
+    translatedHash,
+    translatedAt,
+    name_vi,
+    specs_vi,
+    ...crawlerData
+  } = crawled;
+
+  return {
+    ...existing,
+    ...crawlerData,
+
+    name_vi: existing.name_vi,
+    specs_vi: existing.specs_vi,
+
+    translationStatus:
+      translationChanged
+        ? "needs_retranslate"
+        : existing.translationStatus,
+
+    translatedHash: existing.translatedHash,
+    translatedAt: existing.translatedAt,
+    translationError: null,
+  };
+}
+
+const crypto = require("crypto");
+
+function md5(str) {
+  return crypto
+    .createHash("md5")
+    .update(str)
+    .digest("hex");
+}
+
+function buildTranslationHash(product) {
+  return md5(
+    JSON.stringify({
+      name: product.name,
+      specs: product.specs,
+    }),
+  );
+}
+
 // ─────────────────────────────────────────────
 // MAIN
 // ─────────────────────────────────────────────
@@ -129,7 +180,7 @@ async function main() {
     const newToTranslate = []; // sản phẩm chưa có trong success
 
     for (const crawled of crawlRows) {
-      const { productId, hash, image_hash, variants = [] } = crawled;
+      const { productId, image_hash, variants = [] } = crawled;
       const existing = successMap.get(productId);
 
       // ── TH1: Chưa có trong success ──────────────────
@@ -147,7 +198,9 @@ async function main() {
       }
 
       // ── TH2: Đã có → so sánh hash ───────────────────
-      const productChanged = existing.hash !== hash;
+      const translationChanged =
+        buildTranslationHash(existing) !==
+        buildTranslationHash(crawled);
       const imageChanged = existing.image_hash !== image_hash;
       const changedVariants = getChangedVariants(
         existing.variants || [],
@@ -155,62 +208,22 @@ async function main() {
       );
       const anyVariantChanged = changedVariants.length > 0;
 
-      if (!productChanged && !imageChanged && !anyVariantChanged) {
+      if (
+        !translationChanged &&
+        !imageChanged &&
+        !anyVariantChanged
+      ) {
         stats.unchanged++;
-        continue; // không đổi gì → bỏ qua
+        continue;
       }
 
       console.log(
-        `  🔄 CHANGED: ${productId} | product=${productChanged} image=${imageChanged} variants=${changedVariants.length}`,
+        `  🔄 CHANGED: ${productId} | product=${translationChanged} image=${imageChanged} variants=${changedVariants.length}`,
       );
 
       // Merge: giữ data VI cũ, cập nhật KR mới
-      const updatedRow = {
-        ...existing,
-
-        // Cập nhật data KR mới
-        name: crawled.name,
-        specs: crawled.specs,
-        price: crawled.price,
-        price_raw: crawled.price_raw,
-        images: crawled.images,
-        source_flags: crawled.source_flags,
-        source_rating_avg: crawled.source_rating_avg,
-        source_rating_count: crawled.source_rating_count,
-        hash: crawled.hash,
-        image_hash: crawled.image_hash,
-        crawledAt: crawled.crawledAt,
-        change_log: crawled.change_log,
-
-        // Merge variants — giữ name_vi cũ, cập nhật KR mới
-        variants: variants.map((nv) => {
-          const ov = (existing.variants || []).find(
-            (v) => v.variantId === nv.variantId,
-          );
-          if (!ov) return nv; // variant mới hoàn toàn
-
-          return {
-            ...nv,
-            name_vi: ov.name_vi || null, // giữ name_vi cũ
-            shipping: ov.shipping || null, // giữ shipping cũ nếu có
-            hash: nv.hash, // dùng hash mới
-          };
-        }),
-
-        // giữ VI cũ
-        translationStatus: productChanged
-          ? "needs_retranslate"
-          : existing.translationStatus,
-
-        translationError: null,
-
-        translatedHash: existing.translatedHash,
-        translatedAt: existing.translatedAt,
-
-        // GIỮ translation cũ
-        name_vi: existing.name_vi,
-        specs_vi: existing.specs_vi,
-      };
+      const updatedRow =
+        mergeCrawlerData(existing, crawled, translationChanged);
 
       // Update trong successRows
       const idx = updatedSuccessRows.findIndex(
@@ -222,7 +235,7 @@ async function main() {
         updatedSuccessRows.push(updatedRow);
       }
 
-      if (productChanged) {
+      if (translationChanged) {
         stats.resetPending++;
         console.log(`    ↩️ Reset to pending (product content changed)`);
       } else {
@@ -259,7 +272,12 @@ async function main() {
     // Với product đã reset pending — cũng update trong crawl file
     const resetIds = new Set();
     for (const row of updatedSuccessRows) {
-      if (row.translationStatus === "pending") resetIds.add(row.productId);
+      if (
+        row.translationStatus === "pending" ||
+        row.translationStatus === "needs_retranslate"
+      ) {
+        resetIds.add(row.productId);
+      }
     }
 
     if (resetIds.size > 0) {
@@ -271,6 +289,7 @@ async function main() {
           translationStatus: "pending",
           translationError: null,
           translatedHash: null,
+          translatedAt: null,
         };
       });
       writeJsonl(crawlPath, updated);

@@ -31,6 +31,7 @@ function productSelect(query) {
     db.raw('p.sale_price as "price"'),
     db.raw('p.original_price as "originalPrice"'),
     "p.product_url",
+    "p.source",
     "p.slug",
     db.raw('p.discount_percent as "discountPercent"'),
     db.raw('p.source_rating_avg as "ratingAvg"'),
@@ -66,6 +67,7 @@ function productSelect(query) {
         SELECT pvi.url
         FROM product_variant_images pvi
         WHERE pvi.product_id = p.id
+          AND pvi.variant_id IS NULL
           AND pvi.is_primary = true
         LIMIT 1
       ) as "image"
@@ -285,6 +287,7 @@ async function getProductBySlug(slug) {
         )
         FROM product_variant_images pvi
         WHERE pvi.product_id = p.id
+          AND pvi.variant_id IS NULL
       ) AS images
     `),
 
@@ -373,6 +376,63 @@ async function getProductBySlug(slug) {
             AND pv.is_active = true
         ) AS variants
         `),
+
+    db.raw(`
+  (
+    SELECT COALESCE(
+      json_agg(
+        json_build_object(
+          'id', po.id,
+          'name', po.name,
+          'type', po.type,
+          'values', po.values,
+          'position', po.position
+        )
+        ORDER BY po.position
+      ),
+      '[]'::json
+    )
+    FROM product_options po
+    WHERE po.product_id = p.id
+  ) AS options
+`),
+    db.raw(`
+  (
+    SELECT COALESCE(
+      json_agg(
+        json_build_object(
+          'id', pa.id,
+          'addonId', pa.addon_id,
+          'name', pa.name,
+          'price', pa.price,
+          'position', pa.position,
+
+          'options', (
+            SELECT COALESCE(
+              json_agg(
+                json_build_object(
+                  'id', poo.id,
+                  'label', poo.label,
+                  'value', poo.value,
+                  'priceDelta', poo.price_delta,
+                  'sortOrder', poo.sort_order
+                )
+                ORDER BY poo.sort_order
+              ),
+              '[]'::json
+            )
+            FROM product_addon_options poo
+            WHERE poo.addon_id = pa.id
+          )
+        )
+        ORDER BY pa.position
+      ),
+      '[]'::json
+    )
+    FROM product_addons pa
+    WHERE pa.product_id = p.id
+  ) AS addons
+`)
   );
 
   query.where("p.slug", slug).first();
@@ -403,6 +463,7 @@ async function getProductById(productId) {
         )
         FROM product_variant_images pvi
         WHERE pvi.product_id = p.id
+          AND pvi.variant_id IS NULL
       ) AS images
     `),
 
@@ -491,6 +552,63 @@ async function getProductById(productId) {
             AND pv.is_active = true
         ) AS variants
         `),
+    db.raw(`
+        (
+          SELECT COALESCE(
+            json_agg(
+              json_build_object(
+                'id', po.id,
+                'name', po.name,
+                'type', po.type,
+                'values', po.values,
+                'position', po.position
+              )
+              ORDER BY po.position
+            ),
+            '[]'::json
+          )
+          FROM product_options po
+          WHERE po.product_id = p.id
+        ) AS options
+      `),
+    db.raw(`
+          (
+            SELECT COALESCE(
+              json_agg(
+                json_build_object(
+                  'id', pa.id,
+                  'addonId', pa.addon_id,
+                  'name', pa.name,
+                  'price', pa.price,
+                  'position', pa.position,
+
+                  'options', (
+                    SELECT COALESCE(
+                      json_agg(
+                        json_build_object(
+                          'id', poo.id,
+                          'label', poo.label,
+                          'value', poo.value,
+                          'priceDelta', poo.price_delta,
+                          'sortOrder', poo.sort_order
+                        )
+                        ORDER BY poo.sort_order
+                      ),
+                      '[]'::json
+                    )
+                    FROM product_addon_options poo
+                    WHERE poo.addon_id = pa.id
+                  )
+                )
+                ORDER BY pa.position
+              ),
+              '[]'::json
+            )
+            FROM product_addons pa
+            WHERE pa.product_id = p.id
+          ) AS addons
+        `),
+
   );
   query.where("p.id", productId).first();
 

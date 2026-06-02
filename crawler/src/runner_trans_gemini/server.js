@@ -91,24 +91,31 @@ function escapeRegex(str) {
 function extractDiff(productName, variantName) {
   if (!productName || !variantName) return variantName || "";
 
-  const product = normalizeText(productName);
-  const variant = normalizeText(variantName);
+  // const product = normalizeText(productName);
+  // const variant = normalizeText(variantName);
 
   // case 1: product nằm trong variant (chuẩn nhất)
-  if (variant.includes(product)) {
-    const regex = new RegExp(escapeRegex(product), "i");
+  if (
+    variantName.toLowerCase().includes(
+      productName.toLowerCase()
+    )
+  ) {
+    const regex = new RegExp(
+      escapeRegex(productName),
+      "i"
+    );
 
-    return variant
+    return variantName
       .replace(regex, "")
-      .replace(/[-–—:/|]/g, " ")
+      .replace(/\s*[-–—]\s*/g, " / ")
       .replace(/\s+/g, " ")
       .trim();
   }
 
   // case 2: fallback (product không match full)
-  const productWords = product.split(" ");
+  const productWords = productName.split(" ");
 
-  let diff = variant;
+  let diff = variantName;
 
   for (const w of productWords) {
     if (!w) continue;

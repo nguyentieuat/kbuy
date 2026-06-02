@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { CartItem } from "../types/cart";
 import type { Product, ProductVariant } from "../types/product";
 import * as CartApi from "../api/cart.api";
+import { resolveVariant } from "../utils/resolveVariant";
 
 type CartContextType = {
   items: CartItem[];
@@ -13,11 +14,14 @@ type CartContextType = {
     product: Product,
     variant: ProductVariant | null,
     quantity: number,
+    selectedOptions?: Record<string, string>,
+    selectedAddon?: any,
   ) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   updateVariant: (itemId: string, newVariant: ProductVariant) => void;
   removeItem: (itemId: string) => void;
   clearCart: () => void;
+  updateItemOptions: (itemId: string, options: Record<string, string>) => void;
 };
 
 const CartContext = createContext<CartContextType | null>(null);
@@ -25,31 +29,26 @@ const STORAGE_KEY = "cart_items";
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
 
     async function initCart() {
-      // guest cart
-      if (!token) {
-        try {
-          const saved = localStorage.getItem(STORAGE_KEY);
-
-          setItems(saved ? JSON.parse(saved) : []);
-        } catch {
-          setItems([]);
-        }
-
-        return;
-      }
-
-      // logged in cart
       try {
-        const res = await CartApi.fetchCart();
-
-        setItems(res.data);
+        if (!token) {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          const parsed = saved ? JSON.parse(saved) : [];
+          setItems(parsed);
+        } else {
+          const res = await CartApi.fetchCart();
+          setItems(res.data);
+        }
       } catch (err) {
         console.error(err);
+        setItems([]);
+      } finally {
+        setHydrated(true);
       }
     }
 
@@ -57,52 +56,66 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!hydrated) return;
+
     const token = localStorage.getItem("token");
 
     if (!token) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     }
-  }, [items]);
+  }, [items, hydrated]);
 
   const totalCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = items.reduce((sum, i) => {
-    const price = Number(i.variant?.pricing?.price ?? i.product.pricing?.price ?? 0);
+    const price = i.variant?.pricing?.price ?? i.product.pricing?.price ?? 0;
+
     return sum + price * i.quantity;
   }, 0);
+
+  const persistGuestCart = (items: CartItem[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  };
 
   const addToCart = async (
     product: Product,
     variant: ProductVariant | null,
     quantity: number,
+    selectedOptions: Record<string, string> = {},
+    selectedAddon: any = null,
   ) => {
+    debugger;
     const token = localStorage.getItem("token");
     // guest cart
     if (!token) {
-      const itemId = `${product.id}-${variant?.id ?? "base"}`;
+      const itemId = `${product.id}-${
+        variant?.id ?? "base"
+      }-${JSON.stringify(selectedOptions ?? {})}-${selectedAddon?.value ?? "no-addon"}`;
 
       setItems((prev) => {
         const existing = prev.find((i) => i.id === itemId);
 
+        let updated;
+
         if (existing) {
-          return prev.map((i) =>
-            i.id === itemId
-              ? {
-                  ...i,
-                  quantity: i.quantity + quantity,
-                }
-              : i,
+          updated = prev.map((i) =>
+            i.id === itemId ? { ...i, quantity: i.quantity + quantity } : i,
           );
+        } else {
+          updated = [
+            ...prev,
+            {
+              id: itemId,
+              product,
+              variant,
+              quantity,
+              selectedOptions,
+              selectedAddon,
+            },
+          ];
         }
 
-        return [
-          ...prev,
-          {
-            id: itemId,
-            product,
-            variant,
-            quantity,
-          },
-        ];
+        persistGuestCart(updated);
+        return updated;
       });
 
       return;
@@ -122,6 +135,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const updateItemOptions = (
+    itemId: string,
+    options: Record<string, string>,
+  ) => {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== itemId) return item;
+
+        const newVariant = resolveVariant(
+          item.product,
+          options,
+          item.selectedAddon,
+        );
+
+        return {
+          ...item,
+          selectedOptions: options,
+          variant: newVariant,
+        };
+      }),
+    );
   };
 
   const updateQuantity = async (itemId: string, quantity: number) => {
@@ -158,39 +194,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     // guest cart
     if (!token) {
-      setItems((prev) => {
-        const item = prev.find((i) => i.id === itemId);
+      setItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== itemId) return item;
 
-        if (!item) return prev;
-
-        const newItemId = `${item.product.id}-${newVariant.id}`;
-
-        const existingNew = prev.find((i) => i.id === newItemId);
-
-        // merge nếu variant mới đã tồn tại
-        if (existingNew) {
-          return prev
-            .filter((i) => i.id !== itemId)
-            .map((i) =>
-              i.id === newItemId
-                ? {
-                    ...i,
-                    quantity: i.quantity + item.quantity,
-                  }
-                : i,
-            );
-        }
-
-        return prev.map((i) =>
-          i.id === itemId
-            ? {
-                ...i,
-                id: newItemId,
-                variant: newVariant,
-              }
-            : i,
-        );
-      });
+          return {
+            ...item,
+            variant: newVariant,
+            selectedOptions: newVariant.attributes ?? {},
+          };
+        }),
+      );
 
       return;
     }
@@ -271,6 +285,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updateVariant,
         removeItem,
         clearCart,
+        updateItemOptions,
       }}
     >
       {children}

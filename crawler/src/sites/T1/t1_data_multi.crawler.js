@@ -52,6 +52,27 @@ function writeJsonl(filePath, rows) {
   fs.outputFileSync(filePath, content, "utf-8");
 }
 
+function absoluteUrl(url, baseUrl) {
+  if (!url) return null;
+
+  try {
+    return new URL(url, baseUrl).href;
+  } catch {
+    return url;
+  }
+}
+
+function normalizeDetailHtml(html, baseUrl) {
+  if (!html) return html;
+
+  return html.replace(
+    /(ec-data-src|src)="([^"]+)"/gi,
+    (_, attr, url) => {
+      return `${attr}="${absoluteUrl(url, baseUrl)}"`;
+    }
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // HASH
 // ─────────────────────────────────────────────────────────────────────────────
@@ -65,13 +86,19 @@ function hashProduct(product) {
   return md5(
     JSON.stringify({
       name: product.name,
+
       specs: product.specs,
+
+      options: product.options,
+
       price: {
         originalPrice: product.price?.originalPrice,
         salePrice: product.price?.salePrice,
         discount: product.price?.discount,
       },
+
       flags: product.source_flags,
+
       rating: {
         avg: product.source_rating_avg,
         count: product.source_rating_count,
@@ -79,14 +106,24 @@ function hashProduct(product) {
     }),
   );
 }
-
 function hashVariant(v) {
   return md5(
     JSON.stringify({
       name: v.name_kr,
-      price: { sale: v.price?.sale, discount: v.price?.discount },
+
+      attributes: v.attributes,
+
+      price: {
+        sale: v.price?.sale,
+        discount: v.price?.discount,
+      },
+
       soldout: v.is_soldout,
-      thumbnail: v.thumbnail,
+
+      images: {
+        thumbnail: v.thumbnail,
+        detail: [...(v.variant_detail_images || [])].sort(),
+      },
     }),
   );
 }
@@ -176,61 +213,57 @@ async function getT1Price(page) {
 
 async function getT1Rating(page) {
   try {
-    const avg = await page.evaluate(() => {
-      const selectors = [
-        ".review-summary__per",
-        ".current-grade-rate",
-        ".jsScoreRate",
-      ];
+    let best = null;
 
-      for (const sel of selectors) {
-        const el = document.querySelector(sel);
-        if (el && el.textContent.trim()) {
-          return el.textContent.trim();
-        }
-      }
+    const targetUrl = "init_detail_page";
 
-      // fallback: parse text node "5" trong review-score
-      const fallback = document.querySelector(".review-score__rate");
-      if (fallback) {
-        const match = fallback.textContent.match(/(\d+(\.\d+)?)/);
-        if (match) return match[1];
-      }
+    const responsePromise = new Promise((resolve) => {
+      const handler = async (res) => {
+        if (!res.url().includes(targetUrl)) return;
 
-      return null;
+        try {
+          const json = await res.json();
+          const srcnt = json?.data?.review?.srcnt;
+
+          const count = Number(srcnt?.count || 0);
+          const avg = Number(srcnt?.avg_score);
+
+          if (count > 0) {
+            best = { avg: avg || 5, count };
+            resolve(best);
+          }
+        } catch { }
+      };
+
+      page.on("response", handler);
+
+      setTimeout(() => resolve(best), 8000);
     });
 
-    const count = await page.evaluate(() => {
-      const el =
-        document.querySelector(".total-count-container .value") ||
-        document.querySelector(".review-summary__count") ||
-        document.querySelector(".board-count .snap_review_count");
+    const result = await responsePromise;
 
-      return el ? Number(el.textContent.trim().replace(/,/g, "")) : 0;
-    });
+    // 👇 fallback logic chuẩn
+    const final = result || { avg: 5, count: 0 };
 
-    return {
-      avg: avg ? Number(avg) : null,
-      count,
-    };
+    console.log("DONE", final);
+    return final;
+
   } catch (err) {
-    return {
-      avg: null,
-      count: 0,
-    };
+    console.error("RATING ERROR:", err);
+    return { avg: 5, count: 0 };
   }
 }
 
 async function getT1Specs(page) {
   try {
-    // lấy toàn bộ html detail
+    const productUrl = page.url();
+
     const detailHtml = await page
       .locator("#prdDetail .edibot-product-detail")
       .first()
       .innerHTML()
       .catch(() => null);
 
-    // hoặc lấy riêng image urls
     const detailImages = await page.$$eval(
       "#prdDetail .edibot-product-detail img",
       (imgs) => {
@@ -247,15 +280,24 @@ async function getT1Specs(page) {
           })
           .filter(Boolean)
           .filter((src) => !src.startsWith("data:image"));
-      },
+      }
     );
 
     return {
       specs: {},
+      detail_html: detailHtml.replace(
+        /(ec-data-src|src)="([^"]+)"/g,
+        (_, attr, url) => {
+          return `${attr}="${absoluteUrl(
+            url,
+            "https://shop-t1.gg"
+          )}"`;
+        }
+      ),
 
-      detail_html: detailHtml,
-
-      detail_images: detailImages,
+      detail_images: detailImages.map((url) =>
+        absoluteUrl(url, productUrl)
+      ),
     };
   } catch (err) {
     return {
@@ -266,188 +308,248 @@ async function getT1Specs(page) {
   }
 }
 
-async function getT1Variants(page, productId) {
+function calcT1Price(basePrice, delta = 0, discount = 0) {
+  if (!basePrice) return null;
+
+  const adjusted = basePrice + delta;
+  const final = adjusted * (1 - discount / 100);
+
+  return Math.round(final);
+}
+
+async function getT1Variants(page, productId, basePrice = null, baseDiscount = null) {
   try {
-    const opt1Selector = 'select[name="option1"]';
-    const opt2Selector = 'select[name="option2"]';
-
     const results = [];
+    const optionsMeta = [];
 
     // ─────────────────────────────
-    // GET OPTIONS (SAFE)
+    // Parse price delta từ option text
     // ─────────────────────────────
+    function parsePriceDelta(text) {
+      // (+45,000원) hoặc (-3,600원)
+      const match = text.match(/\(([+-][0-9,]+)원\)/);
+      if (!match) return 0;
+      return parseInt(match[1].replace(/,/g, ""), 10) || 0;
+    }
+
+    function cleanOptionText(text) {
+      return text
+        .replace(/\[품절\]/g, "")
+        .replace(/\([+-][0-9,]+원\)/g, "") // bỏ giá delta
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
     async function getOptions(selector) {
       const exists = await page.$(selector);
       if (!exists) return [];
-
-      return await page.$$eval(selector + " option", (opts) => {
-        return opts
-          .map((o) => ({
-            value: o.value,
-            text: o.innerText.trim(),
-            disabled:
-              o.disabled ||
-              o.value === "*" ||
-              o.value === "**" ||
-              o.innerText.includes("품절"),
-          }))
-          .filter((o) => o.value && o.value !== "*" && o.value !== "**");
-      });
+      return await page.$$eval(selector + " option", (opts) =>
+        opts
+          .map((o) => {
+            const rawText = o.innerText || "";
+            const soldout = rawText.includes("품절");
+            return {
+              value: o.value,
+              rawText: rawText.trim(),
+              disabled: o.disabled || o.value === "*" || o.value === "**" || soldout,
+            };
+          })
+          .filter((o) => o.value && o.value !== "*" && o.value !== "**"),
+      );
     }
 
-    // ─────────────────────────────
-    // SELECT OPTION SAFE
-    // ─────────────────────────────
+    async function getOptionTitle(selector) {
+      return await page.$eval(
+        `tr:has(${selector}) th`,
+        (el) => el?.innerText?.trim() || ""
+      ).catch(() => "");
+    }
+
     async function select(selector, value) {
       await page.selectOption(selector, value);
-      await page.waitForTimeout(800);
+      await page.waitForTimeout(600);
     }
 
-    // ─────────────────────────────
-    // WAIT VARIANTS RENDER
-    // ─────────────────────────────
     async function waitVariants() {
       await page
-        .waitForFunction(() => {
-          return (
-            document.querySelectorAll(".option_products tr.option_product")
-              .length > 0
-          );
-        })
+        .waitForFunction(() =>
+          document.querySelectorAll(".option_products tr.option_product").length > 0
+        )
         .catch(() => { });
     }
 
     // ─────────────────────────────
-    // EXTRACT VARIANTS
+    // Read options
     // ─────────────────────────────
-    async function extractRendered() {
-      return await page.$$eval(
-        ".option_products tr.option_product",
-        (rows, productId) => {
-          function parsePrice(t) {
-            return parseInt((t || "").replace(/[^\d]/g, ""), 10) || null;
-          }
+    const opt1Selector = 'select[name="option1"]';
+    const opt2Selector = 'select[name="option2"]';
 
-          function normalizeText(t) {
-            return (t || "")
-              .replace(/\[품절\]/g, "")
-              .replace(/\s+/g, " ")
-              .trim();
-          }
-
-          return rows.map((row, idx) => {
-            const input = row.querySelector(".option_box_id");
-
-            const rawVariantId =
-              input?.value || `${productId}_${idx}`;
-
-            const text =
-              row.querySelector("p.product")?.innerText || "";
-
-            const normalizedText = normalizeText(text);
-
-            // 🔥 INTERNAL UNIQUE KEY
-            const variantKey =
-              `${rawVariantId}_${normalizedText}`;
-
-            const soldout =
-              text.includes("[품절]") ||
-              text.includes("Sold Out");
-
-            const priceText =
-              row.querySelector('[id*="_price"]')
-                ?.innerText?.trim() ||
-              row
-                .querySelector(".ec-front-product-item-price")
-                ?.innerText?.trim() ||
-              "";
-
-            return {
-              // RAW FROM SITE
-              variantId: variantKey,
-
-              // INTERNAL UNIQUE
-              rawVariantId: rawVariantId,
-
-              name_kr: normalizedText,
-
-              thumbnail: null,
-
-              variant_detail_images: [],
-
-              flags: [],
-
-              is_soldout: soldout,
-
-              price: {
-                sale: parsePrice(priceText),
-                discount: null,
-              },
-
-              price_raw: {
-                priceText,
-                discountText: "",
-              },
-            };
-          });
-        },
-        productId,
-      );
-    }
-
-    // ─────────────────────────────
-    // GET OPTIONS LIST (option1)
-    // ─────────────────────────────
+    const opt1Title = await getOptionTitle(opt1Selector);
     const opt1List = await getOptions(opt1Selector);
-    const hasOpt2 = await page.$(opt2Selector);
+    const hasOpt2 = !!(await page.$(opt2Selector));
 
+    optionsMeta.push({
+      name: opt1Title || "OPTION1",
+      position: 0,
+      type: "variant",
+      values: opt1List.map(o => ({
+        label: cleanOptionText(o.rawText),
+        value: o.value
+      }))
+    });
+
+    // ─────────────────────────────
+    // Loop opt1
+    // ─────────────────────────────
     for (const op1 of opt1List) {
-      if (op1.disabled) continue;
+      const op1Text = cleanOptionText(op1.rawText);
+      const op1Delta = parsePriceDelta(op1.rawText);
 
-      // select option1
-      await select(opt1Selector, op1.value);
-      await waitVariants();
-
-      // ─────────────────────────────
-      // CASE 1: NO OPTION2
-      // ─────────────────────────────
       if (!hasOpt2) {
-        const variants = await extractRendered();
-        results.push(...variants);
+        // Tính giá
+        const adjustedPrice = (basePrice ?? 0) + op1Delta;
+
+        const finalPrice = Math.round(
+          adjustedPrice * (1 - (baseDiscount || 0) / 100)
+        );
+        const originalPrice = adjustedPrice;
+
+        const variantId = `${productId}_${op1.value}`
+          .toLowerCase()
+          .replace(/[^a-z0-9_]/g, "_");
+
+        results.push({
+          variantId,
+          name_kr: op1Text,
+          attributes: { [opt1Title || "OPTION1"]: op1Text },
+          source_option_values: {
+            option1: op1.value,
+          },
+          price: {
+            sale: finalPrice,
+            original: originalPrice,
+            discount: baseDiscount,
+          },
+          price_raw: {
+            priceText: String(finalPrice || ""),
+            discountText: `${baseDiscount || 0}%`,
+          },
+          is_soldout: op1.disabled || false,
+          thumbnail: null,
+          variant_detail_images: [],
+          flags: [],
+        });
         continue;
       }
 
       // ─────────────────────────────
-      // GET option2 AFTER selecting option1 (IMPORTANT)
+      // Has opt2
       // ─────────────────────────────
       const opt2List = await getOptions(opt2Selector);
 
-      // CASE 2: option2 exists but empty → treat as single variant
+      if (optionsMeta.length < 2 && opt2List.length > 0) {
+        const opt2Title = await getOptionTitle(opt2Selector);
+        optionsMeta.push({
+          name: opt2Title || "OPTION2",
+          position: 1,
+          type: "variant",
+          values: opt2List.map(o => ({
+            label: cleanOptionText(o.rawText),
+            value: o.value
+          }))
+        });
+      }
+
       if (!opt2List.length) {
-        const variants = await extractRendered();
-        results.push(...variants);
+       // Tính giá
+        const adjustedPrice = basePrice + op1Delta;
+
+        const finalPrice = Math.round(
+          adjustedPrice * (1 - (baseDiscount || 0) / 100)
+        );
+        const originalPrice = adjustedPrice;
+
+        const variantId = `${productId}_${op1.value}`
+          .toLowerCase()
+          .replace(/[^a-z0-9_]/g, "_");
+
+        results.push({
+          variantId,
+          name_kr: op1Text,
+          attributes: { [opt1Title || "OPTION1"]: op1Text },
+          source_option_values: {
+            option1: op1.value,
+          },
+          price: { sale: finalPrice, original: basePrice || finalPrice, discount: baseDiscount },
+          price_raw: { priceText: String(finalPrice || ""), discountText: "" },
+          is_soldout: op1.disabled || false,
+          thumbnail: null,
+          variant_detail_images: [],
+          flags: [],
+        });
         continue;
       }
 
-      // CASE 3: real dependent options
       for (const op2 of opt2List) {
-        if (op2.disabled) continue;
+        const op2Text = cleanOptionText(op2.rawText);
+        const op2Delta = parsePriceDelta(op2.rawText);
 
-        await select(opt2Selector, op2.value);
-        await waitVariants();
+        // Tính giá
+        const totalDelta = op1Delta + op2Delta;
+        const adjustedPrice = basePrice + totalDelta;
 
-        const variants = await extractRendered();
-        results.push(...variants);
+        const finalPrice = Math.round(
+          adjustedPrice * (1 - (baseDiscount || 0) / 100)
+        );
+        const originalPrice = adjustedPrice;
+
+        const opt2Title = optionsMeta[1]?.name || "OPTION2";
+        const variantId = `${productId}_${op1.value}_${op2.value}`
+          .toLowerCase()
+          .replace(/[^a-z0-9_]/g, "_");
+
+        results.push({
+          variantId,
+          name_kr: `${op1Text} - ${op2Text}`,
+          attributes: {
+            [opt1Title || "OPTION1"]: op1Text,
+            [opt2Title]: op2Text,
+          },
+          source_option_values: {
+            option1: op1.value,
+            option2: op2.value,
+          },
+          price: {
+            sale: finalPrice,
+            original: originalPrice,
+            discount: baseDiscount,
+          },
+          price_raw: {
+            priceText: String(finalPrice || ""),
+            discountText: `${baseDiscount || 0}%`,
+          },
+          is_soldout: op1.disabled || op2.disabled || false,
+          thumbnail: null,
+          variant_detail_images: [],
+          flags: [],
+        });
       }
     }
 
-    // ─────────────────────────────
-    // DEDUPE
-    // ─────────────────────────────
-    return [...new Map(results.map((v) => [v.variantId, v])).values()];
+    // Dedupe chặt theo variantId
+    const seen = new Set();
+    const dedupedVariants = results
+      .filter((v) => {
+        if (seen.has(v.variantId)) return false;
+        seen.add(v.variantId);
+        return true;
+      })
+      .map((v) => ({ ...v, hash: hashVariant(v) }));
+
+    return { options: optionsMeta, variants: dedupedVariants };
   } catch (err) {
     console.log("getT1Variants error:", err.message);
-    return [];
+    return { options: [], variants: [] };
   }
 }
 // ─────────────────────────────────────────────────────────────────────────────
@@ -474,15 +576,21 @@ async function crawlProduct(page, url) {
 
     log.info(`productId: ${productId}`);
 
-    const [name, price, specsData, images, variants, rating] =
+    const [name, price, specsData, images, rating] =
       await Promise.all([
         getT1Name(page),
         getT1Price(page),
         getT1Specs(page),
         getT1Images(page),
-        getT1Variants(page, productId),
         getT1Rating(page),
       ]);
+
+    const { options, variants } = await getT1Variants(
+      page,
+      productId,
+      price.originalPrice,
+      price.discount,
+    );
 
     const product = {
       productId,
@@ -520,6 +628,7 @@ async function crawlProduct(page, url) {
 
       source_rating_count: rating.count,
 
+      options,
       variants,
     };
 
@@ -527,10 +636,6 @@ async function crawlProduct(page, url) {
 
     product.image_hash = hashImageUrls(images);
 
-    product.variants = product.variants.map((v) => ({
-      ...v,
-      hash: hashVariant(v),
-    }));
 
     log.ok(`crawlProduct done: ${productId}`);
 
@@ -617,13 +722,38 @@ async function processProduct({
     await simulateHuman(page);
 
     const old = existingMap.get(productId);
-    const productChanged = !old || old.hash !== fresh.hash;
-    const imageChanged = !old || old.image_hash !== fresh.image_hash;
+
+    const productChanged =
+      !old || old.hash !== fresh.hash;
+
+    const imageChanged =
+      !old || old.image_hash !== fresh.image_hash;
+
+    // detect add/update
     const variantChanges = fresh.variants.map((v) => {
-      const oldV = old?.variants?.find((ov) => ov.variantId === v.variantId);
-      return { variantId: v.variantId, changed: !oldV || oldV.hash !== v.hash };
+      const oldV = old?.variants?.find(
+        (ov) => ov.variantId === v.variantId
+      );
+
+      return {
+        variantId: v.variantId,
+        changed: !oldV || oldV.hash !== v.hash,
+      };
     });
-    const anyVariantChanged = variantChanges.some((v) => v.changed);
+
+    // detect deleted
+    const freshIds = new Set(
+      fresh.variants.map((v) => v.variantId)
+    );
+
+    const removedVariants =
+      old?.variants
+        ?.filter((v) => !freshIds.has(v.variantId))
+        .map((v) => v.variantId) || [];
+
+    const anyVariantChanged =
+      variantChanges.some((v) => v.changed) ||
+      removedVariants.length > 0;
 
     if (productChanged) log.warn(`product changed: ${productId}`);
     if (imageChanged) log.img(`images changed: ${productId}`);
@@ -638,6 +768,7 @@ async function processProduct({
           ? fresh.detail_images
           : old.detail_images,
         images: fresh.images?.length ? fresh.images : old.images,
+        options: fresh.options,
         variants: mergeVariants(old.variants, fresh.variants),
         source_rating_avg: fresh.source_rating_avg ?? old.source_rating_avg,
         source_rating_count:
@@ -652,9 +783,13 @@ async function processProduct({
             crawledAt: new Date().toISOString(),
             productChanged,
             imageChanged,
-            variantsChanged: variantChanges
-              .filter((v) => v.changed)
-              .map((v) => v.variantId),
+            variantsChanged: [
+              ...variantChanges
+                .filter((v) => v.changed)
+                .map((v) => v.variantId),
+
+              ...removedVariants,
+            ],
           },
         ],
         crawledAt: new Date().toISOString(),
@@ -786,7 +921,7 @@ async function processFile(sessionManager, fileName) {
 
 async function main() {
   const startTime = Date.now();
-  log.info("🚀 starting musinsa crawler...\n");
+  log.info("🚀 starting t1 crawler...\n");
 
   const browser = await chromium.launch({
     headless: false,

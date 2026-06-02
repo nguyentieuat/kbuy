@@ -15,7 +15,7 @@ const readline = require("readline");
 
 const INPUT_DIR = path.resolve(
   __dirname,
-  "../../data/translate/geng/success",
+  "../../data/translate/t1/success",
 );
 
 const DEBUG = true;
@@ -449,6 +449,18 @@ function normalizeProduct(raw, category) {
       : [],
 
     // ─────────────────────────
+    // OPTIONS
+    // ─────────────────────────
+    options: (raw.options || []).map((opt, idx) => ({
+      name: opt.name,
+      values: opt.values || [],
+      type: opt.type || "variant",
+      position: opt.position ?? idx,
+    })),
+
+    addons: normalizeAddons(raw.addons || []),
+
+    // ─────────────────────────
     // VARIANTS
     // ─────────────────────────
 
@@ -486,6 +498,7 @@ function normalizeProduct(raw, category) {
         image_detail_url: (v.variant_detail_images || [])[0]?.url ?? null,
 
         attributes: {
+          ...(v.attributes || {}),
           flags: normalizeFlags(v.flags || []),
         },
 
@@ -589,6 +602,21 @@ function normalizeProduct(raw, category) {
   });
 
   return normalized;
+}
+
+function normalizeAddons(rawAddons = []) {
+  return rawAddons.map((addon, idx) => ({
+    addon_id: addon.addonId,
+    name: addon.name,
+    price: parsePrice(addon.price) || 0,
+    position: idx,
+
+    options: (addon.options || []).map((opt, i) => ({
+      label: opt.label,
+      value: opt.value,
+      sort_order: i,
+    })),
+  }));
 }
 
 // ─────────────────────────────────────────────
@@ -725,16 +753,16 @@ async function insertProductGraph(trx, data) {
   // ─────────────────────────
 
   const existingImage = await trx("product_variant_images")
-  .where({
-    product_id: productId,
-    variant_id: null,
-  })
-  .first();
+    .where({
+      product_id: productId,
+      variant_id: null,
+    })
+    .first();
 
   const shouldUpdateImages =
-  !existingImage ||
-  !product.image_hash ||
-  product.image_hash !== data.product.image_hash;
+    !existingImage ||
+    !product.image_hash ||
+    product.image_hash !== data.product.image_hash;
 
   if (shouldUpdateImages) {
     await trx("product_variant_images")
@@ -750,6 +778,100 @@ async function insertProductGraph(trx, data) {
           sort_order: idx,
         })),
       );
+    }
+  }
+
+  // ─────────────────────────
+  // PRODUCT OPTIONS 
+  // ─────────────────────────
+  if (Array.isArray(data.options) && data.options.length > 0) {
+    // Xóa options cũ nếu product changed
+    const productUnchanged =
+      product.hash === data.product.hash &&
+      product.image_hash === data.product.image_hash;
+
+    if (!productUnchanged) {
+      await trx("product_options")
+        .where({ product_id: productId })
+        .delete();
+    }
+
+    // Chỉ insert nếu chưa có
+    const existingOptions = await trx("product_options")
+      .where({ product_id: productId })
+      .first();
+
+    if (!existingOptions) {
+      await trx("product_options").insert(
+        data.options.map((opt) => ({
+          product_id: productId,
+          name: opt.name,
+          values: JSON.stringify(opt.values),
+          type: opt.type || "variant",
+          position: opt.position || 0,
+        })),
+      );
+    }
+  }
+
+  // ─────────────────────────
+  // ADDONS
+  // ─────────────────────────
+  if (Array.isArray(data.addons) && data.addons.length > 0) {
+    const existingAddons = await trx("product_addons")
+      .where({ product_id: productId })
+      .select("*");
+
+    const addonMap = new Map(
+      existingAddons.map(a => [a.addon_id, a])
+    );
+
+    for (const addon of data.addons) {
+      const existing = addonMap.get(addon.addon_id);
+
+      let savedAddon;
+
+      if (existing) {
+        savedAddon = existing;
+
+        await trx("product_addons")
+          .where({ id: existing.id })
+          .update({
+            name: addon.name,
+            price: addon.price,
+            position: addon.position,
+            updated_at: knex.fn.now(),
+          });
+
+        // clear old options
+        await trx("product_addon_options")
+          .where({ addon_id: existing.id })
+          .del();
+      } else {
+        const [inserted] = await trx("product_addons")
+          .insert({
+            product_id: productId,
+            addon_id: addon.addon_id,
+            name: addon.name,
+            price: addon.price,
+            position: addon.position,
+          })
+          .returning("*");
+
+        savedAddon = inserted;
+      }
+
+      // insert options lại
+      if (addon.options?.length) {
+        await trx("product_addon_options").insert(
+          addon.options.map(opt => ({
+            addon_id: savedAddon.id,
+            label: opt.label,
+            value: opt.value,
+            sort_order: opt.sort_order,
+          }))
+        );
+      }
     }
   }
 
@@ -934,6 +1056,16 @@ async function importFile(filePath) {
       console.log(
         `⏭ SKIP ${raw.productId} [${raw.translationStatus}]`,
       );
+
+      if (raw.translationError) {
+        console.log(
+          `   ↳ Error: ${typeof raw.translationError === "string"
+            ? raw.translationError
+            : JSON.stringify(raw.translationError)
+          }`,
+        );
+      }
+
       continue;
     }
 

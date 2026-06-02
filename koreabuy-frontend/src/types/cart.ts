@@ -10,4 +10,10 @@ export type CartItem = {
   estimatedWeightGrams?: number | null;
   packagingWeightGrams?: number | null;
   chargeableWeightGrams?: number | null;
+
+  selectedOptions: Record<string, string>;
+  selectedAddon: {
+    addonId: string;
+    value: string;
+  } | null;
 };

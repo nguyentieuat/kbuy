@@ -10,66 +10,42 @@ export default function ProductVariants({
   if (!activeVariants?.length) return null;
 
   return (
-    <div className="mb-4">
-      <p style={{ fontWeight: 600, marginBottom: 10 }}>
-        Phân loại:{" "}
-        {selectedVariant && (
-          <span style={{ color: "#007bff" }}>
-            {selectedVariant.name ??
-              selectedVariant.nameKr ??
-              selectedVariant.sku}
-          </span>
-        )}
-      </p>
+    <div style={{ marginBottom: 16 }}>
+      <label style={{ fontWeight: 600, marginBottom: 8, display: "block" }}>
+        Phân loại sản phẩm
+      </label>
 
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+      <select
+        value={selectedVariant?.id || ""}
+        onChange={(e) => {
+          const v = activeVariants.find(
+            (x: any) => x.id === Number(e.target.value),
+          );
+
+          if (!v) return;
+
+          if (v.flags?.isSoldout) return;
+
+          setVariantSelectedByUser(true);
+          setSelectedVariant(v);
+        }}
+        style={{
+          width: "100%",
+          padding: "10px",
+          borderRadius: 8,
+          border: "1px solid #ddd",
+          fontSize: 14,
+        }}
+      >
+        <option value="">— Chọn phân loại —</option>
+
         {activeVariants.map((v: any) => (
-          <div
-            key={v.id}
-            onClick={() => {
-              if (v.flags.isSoldout) return;
-              setVariantSelectedByUser(true);
-              setSelectedVariant(v);
-            }}
-            style={{
-              width: 72,
-              opacity: v.flags.isSoldout ? 0.5 : 1,
-              cursor: v.flags.isSoldout ? "not-allowed" : "pointer",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: 8,
-                overflow: "hidden",
-                border:
-                  selectedVariant?.id === v.id
-                    ? "2px solid #007bff"
-                    : "2px solid #eee",
-              }}
-            >
-              {v.media.image ? (
-                <img
-                  src={normalizeImageUrl(v.media.image)}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                  }}
-                />
-              ) : (
-                <div>📦</div>
-              )}
-            </div>
-
-            <div style={{ fontSize: 11 }}>
-              {v.name ?? v.nameKr ?? v.sku}
-            </div>
-          </div>
+          <option key={v.id} value={v.id} disabled={v.flags?.isSoldout}>
+            {v.name ?? v.nameKr ?? v.sku}
+            {v.flags?.isSoldout ? " (Hết hàng)" : ""}
+          </option>
         ))}
-      </div>
+      </select>
     </div>
   );
 }

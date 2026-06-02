@@ -116,6 +116,17 @@ function mapProduct(row, rate = 19) {
       images: row.images || [],
     },
 
+    options: row.options ?? [],
+    addons: (row.addons ?? []).map((addon) => ({
+      ...addon,
+      price: convertPrice(Number(addon.price ?? 0), rate),
+
+      options: (addon.options ?? []).map((opt) => ({
+        ...opt,
+        priceDelta: convertPrice(Number(opt.priceDelta ?? 0), rate),
+      })),
+    })),
+
     variants: Array.isArray(row.variants)
       ? row.variants.map((v) => ({
         ...v,
@@ -212,6 +223,7 @@ function mapProduct(row, rate = 19) {
 
     metadata: {
       productUrl: row.product_url ?? row.productUrl,
+      source: row.source ?? "unknow",
       link: `/products/${row.slug}`,
       createdAt: row.created_at,
     },

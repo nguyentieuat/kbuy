@@ -1,7 +1,12 @@
 // components/VariantModal.tsx
 
+import { useEffect, useState } from "react";
 import type { CartItem } from "../types/cart";
 import type { ProductVariant } from "../types/product";
+import { resolveVariant } from "../utils/resolveVariant";
+import ProductOptions from "./product/ProductOptions";
+import ProductAddons from "./product/ProductAddons";
+import ProductVariants from "./product/ProductVariants";
 
 const normalizeImageUrl = (url?: string | null) => {
   if (!url) return "";
@@ -12,11 +17,31 @@ const normalizeImageUrl = (url?: string | null) => {
 type Props = {
   item: CartItem;
   onClose: () => void;
-  onSelect: (variant: ProductVariant) => void;
+  onSelect: (variant: ProductVariant, options: any, addon: any) => void;
 };
 
 export default function VariantModal({ item, onClose, onSelect }: Props) {
-  const variants = (item.product.variants ?? []).filter((v) => v.flags.isActive);
+  const [selectedOptions, setSelectedOptions] = useState<
+    Record<string, string>
+  >(item.selectedOptions || {});
+
+  const [selectedAddon, setSelectedAddon] = useState<any>(
+    item.selectedAddon || null,
+  );
+
+  const [previewVariant, setPreviewVariant] = useState<ProductVariant | null>(
+    item.variant,
+  );
+
+  useEffect(() => {
+    const v = resolveVariant(item.product, selectedOptions, selectedAddon);
+
+    setPreviewVariant(v);
+  }, [selectedOptions, selectedAddon]);
+
+  const hasOptions = (item.product.options ?? []).length > 0;
+
+  const hasVariantList = (item.product.variants ?? []).length > 0;
 
   return (
     <>
@@ -77,136 +102,100 @@ export default function VariantModal({ item, onClose, onSelect }: Props) {
           {item.product.name}
         </p>
 
+        <div style={{ marginBottom: 16 }}>
+          {hasOptions && (
+            <div style={{ marginBottom: 16 }}>
+              <ProductOptions
+                options={item.product.options ?? []}
+                selectedOptions={selectedOptions}
+                setSelectedOptions={setSelectedOptions}
+                variants={item.product.variants ?? []}
+              />
+            </div>
+          )}
+        </div>
+
+        {(item.product.addons ?? []).length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <ProductAddons
+              addons={item.product.addons ?? []}
+              selectedAddon={selectedAddon}
+              setSelectedAddon={setSelectedAddon}
+              disabled={false}
+            />
+          </div>
+        )}
+
+        {!hasOptions && hasVariantList && (
+          <ProductVariants
+            activeVariants={item.product.variants ?? []}
+            selectedVariant={previewVariant}
+            setSelectedVariant={(v: any) => {
+              setPreviewVariant(v);
+            }}
+            setVariantSelectedByUser={() => {}}
+            normalizeImageUrl={normalizeImageUrl}
+          />
+        )}
+
         {/* Danh sách variants */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
-          {variants.map((v) => {
-            const isSelected = item.variant?.id === v.id;
-            const imageUrl = normalizeImageUrl(
-              v.media.image ?? item.product.media.image,
-            );
-            const price = Number(v.pricing.price ?? 0);
+        <div
+          style={{
+            marginTop: 20,
+            padding: 12,
+            border: "1px solid #eee",
+            borderRadius: 10,
+          }}
+        >
+          <div style={{ fontSize: 12, color: "#888" }}>Preview sản phẩm</div>
 
-            return (
-              <div
-                key={v.id}
-                onClick={() => {
-                  if (v.flags.isSoldout) return;
-
-                  // Nếu đang chọn variant này rồi thì bỏ qua
-                  if (item.variant?.id === v.id) return;
-
-                  onSelect(v);
-                }}
+          {previewVariant ? (
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <img
+                src={normalizeImageUrl(previewVariant.media?.image)}
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 8,
-                  cursor: v.flags.isSoldout ? "not-allowed" : "pointer",
-                  opacity: v.flags.isSoldout ? 0.5 : 1,
-                  width: 100,
+                  width: 50,
+                  height: 50,
+                  borderRadius: 6,
+                  objectFit: "cover",
                 }}
-              >
-                {/* Ảnh */}
-                <div
-                  style={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: 10,
-                    overflow: "hidden",
-                    position: "relative",
-                    background: "#f8f8f8",
-                    border: isSelected ? "2px solid #007bff" : "2px solid #eee",
-                  }}
-                >
-                  {imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt={v.name ?? v.nameKr ?? v.sku}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 28,
-                      }}
-                    >
-                      📦
-                    </div>
-                  )}
-                  {v.flags.isSoldout && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        background: "rgba(255,255,255,0.7)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 10,
-                        color: "#999",
-                      }}
-                    >
-                      Hết hàng
-                    </div>
-                  )}
-                  {isSelected && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 4,
-                        right: 4,
-                        background: "#007bff",
-                        color: "#fff",
-                        borderRadius: "50%",
-                        width: 18,
-                        height: 18,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 11,
-                      }}
-                    >
-                      ✓
-                    </div>
-                  )}
+              />
+
+              <div>
+                <div style={{ fontWeight: 600 }}>
+                  {previewVariant.name ?? previewVariant.sku}
                 </div>
 
-                {/* Tên */}
-                <span
-                  style={{
-                    fontSize: 12,
-                    textAlign: "center",
-                    lineHeight: 1.3,
-                    color: isSelected ? "#007bff" : "#333",
-                    fontWeight: isSelected ? 600 : 400,
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {v.name ?? v.nameKr ?? v.sku}
-                </span>
-
-                {/* Giá */}
-                {price > 0 && (
-                  <span
-                    style={{ fontSize: 12, color: "#e53935", fontWeight: 600 }}
-                  >
-                    {price.toLocaleString("vi-VN")}₫
-                  </span>
-                )}
+                <div style={{ color: "#e53935" }}>
+                  {previewVariant.pricing?.price?.toLocaleString("vi-VN")}₫
+                </div>
               </div>
-            );
-          })}
+            </div>
+          ) : (
+            <div style={{ color: "#999", marginTop: 6 }}>
+              Combination không hợp lệ
+            </div>
+          )}
         </div>
+        <button
+          onClick={() => {
+            if (!previewVariant) return;
+
+            onSelect(previewVariant, selectedOptions, selectedAddon);
+          }}
+          style={{
+            marginTop: 20,
+            width: "100%",
+            padding: 12,
+            background: "#007bff",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            fontWeight: 600,
+          }}
+        >
+          Cập nhật sản phẩm
+        </button>
       </div>
     </>
   );
