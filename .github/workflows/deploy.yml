@@ -55,6 +55,10 @@ jobs:
           script: |
             cd ~/kbuy
 
-            docker compose pull
+            git pull origin master
+
+            docker compose down
+
+            docker compose build
 
             docker compose up -d --remove-orphans
