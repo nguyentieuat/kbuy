@@ -1,0 +1,60 @@
+name: Deploy Kbuy
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build backend
+        run: |
+          docker build \
+            -t ghcr.io/nguyentieuat/kbuy-backend:latest \
+            ./koreabuy-backend
+
+      - name: Build frontend
+        run: |
+          docker build \
+            -t ghcr.io/nguyentieuat/kbuy-frontend:latest \
+            ./koreabuy-frontend
+
+      - name: Push backend
+        run: |
+          docker push ghcr.io/nguyentieuat/kbuy-backend:latest
+
+      - name: Push frontend
+        run: |
+          docker push ghcr.io/nguyentieuat/kbuy-frontend:latest
+
+  deploy:
+    needs: build-and-push
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            cd ~/kbuy
+
+            docker compose pull
+
+            docker compose up -d --remove-orphans
