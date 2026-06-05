@@ -63,7 +63,6 @@ exports.seed = async function (knex) {
       discount_type: "min_order_fee",
       discount_value:3000, // 70,000 KRW quy đổi sang VND khi tính
       min_order_amount: 70000, // áp dụng khi đơn < threshold
-      max_order_amount: null, // set trong code
       priority: 10,
       is_active: true,
       extra_data: JSON.stringify({
