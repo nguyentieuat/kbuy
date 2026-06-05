@@ -27,7 +27,7 @@ const fsExtra = require("fs-extra");
 // CONFIG — điều chỉnh theo từng source
 // ─────────────────────────────────────────────
 
-const SOURCE = process.argv[2] || "geng"; // oliveyoung | musinsa | t1
+const SOURCE = process.argv[2] || "kgc"; // oliveyoung | musinsa | t1
 
 const CRAWL_DIR = path.resolve(__dirname, `../../data/output_products/${SOURCE}`);
 const SUCCESS_DIR = path.resolve(

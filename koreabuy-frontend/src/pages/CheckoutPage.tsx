@@ -665,7 +665,7 @@ export default function CheckoutPage() {
                 }}
               >
                 Bằng cách đặt hàng, bạn đồng ý với{" "}
-                <a href="#" style={{ color: "#007bff" }}>
+                <a href="/terms" style={{ color: "#007bff" }}>
                   Điều khoản sử dụng
                 </a>
               </p>

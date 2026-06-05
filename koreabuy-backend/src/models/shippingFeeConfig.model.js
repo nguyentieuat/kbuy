@@ -44,6 +44,25 @@ async function getConfig({ shippingType, region = null, weightGrams }) {
   return query.orderBy("min_weight_grams", "desc").first();
 }
 
-module.exports = {
-  getConfig,
-};
+
+async function getAllConfigs() {
+  return db("shipping_fee_configs")
+    .where("is_active", true)
+    .orderBy(["shipping_type", "min_weight_grams"]);
+}
+
+async function getAllDiscounts() {
+  return db("shipping_fee_discounts")
+    .where("is_active", true)
+    .whereNot("discount_type", "bulky")
+    .orderBy(["shipping_type", "priority"]);
+}
+
+async function getBulkyFees() {
+  return db("shipping_fee_discounts")
+    .where({ is_active: true, discount_type: "bulky" })
+    .orderBy("shipping_type");
+}
+
+module.exports = { getConfig, getAllConfigs, getAllDiscounts, getBulkyFees };
+

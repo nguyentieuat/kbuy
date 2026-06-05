@@ -14,6 +14,7 @@ import LoginPage from "./pages/LoginPage";
 import ProfilePage from "./pages/ProfilePage";
 import ImportRequestPage from "./pages/ImportRequestPage";
 import AdminOrderPage from "./components/admin/AdminOrderPage";
+import TermsPage from "./pages/TermsPage";
 
 
 export default function App() {
@@ -28,7 +29,7 @@ export default function App() {
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/input-link" element={<ImportRequestPage />} />
-          
+          <Route path="/terms" element={<TermsPage />} />
         </Route>
 
         <Route >

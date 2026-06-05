@@ -6,6 +6,33 @@ Dịch JSON sau sang tiếng Việt.
                 - GIỮ NGUYÊN productId, productId output PHẢI GIỐNG CHÍNH XÁC input
                 - Tuyệt đối không sử dụng dữ liệu từ sản phẩm khác
 				        - Dịch luôn specs và name, kết quả field tương ứng trả về là specs_vn, name_vn
+                ĐỐI VỚI SPECS:
+                  - Không dịch máy từng dòng một cách máy móc.
+                  - Nếu phát hiện các trường chung chung như:
+                    - "Vui lòng tham khảo chi tiết sản phẩm"
+                    - "상품 상세페이지 참조"
+                    - "상세정보 참조"
+                    - "상세설명 참조"
+
+                    => KHÔNG giữ nguyên nội dung này trong specs_vi.
+
+                  - Hãy phân tích:
+                    - Tên sản phẩm
+                    - Mô tả sản phẩm
+                    - Thông tin chức năng
+                    - Thành phần
+                    - Hướng dẫn sử dụng
+                    để cập nhật vào specs_vi
+
+                    - specs_vi phải giải thích ngắn gọn:
+                      - Các trường PHẢI viết bằng tiếng Việt có dấu đầy đủ.
+                      - Đây là sản phẩm gì
+                      - Công dụng chính
+                      - Đối tượng sử dụng
+                      - Cách dùng cơ bản
+                      - Nếu là thực phẩm chức năng:
+                        ưu tiên giải thích lợi ích thực tế cho người dùng Việt Nam.
+                    
                 - Trong variants dịch name_kr trả về name_vi
                 - Giữ nguyên kích thước (S, M, L, XL, 2XL...) chính xác như ban đầu
                 - KHÔNG xóa các mã kích thước hoặc màu sắc ở cuối chuỗi

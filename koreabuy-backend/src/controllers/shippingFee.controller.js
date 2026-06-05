@@ -4,7 +4,9 @@ const CalculateShippingService = require("../services/shippingFee.service");
 const { detectShippingRegion } = require("../utils/detectShippingRegion");
 const ProductVariantModel = require("../models/productVariants.model");
 const ProductModel = require("../models/products.model");
-//  Đã xóa dòng import ExchangeRateModel ở đây
+const ShippingFeeConfigModel = require("../models/shippingFeeConfig.model");
+const ExchangeRateModel = require("../models/exchangeRate.model");
+const { getKrwToVndRate } = require("../services/currency.service");
 
 async function calculateShipping(req, res) {
   try {
@@ -116,6 +118,107 @@ async function calculateShipping(req, res) {
   }
 }
 
+async function getShippingRates(req, res) {
+  try {
+    const [configs, discounts, bulkyFees] = await Promise.all([
+      ShippingFeeConfigModel.getAllConfigs(),
+      ShippingFeeConfigModel.getAllDiscounts(),
+      ShippingFeeConfigModel.getBulkyFees(),
+    ]);
+
+    // Group international configs
+    const international = configs
+      .filter((c) => c.shipping_type === "international")
+      .map((c) => ({
+        name: c.name,
+        minWeight: c.min_weight_grams,
+        maxWeight: c.max_weight_grams,
+        ratePerKg: Number(c.rate_per_kg),
+      }));
+
+    // Group local configs by region
+    const localRegions = {
+      noi_vung: "Nội vùng",
+      noi_vung_tinh: "Nội vùng tỉnh",
+      lien_vung: "Liên vùng",
+      lien_tinh: "Liên tỉnh",
+      lien_vung_dac_biet: "Liên vùng đặc biệt",
+    };
+
+    const local = configs
+      .filter((c) => c.shipping_type === "local")
+      .map((c) => ({
+        region: localRegions[c.region] || c.region,
+        regionKey: c.region,
+        baseFee: Number(c.base_fee),
+        stepWeightGrams: c.step_weight_grams,
+        stepFee: Number(c.step_fee),
+        freeShippingThreshold: Number(c.free_shipping_threshold),
+      }));
+
+    // Discount rules
+    const exchangeRate = await ExchangeRateModel.getRate("KRW", "VND");
+    const rate = await getKrwToVndRate();
+
+    const discountRules = discounts.map((d) => {
+      let extraData = d.extra_data;
+
+      if (typeof extraData === "string") {
+        try {
+          extraData = JSON.parse(extraData);
+        } catch {
+          extraData = null;
+        }
+      }
+
+      const result = {
+        name: d.name,
+        shippingType: d.shipping_type,
+        discountType: d.discount_type,
+        discountValue: Number(d.discount_value),
+        maxDiscountAmount: d.max_discount_amount
+          ? Number(d.max_discount_amount)
+          : null,
+        minOrderAmount: d.min_order_amount
+          ? Number(d.min_order_amount)
+          : null,
+      };
+
+      // Rule đặc biệt đang lưu KRW
+      if (d.discount_type === "min_order_fee") {
+        result.discountValue =
+          Number(d.discount_value) * rate;
+
+        result.minOrderAmount =
+          Number(d.min_order_amount) * rate;
+
+        result.extraData = {
+          ...extraData,
+          threshold_vnd:
+            Number(extraData?.threshold_krw || 0) * rate,
+          fee_vnd:
+            Number(extraData?.fee_krw || 0) * rate,
+        };
+      }
+
+      return result;
+    });
+
+    const bulky = bulkyFees.map((b) => ({
+      shippingType: b.shipping_type,
+      fee: Number(b.discount_value),
+    }));
+
+    res.json({
+      success: true,
+      data: { international, local, discountRules, bulky },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+}
+
+
 module.exports = {
-  calculateShipping,
+  calculateShipping, getShippingRates
 };

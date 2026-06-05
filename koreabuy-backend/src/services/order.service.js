@@ -236,7 +236,7 @@ const OrderService = {
       const requireOtp = await OtpService.shouldRequireOtp({
         phone: normalizePhone(customer.phone),
         paymentMethod,
-        grandTotal: finalPrice, 
+        grandTotal: finalPrice,
       });
 
       if (requireOtp) {

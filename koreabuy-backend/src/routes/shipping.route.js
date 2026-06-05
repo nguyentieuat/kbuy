@@ -8,4 +8,6 @@ const shippingFeeController = require("../controllers/shippingFee.controller");
 // POST /api/shipping/calculate
 router.post("/calculate",shippingFeeController.calculateShipping);
 
+router.get("/rates", shippingFeeController.getShippingRates);
+
 module.exports = router;
