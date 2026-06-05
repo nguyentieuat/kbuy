@@ -5,16 +5,14 @@ import type { AppliedCoupon } from "../../types/coupon";
 type Props = {
   coupon: string;
   setCoupon: (v: string) => void;
-
   couponApplied: AppliedCoupon | null;
-
   couponDiscount: number;
+  shippingDiscount: number; 
+  serviceDiscount: number; 
   couponError: string;
   couponLoading: boolean;
-
   onApply: () => void;
   onRemove: () => void;
-
   fmt: (n: number) => string;
 };
 
@@ -23,12 +21,38 @@ export default function CouponSection({
   setCoupon,
   couponApplied,
   couponDiscount,
+  shippingDiscount,
+  serviceDiscount,
   couponError,
   couponLoading,
   onApply,
   onRemove,
   fmt,
 }: Props) {
+  
+  // Hàm helper hiển thị nội dung giảm giá thông minh
+  const renderDiscountText = () => {
+    if (!couponApplied) return "";
+    
+    // Ép kiểu nếu type trong file định nghĩa hệ thống chưa cập nhật đủ 4 loại
+    const type = couponApplied.discountType as string;
+
+    if (type === "freeship") {
+      return shippingDiscount > 0 
+        ? `Miễn phí vận chuyển nội địa (-${fmt(shippingDiscount)})` 
+        : "Miễn phí vận chuyển nội địa";
+    }
+
+    if (type === "service_fee") {
+      return serviceDiscount > 0 
+        ? `Giảm phí dịch vụ (-${fmt(serviceDiscount)})` 
+        : "Giảm phí dịch vụ";
+    }
+
+    // Mặc định cho loại percent và fixed thông thường
+    return `Giảm giá đơn hàng (-${fmt(couponDiscount)})`;
+  };
+
   return (
     <div>
       <h6 style={{ fontWeight: 700, marginBottom: 14, fontSize: 15 }}>
@@ -61,8 +85,9 @@ export default function CouponSection({
               >
                 {couponApplied.code}
               </p>
-              <p style={{ fontSize: 12, color: "#555", margin: 0 }}>
-                Giảm {fmt(couponDiscount)}
+              {/* Thay đổi dòng hiển thị cũ ở đây */}
+              <p style={{ fontSize: 12, color: "#555", margin: 0, marginTop: 2 }}>
+                {renderDiscountText()}
               </p>
             </div>
           </div>

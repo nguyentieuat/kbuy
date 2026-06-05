@@ -110,6 +110,7 @@ export default function CheckoutPage() {
   );
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [shippingDiscount, setShippingDiscount] = useState(0);
+  const [serviceDiscount, setServiceDiscount] = useState(0);
   const [couponError, setCouponError] = useState("");
 
   // Payment
@@ -145,16 +146,13 @@ export default function CheckoutPage() {
   }, [shipping]);
 
   // ── Computed ──────────────────────────────────────────────────────────────
-  const {
-    totalOriginal,
-    totalFinal,
-    totalQuantity,
-  } = calculateCartTotals(items);
+  const { totalOriginal, totalFinal, totalQuantity } =
+    calculateCartTotals(items);
 
   const provinceCode = selectedAddress?.province?.code ?? null;
   const wardCode = selectedAddress?.ward?.code ?? null;
 
-  const { result: shippingResult,} = useShippingFee({
+  const { result: shippingResult } = useShippingFee({
     items,
     provinceCode,
     wardCode,
@@ -181,19 +179,27 @@ export default function CheckoutPage() {
   const shippingFee = shippingResult?.total ?? 0;
   const region = (shippingResult?.region ?? "unknown") as Region;
 
+  const totalMinOrderFeeVnd = shippingResult?.totalMinOrderFeeVnd ?? 0;
+  const minOrderFeeDetails = shippingResult?.minOrderFeeDetails || [];
+
   const serviceFee = useMemo(() => {
     if (paymentMethod === "cod") {
       return (
         Math.round(totalFinal * 0.08) +
         Math.max(5000, Math.round(totalFinal * 0.01))
-      ); // // phí nền tảng + 1%, tối thiểu 5,000₫
+      ); // phí nền tảng + 1%, tối thiểu 5,000₫
     }
     return Math.round(totalFinal * 0.08); // phí nền tảng
   }, [paymentMethod, totalFinal]);
 
   const totalProductDiscount = totalOriginal - totalFinal;
   const grandTotal =
-    totalFinal + serviceFee + shippingFee - couponDiscount - shippingDiscount;
+    totalFinal +
+    serviceFee +
+    shippingFee -
+    couponDiscount -
+    shippingDiscount -
+    serviceDiscount;
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -215,23 +221,33 @@ export default function CheckoutPage() {
         phone: normalizePhone(form.phone),
         orderAmount: totalFinal,
         shippingFee,
+        serviceFee,
       });
 
-      setCouponApplied(result.coupon);
-      setCouponDiscount(result.discount);
+      debugger;
 
+      setCouponApplied(result.coupon);
+
+      //PHÂN NHÁNH XỬ LÝ THEO LOẠI DISCOUNT TYPE
       if (result.coupon.discountType === "freeship") {
         setShippingDiscount(shippingFee);
-
+        setCouponDiscount(0);
+        setServiceDiscount(0); // Reset các loại khác
+      } else if (result.coupon.discountType === "service_fee") {
+        setServiceDiscount(result.discount);
+        setShippingDiscount(0);
         setCouponDiscount(0);
       } else {
-        setShippingDiscount(0);
+        // Các loại giảm giá phần trăm đơn hàng hoặc giảm tiền cố định thông thường
         setCouponDiscount(result.discount);
+        setShippingDiscount(0);
+        setServiceDiscount(0);
       }
     } catch (err: any) {
       setCouponApplied(null);
       setCouponDiscount(0);
-
+      setShippingDiscount(0);
+      setServiceDiscount(0);
       setCouponError(err.message || "Không thể áp dụng mã giảm giá");
     }
   };
@@ -241,6 +257,7 @@ export default function CheckoutPage() {
     setCouponApplied(null);
     setCouponDiscount(0);
     setShippingDiscount(0);
+    setServiceDiscount(0);
     setCouponError("");
   };
 
@@ -336,7 +353,9 @@ export default function CheckoutPage() {
             0,
         ),
 
-        price: Number(i.variant?.pricing?.price ?? i.product?.pricing?.price ?? 0),
+        price: Number(
+          i.variant?.pricing?.price ?? i.product?.pricing?.price ?? 0,
+        ),
 
         quantity: i.quantity,
 
@@ -385,7 +404,7 @@ export default function CheckoutPage() {
 
     const payload = buildPayload();
 
-    debugger
+    debugger;
     setPendingOrderPayload(payload);
 
     const requireOtp = await checkOtp({
@@ -522,6 +541,8 @@ export default function CheckoutPage() {
                 coupon={coupon}
                 setCoupon={setCoupon}
                 couponApplied={couponApplied}
+                shippingDiscount={shippingDiscount}
+                serviceDiscount={serviceDiscount}
                 couponDiscount={couponDiscount}
                 couponError={couponError}
                 couponLoading={validatingCoupon}
@@ -594,6 +615,7 @@ export default function CheckoutPage() {
                 totalProductDiscount={totalProductDiscount}
                 couponApplied={couponApplied}
                 shippingDiscount={shippingDiscount}
+                serviceDiscount={serviceDiscount}
                 couponDiscount={couponDiscount}
                 shippingResult={shippingResult}
                 shippingFee={shippingFee}
@@ -602,6 +624,8 @@ export default function CheckoutPage() {
                 internationalFee={internationalFee}
                 serviceFee={serviceFee}
                 grandTotal={grandTotal}
+                totalMinOrderFeeVnd={totalMinOrderFeeVnd}
+                minOrderFeeDetails={minOrderFeeDetails}
                 fmt={fmt}
               />
 

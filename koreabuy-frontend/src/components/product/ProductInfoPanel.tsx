@@ -1,6 +1,6 @@
 // components/product/ProductInfoPanel.tsx
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import ProductDescription from "./ProductDescription";
 import ProductVariants from "./ProductVariants";
 import ProductOptions from "./ProductOptions";

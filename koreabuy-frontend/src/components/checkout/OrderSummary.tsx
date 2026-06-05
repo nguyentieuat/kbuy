@@ -8,14 +8,13 @@ type Props = {
   couponApplied: {
     id: number;
     code: string;
-
-    discountType: "percent" | "fixed" | "freeship";
-
+    discountType: "percent" | "fixed" | "freeship" | "service_fee";
     discountValue: number;
   } | null;
 
   couponDiscount: number;
   shippingDiscount: number;
+  serviceDiscount: number;
 
   shippingResult: any;
   shippingFee: number;
@@ -27,6 +26,14 @@ type Props = {
   serviceFee: number;
   grandTotal: number;
 
+  totalMinOrderFeeVnd: number;
+  minOrderFeeDetails: Array<{
+    source: string;
+    fee_vnd: number;
+    name?: string;
+    [key: string]: any;
+  }>;
+
   fmt: (n: number) => string;
 };
 
@@ -36,6 +43,7 @@ export default function OrderSummary({
   totalProductDiscount,
   couponApplied,
   shippingDiscount,
+  serviceDiscount,
   couponDiscount,
   shippingResult,
   localFee,
@@ -43,6 +51,8 @@ export default function OrderSummary({
   internationalFee,
   serviceFee,
   grandTotal,
+  totalMinOrderFeeVnd,
+  minOrderFeeDetails,
   fmt,
 }: Props) {
   return (
@@ -77,7 +87,7 @@ export default function OrderSummary({
         </div>
       )}
 
-      {/* Coupon */}
+      {/* Coupon giảm giá đơn hàng thông thường (percent / fixed) */}
       {couponDiscount > 0 && couponApplied && (
         <div
           style={{
@@ -89,7 +99,6 @@ export default function OrderSummary({
           }}
         >
           <span>Mã giảm giá ({couponApplied.code})</span>
-
           <span>-{fmt(couponDiscount)}</span>
         </div>
       )}
@@ -107,6 +116,40 @@ export default function OrderSummary({
         <span>Phí vận chuyển quốc tế</span>
         <span>{fmt(internationalFee)}</span>
       </div>
+      {/* HIỂN THỊ PHỤ PHÍ NỘI ĐỊA HÀN QUỐC (NẾU CÓ) */}
+      {totalMinOrderFeeVnd > 0 && (
+        <div
+          style={{
+            background: "#f9f9f9",
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: "1px dashed #ddd",
+            marginBottom: 8,
+            fontSize: 13,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontWeight: 600,
+              color: "#d32f2f",
+              marginBottom: 4,
+            }}
+          >
+            <span>Phí giao hàng nội địa Hàn Quốc</span>
+            <span>+{fmt(totalMinOrderFeeVnd)}</span>
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 16, color: "#666", fontSize: 12 }}>
+            {minOrderFeeDetails.map((detail, idx) => (
+              <li key={idx} style={{ marginBottom: 2 }}>
+                Các sản phẩm <strong>{detail.source}</strong> chưa đạt mức freeship:{" "}
+                <span style={{ color: "#d32f2f" }}>+{fmt(detail.fee_vnd)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Shipping nội địa */}
       <div
@@ -119,7 +162,6 @@ export default function OrderSummary({
         }}
       >
         <span>Phí vận chuyển nội địa VN</span>
-
         <span>
           {!shippingResult ? (
             <span style={{ color: "#aaa" }}>Chọn địa chỉ</span>
@@ -140,7 +182,6 @@ export default function OrderSummary({
       </div>
 
       {/* Badge giải thích freeship */}
-
       {shippingResult?.discountRule && (
         <div style={{ fontSize: 12, color: "#2e7d32", marginTop: 4 }}>
           {shippingResult.discountRule.name}
@@ -158,8 +199,31 @@ export default function OrderSummary({
         }}
       >
         <span>Phí dịch vụ</span>
-        <span>{fmt(serviceFee)}</span>
+        {/* Nếu phí dịch vụ được giảm hết (Miễn phí), ta gạch ngang số cũ */}
+        <span>
+          {serviceDiscount >= serviceFee && serviceFee > 0 ? (
+            <s style={{ color: "#aaa" }}>{fmt(serviceFee)}</s>
+          ) : (
+            fmt(serviceFee)
+          )}
+        </span>
       </div>
+
+      {/* HIỂN THỊ DÒNG GIẢM GIÁ PHÍ DỊCH VỤ (NẾU CÓ) */}
+      {serviceDiscount > 0 && couponApplied && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 8,
+            fontSize: 14,
+            color: "#27ae60",
+          }}
+        >
+          <span>Giảm phí dịch vụ ({couponApplied.code})</span>
+          <span>-{fmt(serviceDiscount)}</span>
+        </div>
+      )}
 
       {/* bulky warning */}
       {shippingResult?.bulkyFee > 0 && (
@@ -198,8 +262,12 @@ export default function OrderSummary({
         </span>
       </div>
 
-      {/* Savings */}
-      {totalProductDiscount + couponDiscount > 0 && (
+      {/* Savings — Thêm điều kiện kiểm tra và cộng dồn serviceDiscount vào Tổng Tiết Kiệm */}
+      {totalProductDiscount +
+        couponDiscount +
+        shippingDiscount +
+        serviceDiscount >
+        0 && (
         <p
           style={{
             textAlign: "right",
@@ -208,7 +276,14 @@ export default function OrderSummary({
             margin: 0,
           }}
         >
-          Tiết kiệm {fmt(totalProductDiscount + couponDiscount + shippingDiscount + (shippingResult?.localDiscount ?? 0))}
+          Tiết kiệm{" "}
+          {fmt(
+            totalProductDiscount +
+              couponDiscount +
+              shippingDiscount +
+              serviceDiscount +
+              (shippingResult?.localDiscount ?? 0),
+          )}
         </p>
       )}
     </div>

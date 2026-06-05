@@ -80,44 +80,20 @@ const OrderService = {
     const exchangeRate = await ExchangeRateModel.getRate("KRW", "VND");
     const rate = await getKrwToVndRate();
 
-    // ── Validate ──────────────────────────────────────
+    // ── Validate cơ bản ───────────────────────────────
     if (!items?.length) throw new Error("Giỏ hàng trống");
     if (!customer?.full_name || !customer?.phone || !customer?.address) {
       throw new Error("Thiếu thông tin người nhận");
     }
 
-    // ── OTP CHECK ─────────────────────────────────────
-    if (paymentMethod === "cod") {
-      const requireOtp = await OtpService.shouldRequireOtp({
-        phone: normalizePhone(customer.phone),
-        paymentMethod,
-        grandTotal: 0,
-      });
-
-      if (requireOtp) {
-        if (!verifyToken) throw new Error("Yêu cầu xác minh OTP");
-        const tokenCheck = OtpService.validateVerifyToken(
-          verifyToken,
-          normalizePhone(customer.phone),
-        );
-        if (!tokenCheck.valid) throw new Error(tokenCheck.error);
-      }
-    }
-
     // ── TÍNH TIỀN HÀNG ────────────────────────────────
-
     const variantIds = items.map((x) => x.variantId).filter(Boolean);
-
     const productIds = items.map((x) => x.productId).filter(Boolean);
 
-    const variantRows =
-      await ProductVariantModel.getVariantSnapshotForOrder(variantIds);
-
-    const productRows =
-      await ProductModel.getProductsSnapshotForOrder(productIds);
+    const variantRows = await ProductVariantModel.getVariantSnapshotForOrder(variantIds);
+    const productRows = await ProductModel.getProductsSnapshotForOrder(productIds);
 
     const variantMap = new Map(variantRows.map((v) => [v.id, v]));
-
     const productMap = new Map(productRows.map((p) => [p.id, p]));
 
     const resolvedItems = [];
@@ -125,129 +101,68 @@ const OrderService = {
     for (const item of items) {
       if (item.variantId) {
         const variant = variantMap.get(item.variantId);
-
-        if (!variant) {
-          throw new Error("Variant không tồn tại");
-        }
+        if (!variant) throw new Error("Variant không tồn tại");
 
         const priceKrw = Number(variant.price || 0);
-
-        const originalPriceKrw = Number(
-          variant.original_price || variant.price || 0,
-        );
+        const originalPriceKrw = Number(variant.original_price || variant.price || 0);
 
         resolvedItems.push({
           type: "variant",
-
           productId: variant.product_id,
-
           variantId: variant.id,
-
           productName: variant.product_name_vi,
-
           productNameKr: variant.product_name_kr,
-
           variantName: variant.name_vi,
-
           variantNameKr: variant.name_kr,
-
           image: variant.image ?? variant.variant_image ?? item.image,
-
           productLink: variant.product_url ?? item.productUrl,
-
           quantity: item.quantity,
-
-          // KRW
           priceKrw,
           originalPriceKrw,
-
-          // VND
           price: Math.round(priceKrw * rate),
-
           originalPrice: Math.round(originalPriceKrw * rate),
-
-          chargeableWeightGrams:
-            variant.chargeable_weight_grams ?? variant.weight_grams ?? 0,
-
+          chargeableWeightGrams: variant.chargeable_weight_grams ?? variant.weight_grams ?? 0,
           isBulky: variant.is_bulky ?? false,
         });
-
         continue;
       }
 
       // PRODUCT ONLY
       const product = productMap.get(item.productId);
-
-      if (!product) {
-        throw new Error("Sản phẩm không tồn tại");
-      }
+      if (!product) throw new Error("Sản phẩm không tồn tại");
 
       const salePriceKrw = Number(product.sale_price || 0);
-
-      const originalPriceKrw = Number(
-        product.original_price || product.sale_price || 0,
-      );
+      const originalPriceKrw = Number(product.original_price || product.sale_price || 0);
 
       resolvedItems.push({
         type: "product",
-
         productId: product.id,
-
         variantId: null,
-
         productName: product.name_vi,
-
         productNameKr: product.name_kr,
-
         image: product.image ?? item.image,
-
         productLink: product.product_url ?? item.productUrl,
-
         quantity: item.quantity,
-
-        // KRW
         priceKrw: salePriceKrw,
         originalPriceKrw,
-
-        // VND
         price: Math.round(salePriceKrw * rate),
-
         originalPrice: Math.round(originalPriceKrw * rate),
-
-        chargeableWeightGrams:
-          product.chargeable_weight_grams ?? product.weight_grams ?? 0,
+        chargeableWeightGrams: product.chargeable_weight_grams ?? product.weight_grams ?? 0,
         isBulky: product.is_bulky ?? false,
       });
     }
 
-    // chỉ cần 1 sản phẩm isBulky là cả đơn tính bulky
-    const bulkyCount = resolvedItems.reduce((sum, item) => {
-      const isBulky = item.isBulky;
-      return sum + (isBulky ? item.quantity : 0);
-    }, 0);
-
-    const serverTotalOriginal = resolvedItems.reduce((sum, item) => {
-      return sum + item.originalPrice * item.quantity;
-    }, 0);
-
-    const serverTotalFinal = resolvedItems.reduce((sum, item) => {
-      return sum + item.price * item.quantity;
-    }, 0);
-
+    const bulkyCount = resolvedItems.reduce((sum, item) => sum + (item.isBulky ? item.quantity : 0), 0);
+    const serverTotalOriginal = resolvedItems.reduce((sum, item) => sum + item.originalPrice * item.quantity, 0);
+    const serverTotalFinal = resolvedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const productDiscount = serverTotalOriginal - serverTotalFinal;
 
     // ── TÍNH WEIGHT ───────────────────────────────────
-    // Lấy từ items, FE truyền lên
-    const weightGrams = resolvedItems.reduce((sum, item) => {
-      return sum + (item.chargeableWeightGrams || 0) * item.quantity;
-    }, 0);
+    const weightGrams = resolvedItems.reduce((sum, item) => sum + (item.chargeableWeightGrams || 0) * item.quantity, 0);
 
     // ── DETECT REGION ─────────────────────────────────
     const region = customer.provinceCode
-      ? detectShippingRegion({
-          provinceCode: Number(customer.provinceCode),
-          wardCode: customer.wardCode,
-        })
+      ? detectShippingRegion({ provinceCode: Number(customer.provinceCode), wardCode: customer.wardCode })
       : "unknown";
 
     // ── TÍNH PHÍ SHIP SERVER-SIDE ─────────────────────
@@ -260,29 +175,22 @@ const OrderService = {
     });
 
     const {
-      // weight
       actualWeightGrams,
       billedWeightGrams,
       weightSurplusGrams,
-
-      // phí khách trả
       internationalFee,
       localFee,
       total: serverShippingFee,
       isFreeShipping,
-
-      bulkyFee,
       internationalBulkyFee,
       localBulkyFee,
-
       actualInternationalFee,
       shippingFeeSurplus,
     } = shippingCalc;
 
-    // Giảm giá ship (freeship)
     let serverShippingDiscount = isFreeShipping ? localFee : 0;
 
-    // ── SERVICE FEE ───────────────────────────────────
+    // ── SERVICE FEE (Đảo lên trước Coupon) ─────────────
     const serviceFee = calculateServiceFee({
       paymentMethod,
       totalFinal: serverTotalFinal,
@@ -301,13 +209,14 @@ const OrderService = {
         phone: customer.phone,
         orderAmount: serverTotalFinal,
         shippingFee: serverShippingFee,
+        serviceFee,
       });
 
       resolvedCouponId = couponResult.coupon.id;
       resolvedCouponCode = couponResult.coupon.code;
 
       if (couponResult.coupon.discountType === "freeship") {
-        serverShippingDiscount = localFee; // freeship = miễn phí nội địa
+        serverShippingDiscount = localFee;
         couponDiscount = 0;
       } else {
         couponDiscount = couponResult.discount;
@@ -322,6 +231,24 @@ const OrderService = {
       couponDiscount -
       serverShippingDiscount;
 
+    // ── OTP CHECK (Dời xuống đây để lấy đúng finalPrice thực tế) ──
+    if (paymentMethod === "cod") {
+      const requireOtp = await OtpService.shouldRequireOtp({
+        phone: normalizePhone(customer.phone),
+        paymentMethod,
+        grandTotal: finalPrice, 
+      });
+
+      if (requireOtp) {
+        if (!verifyToken) throw new Error("Yêu cầu xác minh OTP");
+        const tokenCheck = OtpService.validateVerifyToken(
+          verifyToken,
+          normalizePhone(customer.phone),
+        );
+        if (!tokenCheck.valid) throw new Error(tokenCheck.error);
+      }
+    }
+
     // ── TRANSACTION ───────────────────────────────────
     const result = await db.transaction(async (trx) => {
       const orderCode = generateOrderCode();
@@ -330,60 +257,33 @@ const OrderService = {
         {
           order_code: orderCode,
           user_id: userId ?? null,
-
-          // ── Tiền hàng ──
           total_price: serverTotalOriginal,
           product_discount: productDiscount,
-
-          // ── Phí dịch vụ ──
           service_fee: serviceFee,
-
-          // ── Phí ship (khách trả) ──
           shipping_fee: serverShippingFee,
           international_shipping_fee: internationalFee,
           local_shipping_fee: localFee,
           shipping_discount: serverShippingDiscount,
-
-          // ── Phí ship internal (lợi nhuận) ──
           actual_international_shipping_fee: actualInternationalFee,
           shipping_fee_surplus: shippingFeeSurplus,
-
-          // Lưu bulky fee riêng để audit
           has_bulky: bulkyCount > 0,
           international_bulky_fee: internationalBulkyFee,
           local_bulky_fee: localBulkyFee,
-
-          // ── Giảm giá ──
           discount_amount: couponDiscount + serverShippingDiscount,
-
-          // ── Tổng ──
           final_price: finalPrice,
-
-          // ── Tỉ giá snapshot ──
           sell_rate_snapshot: rate,
           exchange_rate_meta: exchangeRate,
-
           currency: "VND",
-
-          // ── Coupon ──
           coupon_id: resolvedCouponId,
           coupon_code: resolvedCouponCode,
-
-          // ── Ship info ──
           shipping_method: shipping,
           shipping_region: region,
-
-          // ── Cân nặng ──
           actual_weight_grams: actualWeightGrams,
           chargeable_weight_grams: billedWeightGrams,
           weight_surplus_grams: weightSurplusGrams,
-
-          // ── Thanh toán ──
           payment_method: paymentMethod,
           payment_status: "unpaid",
           status: "pending",
-
-          // ── Người nhận ──
           receiver_gender: customer.gender ?? null,
           receiver_name: customer.full_name,
           receiver_phone: customer.phone,
@@ -393,17 +293,15 @@ const OrderService = {
           receiver_ward_code: customer.wardCode ?? null,
           receiver_province: customer.province ?? null,
           receiver_province_code: customer.provinceCode ?? null,
-
           otp_verify_token: verifyToken ?? null,
           note: note ?? null,
         },
         trx,
       );
-      // ── ORDER ITEMS ───────────────────────────────
+
       const orderItems = formatOrderItems(resolvedItems, order.id);
       await OrderModel.createItems(orderItems, trx);
 
-      // ── COUPON USAGE LOG ──────────────────────────
       if (resolvedCouponId) {
         await CouponService.markCouponUsed(
           {
@@ -417,6 +315,7 @@ const OrderService = {
           trx,
         );
       }
+
       return {
         order,
         orderId: order.id,

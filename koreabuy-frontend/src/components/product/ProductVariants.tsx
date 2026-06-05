@@ -5,7 +5,6 @@ export default function ProductVariants({
   selectedVariant,
   setSelectedVariant,
   setVariantSelectedByUser,
-  normalizeImageUrl,
 }: any) {
   if (!activeVariants?.length) return null;
 

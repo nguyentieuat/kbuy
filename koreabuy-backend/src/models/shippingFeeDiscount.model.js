@@ -66,8 +66,22 @@ async function getShippingFeeDiscount({
   return rules;
 }
 
+async function getMinOrderFeeRules() {
+  const now = new Date();
+  
+  return await db("shipping_fee_discounts")
+    .where({ discount_type: "min_order_fee", is_active: true })
+    .where(function () {
+      this.whereNull("start_at").orWhere("start_at", "<=", now);
+    })
+    .where(function () {
+      this.whereNull("end_at").orWhere("end_at", ">=", now);
+    })
+    .orderBy("priority", "desc");
+}
 
 module.exports = {
   getFeeBulky,
-  getShippingFeeDiscount
+  getShippingFeeDiscount,
+  getMinOrderFeeRules,
 };

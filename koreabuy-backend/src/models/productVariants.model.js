@@ -30,6 +30,7 @@ async function getVariantSnapshotForOrder(variantIds = []) {
       "p.name_kr as product_name_kr",
       "p.product_url",
       "p.slug",
+      "p.source",
 
       "pv.name_kr",
       "pv.name_vi",

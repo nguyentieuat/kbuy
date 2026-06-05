@@ -12,6 +12,7 @@ type ValidatePayload = {
 
   orderAmount: number;
   shippingFee: number;
+  serviceFee: number;
 };
 
 export function useValidateCoupon() {

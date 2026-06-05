@@ -53,6 +53,8 @@ export function useShippingFee({
           orderTotal,
         });
 
+        debugger
+
         if (!cancelled) setResult(data);
       } catch (err: any) {
         if (!cancelled) setError(err.message);

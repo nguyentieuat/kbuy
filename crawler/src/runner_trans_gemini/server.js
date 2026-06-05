@@ -138,7 +138,7 @@ function buildAiInput(product) {
 
     specs: product.specs || {},
 
-    variants: product.variants.map((v) => {
+    variants: product.variants?.map((v) => {
       return {
         id: v.variantId,
 

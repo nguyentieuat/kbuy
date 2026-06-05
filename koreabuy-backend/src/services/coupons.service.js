@@ -12,6 +12,7 @@ class CouponService {
     phone,
     orderAmount,
     shippingFee,
+    serviceFee, // 🔥 Thêm tham số này để tính giảm phí dịch vụ
   }) {
     const coupon = await CouponModel.findByCode(code);
 
@@ -59,27 +60,33 @@ class CouponService {
 
     let discount = 0;
 
+    //Thay return bằng gán giá trị biến để chạy xuống được hàm mapping cuối cùng
     switch (coupon.discount_type) {
-      case "percent":
-        discount = orderAmount * (Number(coupon.discount_value) / 100);
-
+      case "percent": {
+        discount = Math.round((orderAmount * coupon.discount_value) / 100); // Đã sửa subtotal -> orderAmount
         if (coupon.max_discount_value) {
-          discount = Math.min(
-            discount,
-            Number(coupon.max_discount_value),
-          );
+          discount = Math.min(discount, coupon.max_discount_value);
         }
         break;
+      }
 
       case "fixed":
-        discount = Number(coupon.discount_value);
+        discount = coupon.discount_value;
         break;
 
       case "freeship":
         discount = shippingFee;
         break;
+
+      case "service_fee":
+        discount = Math.round((serviceFee * coupon.discount_value) / 100); // Đã có serviceFee truyền vào
+        break;
+
+      default:
+        discount = 0;
     }
 
+    // Trả ra đầy đủ thông tin dto + số tiền được giảm
     return {
       coupon: toCouponDTO(coupon),
       discount: Math.round(discount),
@@ -93,7 +100,7 @@ class CouponService {
     email,
     phone,
     discountAmount,
-  },trx) {
+  }, trx) {
     await CouponUsageModel.create({
       coupon_id: couponId,
       user_id: userId ?? null,

@@ -2,6 +2,8 @@
 
 const ShippingFeeConfigModel = require("../models/shippingFeeConfig.model");
 const ShippingFeeDiscountModel = require("../models/shippingFeeDiscount.model");
+const ExchangeRateModel = require("../models/exchangeRate.model");
+const { getKrwToVndRate } = require("./currency.service");
 
 /**
  * Lấy config phù hợp từ DB
@@ -181,6 +183,36 @@ async function calcLocalFee({
     discountRule: rule ? { name: rule.name, type: rule.discount_type } : null,
   };
 }
+
+async function calculateMinOrderFee({ source, orderTotalKrw, exchangeRate }) {
+  const configs = await ShippingFeeDiscountModel.getMinOrderFeeRules();
+
+  for (const config of configs) {
+    const extra = config.extra_data || {};
+
+    // Kiểm tra source có trong danh sách không
+    if (extra.sources && !extra.sources.includes(source)) continue;
+
+    const thresholdKrw = extra.threshold_krw || 0;
+
+    // Nếu đơn đạt ngưỡng → không tính phụ phí
+    if (orderTotalKrw >= thresholdKrw) continue;
+
+    const feeKrw = extra.fee_krw || 0;
+    const feeVnd = Math.round(feeKrw * exchangeRate);
+
+    return {
+      applied: true,
+      name: config.name,
+      fee_krw: feeKrw,
+      fee_vnd: feeVnd,
+      threshold_krw: thresholdKrw,
+    };
+  }
+
+  return { applied: false, fee_krw: 0, fee_vnd: 0 };
+}
+
 /**
  * Main: tính tổng phí ship
  * @param {object} params
@@ -197,6 +229,7 @@ async function calculateShipping({
   method,
   orderTotal = 0,
   bulkyCount = 0,
+  items = [],
 }) {
   const actualWeight = weightGrams;
 
@@ -256,6 +289,41 @@ async function calculateShipping({
     });
   }
 
+  // ── TÍNH PHỤ PHÍ NỘI ĐỊA HÀN QUỐC (Xử lý đơn nhiều Source) ──
+  let totalMinOrderFeeVnd = 0;
+  const minOrderFeeDetails = [];
+
+  const exchangeRate = await ExchangeRateModel.getRate("KRW", "VND");
+  const rate = await getKrwToVndRate();
+
+  if (items.length > 0 && exchangeRate) {
+    // 1. Gom nhóm và tính tổng tiền KRW theo từng source
+    const sourceTotals = {};
+    items.forEach(item => {
+      if (!sourceTotals[item.source]) {
+        sourceTotals[item.source] = 0;
+      }
+      sourceTotals[item.source] += (Number(item.priceKrw) || 0) * (item.quantity || 1);
+    });
+
+    // 2. Chạy loop qua từng source có trong đơn để check phụ phí của web đó
+    for (const [sourceName, sourceTotalKrw] of Object.entries(sourceTotals)) {
+      const feeResult = await calculateMinOrderFee({
+        source: sourceName,
+        orderTotalKrw: sourceTotalKrw,
+        exchangeRate: rate
+      });
+
+      if (feeResult.applied) {
+        totalMinOrderFeeVnd += feeResult.fee_vnd;
+        minOrderFeeDetails.push({
+          source: sourceName,
+          ...feeResult
+        });
+      }
+    }
+  }
+
   return {
     method,
 
@@ -280,8 +348,12 @@ async function calculateShipping({
     discountRule: localResult.discountRule,
     isFreeShipping: localResult.isFreeShipping,
 
+    // Phụ phí Web Hàn Quốc bóc tách chi tiết
+    minOrderFeeDetails,      // Trả về mảng các store bị tính phí để hiển thị ở Front-end
+    totalMinOrderFeeVnd,     // Tổng tiền phụ phí Hàn Quốc hệ thống thu thêm
+
     // total
-    total: billedFee + localResult.fee + localBulkyFee + internationalBulkyFee,
+    total: billedFee + localResult.fee + localBulkyFee + internationalBulkyFee + totalMinOrderFeeVnd,
   };
 }
 

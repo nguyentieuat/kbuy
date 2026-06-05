@@ -1,5 +1,5 @@
 exports.seed = async function (knex) {
-    const exists = await knex("shipping_fee_discounts").first();
+  const exists = await knex("shipping_fee_discounts").first();
 
   if (exists) return;
 
@@ -55,6 +55,22 @@ exports.seed = async function (knex) {
       discount_type: "bulky",
       discount_value: 55000,
       is_active: true,
+    },
+    // Thêm vào seed shipping_fee_discounts
+    {
+      name: "Phụ phí đơn hàng dưới mức tối thiểu (T1/GenG)",
+      shipping_type: "international",
+      discount_type: "min_order_fee",
+      discount_value:3000, // 70,000 KRW quy đổi sang VND khi tính
+      min_order_amount: 70000, // áp dụng khi đơn < threshold
+      max_order_amount: null, // set trong code
+      priority: 10,
+      is_active: true,
+      extra_data: JSON.stringify({
+        sources: ["t1", "geng"],         // chỉ áp dụng cho t1, geng
+        threshold_krw: 70000,            // ngưỡng tối thiểu tính bằng KRW
+        fee_krw: 3000,                  // phí nếu không đạt ngưỡng (tính bằng KRW)
+      }),
     },
   ]);
 };

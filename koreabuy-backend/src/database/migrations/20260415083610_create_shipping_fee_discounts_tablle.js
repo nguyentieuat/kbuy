@@ -65,6 +65,8 @@ exports.up = async function (knex) {
      */
     table.integer("priority").defaultTo(0);
 
+    table.jsonb("extra_data").nullable();
+
     // Có stack với các discount khác không
     // false = chỉ lấy rule tốt nhất
     table.boolean("is_stackable").defaultTo(false);

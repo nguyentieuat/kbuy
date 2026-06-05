@@ -45,7 +45,7 @@ exports.up = async function (knex) {
     // fixed    => giảm số tiền cố định
     // freeship => miễn phí vận chuyển
     table
-      .enum("discount_type", ["percent", "fixed", "freeship"])
+      .enum("discount_type", ["percent", "fixed", "freeship", "service_fee"])
       .notNullable();
 
     // Giá trị giảm

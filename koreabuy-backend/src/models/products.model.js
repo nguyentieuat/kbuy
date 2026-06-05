@@ -751,6 +751,7 @@ async function getProductsSnapshotForOrder(productIds = []) {
       "p.product_url",
       "p.name_kr",
       "p.name_vi",
+      "p.source",
       "p.sale_price",
       "p.original_price",
       "p.currency",

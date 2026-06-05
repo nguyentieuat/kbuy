@@ -14,6 +14,15 @@ export interface ShippingCalcParams {
   orderTotal?: number;
 }
 
+export interface MinOrderFeeDetail {
+  source: string;
+  applied: boolean;
+  name: string;
+  fee_krw: number;
+  fee_vnd: number;
+  threshold_krw: number;
+}
+
 export interface ShippingCalcResult {
   method: string;
   weightGrams: number;
@@ -29,6 +38,8 @@ export interface ShippingCalcResult {
   bulkyFee: number;
   localDiscount: number;
   discountRule: string;
+  totalMinOrderFeeVnd: number;
+  minOrderFeeDetails: MinOrderFeeDetail[];
 }
 
 export async function fetchShippingFee(
