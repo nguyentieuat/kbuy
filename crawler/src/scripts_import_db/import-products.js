@@ -15,7 +15,7 @@ const readline = require("readline");
 
 const INPUT_DIR = path.resolve(
   __dirname,
-  "../../data/translate/t1/success",
+  "../../data/translate/oliveyoung/success",
 );
 
 const DEBUG = true;
