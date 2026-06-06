@@ -24,7 +24,6 @@ export default function CartItemRow({
   setVariantModal,
   handleRemoveItem,
 }: Props) {
-  debugger;
   const handleOpenVariant = async (item: CartItem) => {
     try {
       const res = await fetch(`/api/products/${item.product.slug}`);

@@ -46,7 +46,6 @@ export default function ProductInfoPanel(props: Props) {
     normalizeImageUrl,
   } = props;
 
-  debugger;
   const [selectedOptions, setSelectedOptions] = useState<any>({});
   const [selectedAddon, setSelectedAddon] = useState<{
     addonId: string;

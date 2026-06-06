@@ -83,7 +83,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     selectedOptions: Record<string, string> = {},
     selectedAddon: any = null,
   ) => {
-    debugger;
     const token = localStorage.getItem("token");
     // guest cart
     if (!token) {

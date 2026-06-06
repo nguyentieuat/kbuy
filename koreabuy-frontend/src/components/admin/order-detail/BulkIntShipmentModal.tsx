@@ -53,7 +53,6 @@ export default function BulkIntShipmentModal({
     setError("");
 
     try {
-      debugger;
       await AdminOrderAPI.createBulkShipment({
         order_ids: selectedOrders.map((o) => o.id),
         tracking_code: tracking,

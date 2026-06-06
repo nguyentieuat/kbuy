@@ -25,7 +25,6 @@ export default function OrderDetail() {
   }, [fromCheckout, location.pathname]);
 
   const { order, loading } = useOrderDetail(orderCode);
-  debugger;
   const { addToCart, clearCart } = useCart();
 
   const handleBuyAgain = async () => {

@@ -183,7 +183,7 @@ async function getMusinsaPrice(page) {
 
     const salePrice = parsePrice(salePriceText);
     // 🔥 Nếu không có giá gốc (không sale), gán thẳng bằng salePrice
-    const originalPrice = parsePrice(originalPriceText) || salePrice; 
+    const originalPrice = parsePrice(originalPriceText) || salePrice;
     // 🔥 Nếu không có giảm giá thì đưa về số 0 luôn thay vì null
     const discount = parseInt((discountRateText || "").replace(/[^\d]/g, ""), 10) || 0;
 
@@ -257,10 +257,29 @@ async function getMusinsaVariants(page, productId, basePrice = null, baseDiscoun
     function cleanMusinsaOptionText(text) {
       if (!text) return "";
       let cleaned = text;
-      cleaned = cleaned.replace(/\d{2}[./]\d{2}\([^)]+\)\s*(이내\s*)?발송\s*예정/g, "");
-      cleaned = cleaned.replace(/\d{2}[./]\d{2}\([^)]+\)\s*순차\s*배송/g, "");
+
+      // Xóa dạng số: "06.08(월) 도착 예정", "06/08(화) 이내 발송 예정"
+      cleaned = cleaned.replace(/\d{2}[./]\d{2}\([^)]*\)[^\n]*/g, "");
+
+      // Xóa dạng từ: "모레(월)", "내일(화)", "오늘(목)" + phần sau
+      cleaned = cleaned.replace(/(모레|내일|오늘|이번\s*주\s*\S+)\([^)]*\)[^\n]*/g, "");
+
+      // Xóa "(월)", "(화)", "(수)", "(목)", "(금)", "(토)", "(일)" còn sót
+      cleaned = cleaned.replace(/\([월화수목금토일]\)/g, "");
+
+      // Xóa delivery text còn sót
+      cleaned = cleaned.replace(/도착\s*예정/g, "");
+      cleaned = cleaned.replace(/발송\s*예정/g, "");
+      cleaned = cleaned.replace(/순차\s*배송/g, "");
+      cleaned = cleaned.replace(/이내\s*/g, "");
+      cleaned = cleaned.replace(/모레/g, "");
+      cleaned = cleaned.replace(/내일/g, "");
+      cleaned = cleaned.replace(/오늘/g, "");
+
+      // Xóa soldout, giá delta
       cleaned = cleaned.replace(/\(품절\)/g, "");
       cleaned = cleaned.replace(/\([+-]?[0-9,]+원\)/g, "");
+
       return cleaned.replace(/\s+/g, " ").trim();
     }
 
@@ -377,6 +396,25 @@ async function getMusinsaVariants(page, productId, basePrice = null, baseDiscoun
       });
 
       const optionsCluster = allDropdownsData.map(d => d.options);
+      const totalVariants = optionsCluster.reduce(
+        (acc, arr) => acc * arr.length,
+        1
+      );
+
+      console.log(
+        `[${productId}] total combinations: ${totalVariants}`
+      );
+
+      if (totalVariants > 10000) {
+        console.log(
+          `[${productId}] Too many variants (${totalVariants}), skip`
+        );
+
+        return {
+          options: optionsMeta,
+          variants: [],
+        };
+      }
       const combinations = getCartesianProduct(optionsCluster);
 
       for (const combo of combinations) {
@@ -423,10 +461,10 @@ async function getMusinsaVariants(page, productId, basePrice = null, baseDiscoun
             const img = el.querySelector('img');
             const colorNameEl = el.querySelector('span[class*="OtherColorGoods__ColorText"]');
             const isSoldOut = !!el.querySelector('div[class*="OtherColorGoods__Dimmed"]') || el.innerText.includes("품절");
-            
+
             const itemId = anchor ? anchor.getAttribute('data-item-id') : null;
             const colorName = colorNameEl ? colorNameEl.innerText.trim() : "Other Color";
-            
+
             const price = anchor ? parseInt(anchor.getAttribute('data-price'), 10) : null;
             const originalPrice = anchor ? parseInt(anchor.getAttribute('data-original-price'), 10) : null;
             const discountRate = anchor ? parseInt(anchor.getAttribute('data-discount-rate'), 10) : null;
@@ -451,10 +489,6 @@ async function getMusinsaVariants(page, productId, basePrice = null, baseDiscoun
 
         results.push(...carouselVariants);
 
-        optionsMeta.push({
-          title: "색상",
-          values: [...new Set(carouselVariants.map(v => v.name_kr))]
-        });
       }
     } catch (carouselErr) {
       console.log("getMusinsaVariants > carousel crawl failed:", carouselErr.message);
@@ -502,7 +536,7 @@ async function waitForMusinsaProduct(page) {
     for (let i = 1; i < selectors.length; i++) {
       combinedLocator = combinedLocator.or(page.locator(selectors[i]));
     }
-    
+
     // Đợi tối đa 15s cho bất cứ phần tử nào hiển thị trước
     await combinedLocator.first().waitFor({ state: "attached", timeout: 15000 });
     return true;
@@ -551,7 +585,7 @@ async function crawlProduct(page, url) {
     } catch (err) {
       log.warn(`variants failed: ${err.message}`);
     }
-    
+
     let variants = variantData.variants;
     const options = variantData.options;
 
@@ -735,9 +769,9 @@ async function processProduct({
         if (!urlSet.has(newUrl)) {
           urlSet.add(newUrl);  // Chặn trùng nội bộ bộ nhớ
           urls.push(newUrl);   // Bơm vào mảng để các worker đào tiếp luôn
-          
+
           // Ghi trực tiếp xuống file links.txt gốc để lưu trữ lâu dài
-          fs.appendFileSync(inputPath, `${newUrl}\n`, "utf-8"); 
+          fs.appendFileSync(inputPath, `${newUrl}\n`, "utf-8");
           log.star(`🔗 Phát hiện màu khác! Đã đẩy vào links.txt: ${extractMusinsaProductId(newUrl)}`);
         }
       }
@@ -799,9 +833,9 @@ async function processFile(sessionManager, fileName) {
         .filter(Boolean),
     ),
   ];
-  
+
   // 🔥 Khởi tạo Set bảo vệ chống trùng lặp link
-  const urlSet = new Set(urls); 
+  const urlSet = new Set(urls);
   log.info(`📚 total urls khởi điểm: ${urls.length}`);
 
   if (fs.existsSync(tempPath)) fs.removeSync(tempPath);
@@ -824,13 +858,13 @@ async function processFile(sessionManager, fileName) {
     });
 
     log.info(`worker-${workerId} started`);
-    
+
     while (true) {
       const index = currentIndex++;
       // Do urls.length sẽ tăng lên một cách linh hoạt, biểu thức kiểm tra này 
       // luôn đúng cho đến khi không còn link màu mới nào được tìm thấy nữa.
-      if (index >= urls.length) break; 
-      
+      if (index >= urls.length) break;
+
       await processProduct({
         page,
         url: urls[index],
@@ -839,10 +873,9 @@ async function processFile(sessionManager, fileName) {
         processingSet,
         stats,
         index,
-        // Truyền các tham số động vào đây 👇
-        urls,       
-        urlSet,     
-        inputPath   
+        urls,
+        urlSet,
+        inputPath
       });
     }
     await page.close();

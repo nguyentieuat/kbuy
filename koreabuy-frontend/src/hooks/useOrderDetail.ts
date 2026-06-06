@@ -91,7 +91,6 @@ export function useOrderDetail(orderCode?: string) {
         if (!res.ok) {
           throw new Error("Không tải được đơn hàng");
         }
-debugger
         const data = await res.json();
         if (!cancelled) {
           setOrder(data.data);

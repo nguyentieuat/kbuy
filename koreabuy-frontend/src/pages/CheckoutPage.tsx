@@ -224,8 +224,6 @@ export default function CheckoutPage() {
         serviceFee,
       });
 
-      debugger;
-
       setCouponApplied(result.coupon);
 
       //PHÂN NHÁNH XỬ LÝ THEO LOẠI DISCOUNT TYPE
@@ -404,7 +402,6 @@ export default function CheckoutPage() {
 
     const payload = buildPayload();
 
-    debugger;
     setPendingOrderPayload(payload);
 
     const requireOtp = await checkOtp({
