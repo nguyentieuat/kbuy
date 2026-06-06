@@ -53,9 +53,12 @@ export default function ProductInfoPanel(props: Props) {
   } | null>(null);
 
   const safeOptions =
-    product.options?.filter(
-      (opt: any) => Array.isArray(opt.values) && opt.values.length > 0,
-    ) ?? [];
+    product.options?.filter((opt: any) => {
+      if (!Array.isArray(opt.values) || opt.values.length === 0) return false;
+      // Filter 색상 từ musinsa vì đây là linked products, không phải option thực
+      if (product.source === "musinsa" && opt.name === "색상") return false;
+      return true;
+    }) ?? [];
 
   const hasOptions = safeOptions.length > 0;
 
@@ -112,7 +115,7 @@ export default function ProductInfoPanel(props: Props) {
       {/* MODE A: OPTION-BASED PRODUCT */}
       {isOptionBased && (
         <ProductOptions
-          options={product.options}
+          options={safeOptions}
           selectedOptions={selectedOptions}
           setSelectedOptions={setSelectedOptions}
           variants={product.variants || []}
