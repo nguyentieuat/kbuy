@@ -129,6 +129,11 @@ function extractDiff(productName, variantName) {
 }
 
 function buildAiInput(product) {
+  // Filter other_color_link variants trước khi build prompt
+  const variantsToTranslate = (product.variants || []).filter((v) => {
+    if (product.source === "musinsa" && v.flags?.includes("other_color_link")) return false;
+    return true;
+  });
   return {
     productId: product.productId,
 
@@ -138,7 +143,7 @@ function buildAiInput(product) {
 
     specs: product.specs || {},
 
-    variants: product.variants?.map((v) => {
+    variants: variantsToTranslate.map((v) => {
       return {
         id: v.variantId,
 
@@ -336,6 +341,9 @@ function mergeVariants(base, enriched = [], productNameVi, product) {
   if (!Array.isArray(base)) return [];
 
   return base.map((v) => {
+    if (product.source === "musinsa" && v.flags?.includes("other_color_link")) {
+      return v;
+    }
     const match = enriched.find((x) => x.variantId === v.variantId);
 
     const translated = match?.name_vi;

@@ -73,10 +73,14 @@ export default function ProductOptions({
             value={selectedOptions[opt.name] || ""}
             onChange={(e) => {
               const val = e.target.value;
-              setSelectedOptions((prev: any) => ({
-                ...prev,
-                [opt.name]: val || undefined,
-              }));
+              setSelectedOptions((prev: any) => {
+                if (!val) {
+                  // Bỏ key khi deselect
+                  const { [opt.name]: _, ...rest } = prev;
+                  return rest;
+                }
+                return { ...prev, [opt.name]: val };
+              });
             }}
             style={{
               width: "100%",

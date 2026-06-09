@@ -73,11 +73,20 @@ export default function ProductInfoPanel(props: Props) {
   useEffect(() => {
     if (!isOptionBased) return;
 
-    const v = resolveVariant(product, selectedOptions, selectedAddon);
+    // Dùng safeOptions thay vì product.options để consistent
+    const allSelected = safeOptions.every(
+      (opt: any) => selectedOptions[opt.name],
+    );
 
+    if (!allSelected) {
+      setSelectedVariant(null);
+      return;
+    }
+
+    const v = resolveVariant(product, selectedOptions, selectedAddon);
     setSelectedVariant(v || null);
-    setVariantSelectedByUser(true);
-  }, [product, selectedOptions, selectedAddon, isOptionBased]);
+    setVariantSelectedByUser(!!v);
+  }, [selectedOptions, selectedAddon, isOptionBased]);
 
   return (
     <div className="col-lg-6">

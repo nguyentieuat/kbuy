@@ -146,6 +146,65 @@ function buildTranslationHash(product) {
 }
 
 // ─────────────────────────────────────────────
+// TEXT CLEANERS (giống import-products.js)
+// ─────────────────────────────────────────────
+
+function cleanMusinsaOptionText(text) {
+  if (!text) return "";
+  let cleaned = text;
+  cleaned = cleaned.replace(/\d{2}[./]\d{2}\([^)]*\)[^\n]*/g, "");
+  cleaned = cleaned.replace(/(모레|내일|오늘|이번\s*주\s*\S+)\([^)]*\)[^\n]*/g, "");
+  cleaned = cleaned.replace(/\([월화수목금토일]\)/g, "");
+  cleaned = cleaned.replace(/도착\s*예정/g, "");
+  cleaned = cleaned.replace(/발송\s*예정/g, "");
+  cleaned = cleaned.replace(/순차\s*배송/g, "");
+  cleaned = cleaned.replace(/이내\s*/g, "");
+  cleaned = cleaned.replace(/모레|내일|오늘/g, "");
+  cleaned = cleaned.replace(/\(품절\)/g, "");
+  cleaned = cleaned.replace(/\([+-]?[0-9,]+원\)/g, "");
+  return cleaned.replace(/\s+/g, " ").trim();
+}
+
+function cleanAttributes(attributes, source) {
+  if (!attributes || typeof attributes !== "object") return attributes;
+  if (source !== "musinsa") return attributes;
+  const cleaned = {};
+  for (const [key, value] of Object.entries(attributes)) {
+    if (key === "flags") { cleaned[key] = value; continue; }
+    cleaned[key] = typeof value === "string" ? cleanMusinsaOptionText(value) : value;
+  }
+  return cleaned;
+}
+
+/**
+ * Clean product data trước khi đưa vào translation pipeline
+ * - Xóa delivery text khỏi variant name_kr và attributes
+ * - Xóa option values có delivery text
+ * Chỉ áp dụng cho musinsa
+ */
+function cleanProductForTranslation(product) {
+  if (product.source !== "musinsa") return product;
+
+  return {
+    ...product,
+
+    // Clean option values
+    options: (product.options || []).map((opt) => ({
+      ...opt,
+      values: (opt.values || []).map(cleanMusinsaOptionText),
+    })),
+
+    // Clean từng variant
+    variants: (product.variants || []).map((v) => ({
+      ...v,
+      variantId: cleanMusinsaOptionText(v.variantId),
+      name_kr: cleanMusinsaOptionText(v.name_kr),
+      attributes: cleanAttributes(v.attributes, "musinsa"),
+    })),
+  };
+}
+
+// ─────────────────────────────────────────────
 // MAIN
 // ─────────────────────────────────────────────
 
@@ -185,13 +244,14 @@ async function main() {
 
       // ── TH1: Chưa có trong success ──────────────────
       if (!existing) {
-        newToTranslate.push({
+        const cleaned = cleanProductForTranslation({
           ...crawled,
           translationStatus: "pending",
           translationError: null,
           translatedHash: null,
           translatedAt: null,
         });
+        newToTranslate.push(cleaned);
         stats.newProduct++;
         console.log(`  🆕 NEW: ${productId}`);
         continue;
@@ -222,8 +282,9 @@ async function main() {
       );
 
       // Merge: giữ data VI cũ, cập nhật KR mới
-      const updatedRow =
-        mergeCrawlerData(existing, crawled, translationChanged);
+      const updatedRow = cleanProductForTranslation(
+        mergeCrawlerData(existing, crawled, translationChanged)
+      );
 
       // Update trong successRows
       const idx = updatedSuccessRows.findIndex(
@@ -284,13 +345,13 @@ async function main() {
       const allCrawlRows = await readJsonl(crawlPath);
       const updated = allCrawlRows.map((r) => {
         if (!resetIds.has(r.productId)) return r;
-        return {
+        return cleanProductForTranslation({
           ...r,
           translationStatus: "pending",
           translationError: null,
           translatedHash: null,
           translatedAt: null,
-        };
+        });
       });
       writeJsonl(crawlPath, updated);
     }

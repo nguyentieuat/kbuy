@@ -240,10 +240,28 @@ async function getMusinsaSpecs(page) {
       },
     );
     log.info(`specs: ${Object.keys(specs).length} fields`);
-    return specs;
+
+    // Lấy detail images từ Contents section
+    const detailImages = await page.$$eval(
+      '[class*="Contents__StyledInner"] img',
+      (imgs) =>
+        imgs
+          .map((img) =>
+            img.getAttribute("data-src") ||
+            img.getAttribute("src") ||
+            img.src
+          )
+          .filter(Boolean)
+          .map((src) => (src.startsWith("//") ? "https:" + src : src))
+          .filter((src) => !src.startsWith("data:image")),
+    );
+
+    log.img(`detail images: ${detailImages.length}`);
+
+    return { specs, detail_images: [...new Set(detailImages)] };
   } catch (err) {
     log.warn(`specs extract failed: ${err.message}`);
-    return {};
+    return { specs: {}, detail_images: [] };
   }
 }
 
@@ -566,7 +584,7 @@ async function crawlProduct(page, url) {
     const source = "musinsa";
 
     // Trích xuất thông tin song song
-    const [name, price, rating, specs, imageUrls] = await Promise.all([
+    const [name, price, rating, specsData, imageUrls] = await Promise.all([
       getMusinsaName(page),
       getMusinsaPrice(page),
       getMusinsaRating(page),
@@ -594,7 +612,8 @@ async function crawlProduct(page, url) {
       source,
       url,
       name,
-      specs,
+      specs: specsData.specs,
+      detail_images: specsData.detail_images,
       price: {
         originalPrice: price.originalPrice,
         salePrice: price.salePrice,
@@ -717,6 +736,7 @@ async function processProduct({
         ...old,
         name: fresh.name ?? old.name,
         specs: fresh.specs ?? old.specs,
+        detail_images: fresh.detail_images ?? old.detail_images,
         images: fresh.images?.length ? fresh.images : old.images,
         options: fresh.options,
         variants: mergeVariants(old.variants, fresh.variants),
