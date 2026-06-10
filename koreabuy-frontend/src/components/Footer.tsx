@@ -26,7 +26,7 @@ export default function Footer() {
               </div>
 
               <div className="widget">
-                <h3>Tham gia với chúng tôi để nhận thông tin và ưu đã mới</h3>
+                <h3>Tham gia với chúng tôi để nhận thông tin và ưu đãi mới</h3>
 
                 <form className="subscribe">
                   <div className="d-flex">
@@ -48,7 +48,7 @@ export default function Footer() {
 
           <div className="row mt-5">
             <div className="col-12 text-center">
-              <ul className="list-unstyled social">
+              {/* <ul className="list-unstyled social">
                 <li>
                   <a href="#">
                     <span className="icon-facebook"></span>
@@ -69,7 +69,7 @@ export default function Footer() {
                     <span className="icon-twitter"></span>
                   </a>
                 </li>
-              </ul>
+              </ul> */}
             </div>
 
             <div className="col-12 text-center copyright">
