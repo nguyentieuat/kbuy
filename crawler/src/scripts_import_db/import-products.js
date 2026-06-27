@@ -14,7 +14,7 @@ const readline = require("readline");
 
 const INPUT_DIR = path.resolve(
   __dirname,
-  "../../data/translate/musinsa/success",
+  "../../data/translate/oliveyoung/success",
 );
 
 const DEBUG = false; // Tắt debug khi chạy production để tăng tốc

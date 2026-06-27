@@ -25,7 +25,11 @@ Dịch JSON sau sang tiếng Việt.
                     để cập nhật vào specs_vi
 
                     - specs_vi phải giải thích ngắn gọn:
-                      - Các trường PHẢI viết bằng tiếng Việt có dấu đầy đủ.
+                      - Các trường PHẢI viết bằng tiếng Việt có dấu đầy đủ
+                      - Không sử dụng dấu gạch dưới (_).
+                      - Không sử dụng camelCase.
+                      - Không sử dụng kebab-case (-).
+                      - Key phải có khoảng trắng giữa các từ.
                       - Đây là sản phẩm gì
                       - Công dụng chính
                       - Đối tượng sử dụng

@@ -1,7 +1,7 @@
 // components/Header.tsx
 
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import MenuHeader from "./MenuHeader";
 import CartIcon from "./CartIcon";
 import { useCategories } from "../hooks/useCategories";
@@ -21,9 +21,21 @@ export default function Header() {
     setShowQuickActions(false);
   };
 
+  const location = useLocation();
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchValue.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchValue.trim())}`);
+      // Giữ lại category/source nếu đang ở trang /products
+      const currentParams = new URLSearchParams(location.search);
+      const category = currentParams.get("category");
+      const source = currentParams.get("source");
+
+      const newParams = new URLSearchParams();
+      if (category) newParams.set("category", category);
+      if (source) newParams.set("source", source);
+      newParams.set("search", searchValue.trim());
+      newParams.set("page", "1");
+
+      navigate(`/products?${newParams.toString()}`);
       closeQuickActions();
     }
   };

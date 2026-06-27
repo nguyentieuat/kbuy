@@ -100,11 +100,11 @@ export function useProducts(params: Params) {
     async function fetchData() {
       try {
         setLoading(true);
-
+        
         const query = new URLSearchParams({
           ...(params.category && { category: params.category }),
           ...(params.source && { source: params.source }),
-          ...(params.search && { q: params.search }),
+          ...(params.search && { search: params.search }),
           ...(params.sort && { sort: params.sort }),
           ...(params.page && { page: String(params.page) }),
           ...(params.limit && { limit: String(params.limit) }),

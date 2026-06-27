@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const CrawlerSessionManager = require("../../../core/sessionManager");
+const { categoryIdMap } = require("../category_root/category.map");
 
 /* ====================== */
 // CONFIG
@@ -13,70 +14,10 @@ const URL =
   "https://www.oliveyoung.co.kr/store/main/getBestList.do?t_page=%EC%83%81%ED%92%88%EC%83%81%EC%84%B8&t_click=GNB&t_swiping_type=N&t_gnb_type=%EB%9E%AD%ED%82%B9";
 
 // Output folder for category link files
-const OUTPUT_DIR = path.join(__dirname, "../../../data/links");
+const OUTPUT_DIR = path.join(__dirname, "../../../data/links/oliveyoung");
 /* ====================== */
 // CATEGORY MAP
 /* ====================== */
-
-// New category slug -> id
-const categoryIdMap = {
-  // ROOT
-  "my-pham": 1,
-  "suc-khoe": 2,
-  "thoi-trang": 3,
-  "kpop-anime-gaming": 4,
-  lifestyle: 5,
-
-  // Mỹ phẩm
-  "cham-soc-da": 11,
-  "trang-diem": 12,
-  "cham-soc-toc": 13,
-  "cham-soc-co-the": 14,
-  "nuoc-hoa": 15,
-  "my-pham-da-lieu": 16,
-  "thiet-bi-lam-dep": 17,
-  "phu-kien-lam-dep": 18,
-
-  // Chăm sóc da
-  "lam-sach": 111,
-  "mat-na": 112,
-  "chong-nang": 113,
-  toner: 114,
-  "serum-treatment": 115,
-  "kem-duong": 116,
-
-  // Trang điểm
-  "trang-diem-nen": 121,
-  "trang-diem-mau": 122,
-  "lam-mong": 123,
-
-  // Sức khỏe
-  "thuc-pham-chuc-nang": 21,
-  vitamin: 22,
-  "protein-eat-clean": 23,
-  "cham-soc-rang-mieng": 24,
-  "cham-soc-suc-khoe": 25,
-
-  // Thời trang
-  "quan-ao": 31,
-  "giay-dep": 32,
-  "tui-xach": 33,
-  "trang-suc": 34,
-  "phu-kien-thoi-trang": 35,
-
-  // Kpop / Anime / Gaming
-  "kpop-idol": 41,
-  anime: 42,
-  "esports-gaming": 43,
-  "album-photobook": 44,
-  "figure-goods": 45,
-
-  // Lifestyle
-  "do-gia-dung": 51,
-  "van-phong-pham": 52,
-  "do-bep": 53,
-  "phu-kien-doi-song": 54,
-};
 
 // Korean category -> NEW slug
 const categoryMap = {

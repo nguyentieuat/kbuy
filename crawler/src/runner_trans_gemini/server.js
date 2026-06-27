@@ -17,10 +17,10 @@ app.use((req, res, next) => {
 
 /* ========================= */
 /* CONFIG */
-const INPUT_DIR = path.resolve(__dirname, "../../data/translate/musinsa/success");
+const INPUT_DIR = path.resolve(__dirname, "../../data/translate/oliveyoung/success");
 // const INPUT_DIR = path.resolve(__dirname, "../../data/translate/oliveyoung/retry_failed");
-const SUCCESS_DIR = path.resolve(__dirname, "../../data/translate/musinsa/success");
-const FAILED_DIR = path.resolve(__dirname, "../../data/translate/musinsa/failed");
+const SUCCESS_DIR = path.resolve(__dirname, "../../data/translate/oliveyoung/success");
+const FAILED_DIR = path.resolve(__dirname, "../../data/translate/oliveyoung/failed");
 const CHECKPOINT_FILE = path.join(__dirname, "checkpoint.json");
 
 fsExtra.ensureDirSync(SUCCESS_DIR);

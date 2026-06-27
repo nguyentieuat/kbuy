@@ -10,8 +10,9 @@ export default function CategoryPage() {
 
   const category = params.get("category");
   const source = params.get("source");
+  const search = params.get("search"); 
 
-  const isListingPage = !!category || !!source;
+  const isListingPage = !!category || !!source || !!search; 
 
   if (!isListingPage) {
     return <ProductsLanding />;
