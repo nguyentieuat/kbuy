@@ -348,11 +348,15 @@ export default function OrderDetailDrawer({
             <OrderItemsSection items={d.items} />
 
             {/* Tổng tiền */}
+            {/* Tổng tiền */}
             <OrderSummarySection
               total_price={d.total_price}
+              product_discount={d.product_discount}
               discount_amount={d.discount_amount}
               coupon_code={d.coupon_code}
-              shipping_fee={d.shipping_fee}
+              international_shipping_fee={d.international_shipping_fee}
+              local_shipping_fee={d.local_shipping_fee}
+              shipping_discount={d.shipping_discount}
               service_fee={d.service_fee}
               final_price={d.final_price}
             />

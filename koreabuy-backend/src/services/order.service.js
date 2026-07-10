@@ -82,23 +82,40 @@ const OrderService = {
 
     // ── Validate cơ bản ───────────────────────────────
     if (!items?.length) throw new Error("Giỏ hàng trống");
+
+    const normalizedItems = items.map((item) => ({
+      ...item,
+      variantId: item.variantId ? Number(item.variantId) : null,
+      productId: item.productId ? Number(item.productId) : null,
+    }));
+
+    const variantIds = normalizedItems
+      .map((x) => x.variantId)
+      .filter((id) => id != null);
+
+    const productIds = normalizedItems
+      .map((x) => x.productId)
+      .filter((id) => id != null);
+
     if (!customer?.full_name || !customer?.phone || !customer?.address) {
       throw new Error("Thiếu thông tin người nhận");
     }
 
     // ── TÍNH TIỀN HÀNG ────────────────────────────────
-    const variantIds = items.map((x) => x.variantId).filter(Boolean);
-    const productIds = items.map((x) => x.productId).filter(Boolean);
-
     const variantRows = await ProductVariantModel.getVariantSnapshotForOrder(variantIds);
     const productRows = await ProductModel.getProductsSnapshotForOrder(productIds);
 
-    const variantMap = new Map(variantRows.map((v) => [v.id, v]));
-    const productMap = new Map(productRows.map((p) => [p.id, p]));
+    const variantMap = new Map(
+      variantRows.map((v) => [Number(v.id), v])
+    );
+
+    const productMap = new Map(
+      productRows.map((p) => [Number(p.id), p])
+    );
 
     const resolvedItems = [];
 
-    for (const item of items) {
+    for (const item of normalizedItems) {
       if (item.variantId) {
         const variant = variantMap.get(item.variantId);
         if (!variant) throw new Error("Variant không tồn tại");
@@ -108,8 +125,9 @@ const OrderService = {
 
         resolvedItems.push({
           type: "variant",
-          productId: variant.product_id,
-          variantId: variant.id,
+          productId: Number(variant.product_id),
+          variantId: Number(variant.id),
+          source: variant.source || "unknown",
           productName: variant.product_name_vi,
           productNameKr: variant.product_name_kr,
           variantName: variant.name_vi,
@@ -121,7 +139,8 @@ const OrderService = {
           originalPriceKrw,
           price: Math.round(priceKrw * rate),
           originalPrice: Math.round(originalPriceKrw * rate),
-          chargeableWeightGrams: variant.chargeable_weight_grams ?? variant.weight_grams ?? 0,
+          chargeableWeightGrams:
+            variant.resolved_weight ?? 500,
           isBulky: variant.is_bulky ?? false,
         });
         continue;
@@ -136,8 +155,9 @@ const OrderService = {
 
       resolvedItems.push({
         type: "product",
-        productId: product.id,
+        productId: Number(product.id),
         variantId: null,
+        source: product.source || "unknown",
         productName: product.name_vi,
         productNameKr: product.name_kr,
         image: product.image ?? item.image,
@@ -147,7 +167,7 @@ const OrderService = {
         originalPriceKrw,
         price: Math.round(salePriceKrw * rate),
         originalPrice: Math.round(originalPriceKrw * rate),
-        chargeableWeightGrams: product.chargeable_weight_grams ?? product.weight_grams ?? 0,
+        chargeableWeightGrams: Number(product.resolved_weight ?? 500),
         isBulky: product.is_bulky ?? false,
       });
     }
@@ -300,6 +320,7 @@ const OrderService = {
       );
 
       const orderItems = formatOrderItems(resolvedItems, order.id);
+
       await OrderModel.createItems(orderItems, trx);
 
       if (resolvedCouponId) {
@@ -324,7 +345,16 @@ const OrderService = {
       };
     });
 
-    await EmailQueueService.sendAdminOrderAlert(result.order);
+    EmailQueueService.sendAdminOrderAlert(result.order)
+      .catch((err) => {
+        console.error("Email queue failed:", err.message);
+      });
+
+    return {
+      orderId: result.orderId,
+      orderCode: result.orderCode,
+      finalPrice: result.finalPrice,
+    };
 
     return {
       orderId: result.orderId,

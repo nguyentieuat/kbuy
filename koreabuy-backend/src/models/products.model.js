@@ -758,9 +758,20 @@ async function getProductsSnapshotForOrder(productIds = []) {
       "p.is_active",
       "p.is_deleted",
 
-      "pvs.is_bulky",
-      "pvs.weight_grams",
-      "pvs.chargeable_weight_grams",
+      db.raw(`
+        COALESCE(
+          pvs.chargeable_weight_grams,
+          pvs.weight_grams,
+          500
+        ) as resolved_weight
+      `),
+
+      db.raw(`
+        COALESCE(
+          pvs.is_bulky,
+          false
+        ) as is_bulky
+      `),
 
       db.raw(`(${productImage}) as image`)
     )

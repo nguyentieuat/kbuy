@@ -62,30 +62,53 @@ export type DomShipment = {
 export type Order = {
   id: number;
   order_code: string;
+
   status: OrderStatus;
   payment_status: PaymentStatus;
   payment_method: string;
+
   receiver_name: string;
   receiver_phone: string;
   receiver_email: string | null;
   receiver_address: string;
   receiver_province: string | null;
   receiver_ward: string | null;
+
   shipping_method: string | null;
   shipping_region: string | null;
+
+  // 💰 Pricing
   total_price: number;
-  service_fee: number;
-  shipping_fee: number;
-  actual_weight_grams: number;
-  international_shipping_fee: number;
+  product_discount: number;
   discount_amount: number;
-  final_price: number;
+
+  service_fee: number;
+
+  // Shipping
+  shipping_fee: number;
+  international_shipping_fee: number;
+  local_shipping_fee: number;
+  shipping_discount: number;
+
+  // Weight
+  actual_weight_grams: number;
+  chargeable_weight_grams?: number;
+  weight_surplus_grams?: number;
+
+  // Coupon
   coupon_code: string | null;
+
+  // Final
+  final_price: number;
+
   note: string | null;
+
   created_at: string;
   updated_at: string;
+
   items?: OrderItem[];
   logs?: OrderLog[];
+
   intShipment?: IntShipment | null;
   domShipment?: DomShipment | null;
 };
